@@ -1,0 +1,82 @@
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import Navbar from '../components/Navbar';
+import { Card, CardContent, CardHeader } from '../components/ui/Card';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+
+const LenderRegistration = () => {
+  const navigate = useNavigate();
+
+  const handleNext = (e) => {
+    e.preventDefault();
+    navigate('/lender/plans');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Navbar />
+      
+      <main className="flex-grow flex py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto w-full">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">Lender Registration</h1>
+            <div className="flex items-center text-sm font-medium text-gray-500">
+              <span className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center mr-2">1</span>
+              Institution Details
+              <div className="w-12 h-px bg-gray-300 mx-4"></div>
+              <span className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-2">2</span>
+              Plan Selection
+            </div>
+          </div>
+          
+          <Card className="border-indigo-100">
+            <CardHeader className="bg-indigo-50/50">
+              <h2 className="text-xl font-semibold text-gray-900">Step 1: Institution Information</h2>
+              <p className="text-sm text-gray-500 mt-1">Register your financial institution to start accessing the FinPulse intelligence network.</p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleNext} className="space-y-6">
+                <Input label="Institution Name" placeholder="Acme Lending Corp" required />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Institution Type</label>
+                    <select className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500">
+                      <option>Commercial Bank</option>
+                      <option>Credit Union</option>
+                      <option>Private Equity</option>
+                      <option>Alternative Lender</option>
+                    </select>
+                  </div>
+                  <Input label="Estimated Monthly Loan Volume" type="number" placeholder="$10,000,000" required />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input label="Admin First Name" placeholder="John" required />
+                  <Input label="Admin Last Name" placeholder="Smith" required />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input label="Work Email Address" type="email" placeholder="john.smith@acmelending.com" required />
+                  <Input label="Work Phone" type="tel" placeholder="(555) 987-6543" required />
+                </div>
+
+                <div className="pt-6 border-t border-gray-100 flex justify-between items-center">
+                  <Link to="/role-selection" className="text-gray-500 hover:text-gray-900 font-medium">
+                    Back
+                  </Link>
+                  <Button type="submit" className="px-8 bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500">
+                    View Plans
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default LenderRegistration;
