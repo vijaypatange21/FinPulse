@@ -45,7 +45,6 @@ const LenderDashboard = () => {
                             <p className="text-xs font-semibold truncate">Animesh Sharma</p>
                             <p className="text-[10px] text-slate-500 truncate">Senior Risk Officer</p>
                         </div>
-                        <span className="material-icons text-sm ml-auto text-slate-400">settings</span>
                     </div>
                 </div>
             </aside>

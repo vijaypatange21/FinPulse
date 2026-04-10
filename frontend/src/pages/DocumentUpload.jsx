@@ -42,11 +42,6 @@ const DocumentUpload = () => {
                         <span className="material-icons">analytics</span>
                         Transactions
                     </Link>
-                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="#">
-                        <span className="material-icons">settings</span>
-                        Settings
-                    </Link>
-                    
                     {/* Added Log Out action */}
                     <Link className="flex items-center gap-3 px-4 py-3 mt-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors" to="/login">
                         <span className="material-icons">logout</span>

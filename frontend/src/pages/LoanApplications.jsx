@@ -53,10 +53,6 @@ const LoanApplications = () => {
                     <div className="pt-4 pb-2 px-3">
                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Account</p>
                     </div>
-                    <a className="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" href="#">
-                        <span className="material-symbols-outlined">settings</span>
-                        <span className="text-sm font-medium">Settings</span>
-                    </a>
                 </nav>
                 <div className="p-4 border-t border-slate-200 dark:border-slate-800">
                     <div className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors">

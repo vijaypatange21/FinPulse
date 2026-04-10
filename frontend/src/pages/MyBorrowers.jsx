@@ -80,12 +80,6 @@ const MyBorrowers = () => {
                         <span className="text-sm font-medium">Risk Analytics</span>
                     </a>
                 </nav>
-                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-                    <a className="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" href="#">
-                        <span className="material-symbols-outlined">settings</span>
-                        <span className="text-sm font-medium">Settings</span>
-                    </a>
-                </div>
             </aside>
 
             {/* Main Content Area */}
