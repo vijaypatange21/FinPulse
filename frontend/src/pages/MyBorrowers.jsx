@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import ThemeToggle from '../components/ThemeToggle';
+import LenderLayout from '../components/LenderLayout';
 import { mockBorrowers } from '../data/mockData';
 
 const MyBorrowers = () => {
@@ -46,63 +46,8 @@ const MyBorrowers = () => {
     });
 
     return (
-        <div className="flex h-screen overflow-hidden bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100">
-            {/* Sidebar Navigation */}
-            <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0">
-                <div className="p-6 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
-                        <span className="material-symbols-outlined">account_balance_wallet</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <h1 className="text-slate-900 dark:text-white text-lg font-bold leading-none">FinPulse</h1>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">Lender Dashboard</p>
-                    </div>
-                </div>
-                <nav className="flex-1 px-4 space-y-1 mt-4">
-                    <Link className="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/lender/dashboard">
-                        <span className="material-symbols-outlined">dashboard</span>
-                        <span className="text-sm font-medium">Dashboard</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg transition-colors" to="/lender/borrowers">
-                        <span className="material-symbols-outlined">group</span>
-                        <span className="text-sm font-medium">Borrowers</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/lender/applications">
-                        <span className="material-symbols-outlined">description</span>
-                        <span className="text-sm font-medium">Applications</span>
-                    </Link>
-                    <a className="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" href="#">
-                        <span className="material-symbols-outlined">receipt_long</span>
-                        <span className="text-sm font-medium">Repayments</span>
-                    </a>
-                    <a className="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" href="#">
-                        <span className="material-symbols-outlined">monitoring</span>
-                        <span className="text-sm font-medium">Risk Analytics</span>
-                    </a>
-                </nav>
-            </aside>
-
-            {/* Main Content Area */}
-            <main className="flex-1 flex flex-col overflow-y-auto">
-                {/* Header */}
-                <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-8 shrink-0">
-                    <h2 className="text-xl font-bold">My Borrowers</h2>
-                    <div className="flex items-center gap-4">
-                        <div className="relative">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                            <input className="pl-10 pr-4 py-2 bg-[#f6f6f8] dark:bg-slate-800 border-none rounded-lg text-sm w-64 focus:ring-2 focus:ring-primary/50" placeholder="Global search..." type="text" />
-                        </div>
-                        <ThemeToggle />
-                        <button className="w-10 h-10 flex items-center justify-center rounded-lg bg-[#f6f6f8] dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
-                            <span className="material-symbols-outlined">notifications</span>
-                        </button>
-                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/20 bg-primary/10">
-                            <img className="w-full h-full object-cover" alt="User avatar profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgwAEDfyN2VMygbP9yDuZ3Y7DbmHMafkxhLDYv7-8Fnl0LvMdJ38OezT8PE6T5qcUkcZKcyfd89SWRQ6tasa_JsexNYCunfXIBhFZ0tQhwll_t2e7I1o-ezReVXvUwLJFbVEG9nSMxanrb20gpV2MnWzvoHaN4DJY67Jtisdp7UppwcDlM6jIVsRYVJRHbx981reU1KuIvZ6OavK9oizVzDPH3YD13axPHaYHtmT6I6ISPPeenIR8ztGMdbB83tlMe_3pLjsmqxwI" />
-                        </div>
-                    </div>
-                </header>
-
-                <div className="p-8 space-y-6">
+        <LenderLayout activeSection="borrowers">
+            <div className="p-8 space-y-6">
                     {/* Quick Stats */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -258,9 +203,8 @@ const MyBorrowers = () => {
                             </div>
                         </div>
                     </div>
-                </div>
-            </main>
-        </div>
+            </div>
+        </LenderLayout>
     );
 };
 

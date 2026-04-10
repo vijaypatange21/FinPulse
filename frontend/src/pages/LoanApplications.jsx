@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import ThemeToggle from '../components/ThemeToggle';
+import LenderLayout from '../components/LenderLayout';
 import { mockApplications } from '../data/mockData';
 
 const LoanApplications = () => {
@@ -21,64 +21,8 @@ const LoanApplications = () => {
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100">
-            {/* Sidebar */}
-            <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0">
-                <div className="p-6 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
-                        <span className="material-symbols-outlined">account_balance_wallet</span>
-                    </div>
-                    <div>
-                        <h1 className="text-lg font-bold leading-none">FinPulse</h1>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Lender Dashboard</p>
-                    </div>
-                </div>
-                <nav className="flex-1 px-4 space-y-1">
-                    <Link className="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/lender/dashboard">
-                        <span className="material-symbols-outlined">dashboard</span>
-                        <span className="text-sm font-medium">Dashboard</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg transition-colors" to="/lender/applications">
-                        <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
-                        <span className="text-sm font-medium">Applications</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/lender/borrowers">
-                        <span className="material-symbols-outlined">group</span>
-                        <span className="text-sm font-medium">Borrowers</span>
-                    </Link>
-                    <a className="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" href="#">
-                        <span className="material-symbols-outlined">analytics</span>
-                        <span className="text-sm font-medium">Analytics</span>
-                    </a>
-                    <div className="pt-4 pb-2 px-3">
-                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Account</p>
-                    </div>
-                </nav>
-                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">AM</div>
-                        <div className="overflow-hidden">
-                            <p className="text-sm font-semibold truncate">Alex Morgan</p>
-                            <p className="text-xs text-slate-500 truncate">Senior Credit Officer</p>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-
-            {/* Main Content */}
-            <main className="flex-1 flex flex-col overflow-y-auto w-full">
-                {/* Header */}
-                <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-8 shrink-0">
-                    <h2 className="text-xl font-bold">Applications</h2>
-                    <div className="flex items-center gap-4">
-                        <ThemeToggle />
-                        <button className="w-10 h-10 flex items-center justify-center rounded-lg bg-[#f6f6f8] dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
-                            <span className="material-symbols-outlined">notifications</span>
-                        </button>
-                    </div>
-                </header>
-
-                <div className="p-8 max-w-7xl mx-auto w-full">
+        <LenderLayout activeSection="applications">
+            <div className="p-8 max-w-7xl mx-auto w-full">
                     {/* Header Section */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                         <div>
@@ -242,9 +186,8 @@ const LoanApplications = () => {
                             </div>
                         </div>
                     </div>
-                </div>
-            </main>
-        </div>
+            </div>
+        </LenderLayout>
     );
 };
 
