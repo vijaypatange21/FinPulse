@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import ThemeToggle from '../components/ThemeToggle';
 import { mockLenders } from '../data/mockData';
 
 const lenderIcons = ['domain', 'payments', 'corporate_fare', 'home_work', 'savings', 'currency_exchange', 'account_balance', 'storefront', 'assured_workload', 'credit_card'];
@@ -31,33 +30,63 @@ const FindLender = () => {
     };
 
     return (
-        <div className="bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100">
-            <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
-                <div className="layout-container flex h-full grow flex-col">
-                    {/* Navigation Header */}
-                    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-[#2262ec]/10 bg-white dark:bg-slate-900 px-6 lg:px-20 py-4">
-                        <div className="flex items-center gap-8">
-                            <Link to="/borrower/dashboard" className="flex items-center gap-2 text-[#2262ec]">
-                                <span className="material-symbols-outlined text-3xl font-bold">account_balance</span>
-                                <h2 className="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight tracking-tight">FinPulse</h2>
-                            </Link>
-                            <nav className="hidden md:flex items-center gap-6">
-                                <Link className="text-slate-600 dark:text-slate-400 hover:text-[#2262ec] text-sm font-medium transition-colors" to="/borrower/find-lender">Lenders</Link>
-                                <Link className="text-slate-600 dark:text-slate-400 hover:text-[#2262ec] text-sm font-medium transition-colors" to="/borrower/dashboard">My Loans</Link>
-                                <Link className="text-slate-600 dark:text-slate-400 hover:text-[#2262ec] text-sm font-medium transition-colors" to="#">Profile</Link>
-                            </nav>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <ThemeToggle />
-                            <button className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
-                                <span className="material-symbols-outlined">notifications</span>
-                            </button>
-                            <div className="bg-[#2262ec]/10 flex items-center justify-center rounded-full w-10 h-10 border border-[#2262ec]/20 overflow-hidden">
-                                <img className="w-full h-full object-cover" alt="User profile avatar smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA635eK4aVXKEEaHOhVLggmT5xw4vc0Rc5a-1599MWrgdZggoFbKV9HNle3iq6-T-e0ejCYC38hDJxQ-GDut4PZo4iZtt6DFHHI2fsu6MAXsf2RFyBmQRBsLYH0Lh3exJqGE4K6qo0RLRuiV0O0g7X2BAPNILLXQCfFvuQaOdnhqrX6-7QZI5tYdi3sEN78z7KvLoNuJILXto4adAOm9LBKRLj4x0lPIHuQBZyGeqqDyW7_EW_fcshoU3vNhsqVYN2xb8fzcmB_C9g"/>
-                            </div>
-                        </div>
-                    </header>
-                    <main className="flex-1 px-6 lg:px-20 py-8 max-w-[1280px] mx-auto w-full">
+        <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100 antialiased">
+            <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col fixed h-full z-20">
+                <div className="p-6 flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#2262ec] rounded-lg flex items-center justify-center">
+                        <span className="material-icons text-white">insights</span>
+                    </div>
+                    <span className="text-xl font-bold tracking-tight text-[#2262ec]">FinPulse</span>
+                </div>
+                <nav className="flex-1 px-4 mt-4 space-y-1 overflow-y-auto">
+                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/borrower/dashboard">
+                        <span className="material-icons">dashboard</span>
+                        Dashboard
+                    </Link>
+                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/borrower/health-score">
+                        <span className="material-icons">favorite</span>
+                        My Health Score
+                    </Link>
+                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/recommendations">
+                        <span className="material-icons">auto_awesome</span>
+                        Recommendations
+                    </Link>
+                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/borrower/upload">
+                        <span className="material-icons">description</span>
+                        Documents
+                    </Link>
+                    <Link className="flex items-center gap-3 px-4 py-3 bg-[#2262ec]/10 text-[#2262ec] rounded-lg font-medium" to="/borrower/find-lender">
+                        <span className="material-icons">search</span>
+                        Find Lenders
+                    </Link>
+                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="#">
+                        <span className="material-icons">account_balance</span>
+                        Loans
+                    </Link>
+                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="#">
+                        <span className="material-icons">analytics</span>
+                        Transactions
+                    </Link>
+                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="#">
+                        <span className="material-icons">settings</span>
+                        Settings
+                    </Link>
+                    <Link className="flex items-center gap-3 px-4 py-3 mt-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors" to="/login">
+                        <span className="material-icons">logout</span>
+                        Log Out
+                    </Link>
+                </nav>
+                <div className="p-4 mt-auto">
+                    <div className="bg-[#2262ec]/5 rounded-xl p-4 border border-[#2262ec]/10">
+                        <p className="text-xs font-semibold text-[#2262ec] uppercase mb-2">Support Available</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">Need help with your application?</p>
+                        <button className="w-full py-2 bg-[#2262ec] text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">Contact Expert</button>
+                    </div>
+                </div>
+            </aside>
+
+            <main className="ml-64 flex-1 overflow-x-hidden">
+                <div className="px-6 lg:px-20 py-8 max-w-[1280px] mx-auto w-full">
                         {/* Search & Welcome Section */}
                         <div className="flex flex-col gap-6 mb-8">
                             <div className="flex flex-col gap-1">
@@ -160,24 +189,8 @@ const FindLender = () => {
                                 </div>
                             ))}
                         </div>
-                    </main>
-                    {/* Footer */}
-                    <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 lg:px-20 py-8 mt-auto">
-                        <div className="max-w-[1280px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-                            <div className="flex items-center gap-2 text-[#2262ec] opacity-50 grayscale">
-                                <span className="material-symbols-outlined text-xl">account_balance</span>
-                                <span className="font-bold">FinPulse</span>
-                            </div>
-                            <div className="flex gap-8 text-sm text-slate-500">
-                                <span className="hover:text-[#2262ec] transition-colors cursor-pointer">Terms</span>
-                                <span className="hover:text-[#2262ec] transition-colors cursor-pointer">Privacy</span>
-                                <span className="hover:text-[#2262ec] transition-colors cursor-pointer">Support</span>
-                            </div>
-                            <p className="text-xs text-slate-400">© 2024 FinPulse Financial Technologies Inc.</p>
-                        </div>
-                    </footer>
                 </div>
-            </div>
+            </main>
         </div>
     );
 };
