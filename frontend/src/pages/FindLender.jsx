@@ -59,7 +59,7 @@ const FindLender = () => {
                         <span className="material-icons">search</span>
                         Find Lenders
                     </Link>
-                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="#">
+                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/borrower/loans">
                         <span className="material-icons">account_balance</span>
                         Loans
                     </Link>
