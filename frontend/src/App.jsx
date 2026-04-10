@@ -20,6 +20,7 @@ import BorrowerMonitoring from './pages/BorrowerMonitoring';
 import HealthScorePage from './pages/HealthScorePage';
 import LoansPage from './pages/LoansPage';
 import TransactionsPage from './pages/TransactionsPage';
+import PortfolioPage from './pages/PortfolioPage';
 import { ThemeProvider } from './components/ThemeContext';
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
             <Route path="/register/lender" element={<LenderRegistration />} />
             <Route path="/lender/plans" element={<LenderPlans />} />
             <Route path="/lender/dashboard" element={<LenderDashboard />} />
+            <Route path="/lender/portfolio" element={<PortfolioPage />} />
             <Route path="/lender/borrowers" element={<MyBorrowers />} />
             <Route path="/lender/borrowers/:id" element={<BorrowerMonitoring />} />
             <Route path="/lender/applications" element={<LoanApplications />} />

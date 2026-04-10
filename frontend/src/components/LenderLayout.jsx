@@ -6,7 +6,7 @@ const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', to: '/lender/dashboard' },
   { key: 'borrowers', label: 'Borrowers', icon: 'people', to: '/lender/borrowers' },
   { key: 'applications', label: 'Applications', icon: 'assignment', to: '/lender/applications' },
-  { key: 'portfolio', label: 'Portfolio', icon: 'account_balance_wallet', to: '#' },
+  { key: 'portfolio', label: 'Portfolio', icon: 'account_balance_wallet', to: '/lender/portfolio' },
   { key: 'alerts', label: 'Alerts', icon: 'notifications_active', to: '/lender/alerts/1', badge: '8' },
 ];
 
