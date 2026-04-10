@@ -17,6 +17,7 @@ import MyBorrowers from './pages/MyBorrowers';
 import LoanApplications from './pages/LoanApplications';
 import ApplicationDetail from './pages/ApplicationDetail';
 import BorrowerMonitoring from './pages/BorrowerMonitoring';
+import HealthScorePage from './pages/HealthScorePage';
 import { ThemeProvider } from './components/ThemeContext';
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
             <Route path="/loan-application" element={<LoanApplication />} />
             <Route path="/borrower/dashboard" element={<BorrowerDashboard />} />
             <Route path="/borrower/upload" element={<DocumentUpload />} />
+            <Route path="/borrower/health-score" element={<HealthScorePage />} />
             <Route path="/recommendations" element={<Recommendations />} />
             
             {/* Lender Routes */}
