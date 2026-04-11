@@ -2,12 +2,37 @@ import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import { mockBorrowers } from '../data/mockData';
+import { getBorrowerById } from '../lib/api';
 
 const BorrowerMonitoring = () => {
     const navigate = useNavigate();
     const { id } = useParams();
-    const borrowerIndex = parseInt(id) - 1;
-    const borrower = mockBorrowers[borrowerIndex] || mockBorrowers[0];
+    const borrowerIndex = parseInt(id, 10) - 1;
+    const [apiBorrower, setApiBorrower] = React.useState(null);
+    const borrower = apiBorrower || mockBorrowers[Number.isNaN(borrowerIndex) ? 0 : borrowerIndex] || mockBorrowers[0];
+
+    React.useEffect(() => {
+        if (!id || !id.includes('-')) {
+            return;
+        }
+
+        const loadBorrower = async () => {
+            try {
+                const data = await getBorrowerById(id);
+                setApiBorrower({
+                    ...mockBorrowers[0],
+                    id: data.borrower_id,
+                    name: `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim() || data.user?.username || 'Borrower',
+                    location: [data.city, data.state].filter(Boolean).join(', ') || 'N/A',
+                    productType: data.occupation || 'General',
+                });
+            } catch {
+                // Keep fallback UI when API data is not available.
+            }
+        };
+
+        loadBorrower();
+    }, [id]);
 
     const riskColors = {
         green: { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-400', border: 'border-green-100 dark:border-green-800/30', dot: 'bg-green-500' },

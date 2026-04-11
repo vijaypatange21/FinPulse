@@ -1,19 +1,33 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
+import { login, saveAuthSession } from '../lib/api';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate();
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        // Simplified logic: navigate based on email hint for demonstration
-        if (email.includes('lender')) {
-            navigate('/lender/dashboard');
-        } else {
+        setError('');
+        setIsSubmitting(true);
+
+        try {
+            const data = await login(email, password);
+            saveAuthSession(data.token, data.user);
+
+            if (data?.user?.role === 'lender') {
+                navigate('/lender/dashboard');
+                return;
+            }
             navigate('/borrower/dashboard');
+        } catch (err) {
+            setError(err.message || 'Unable to sign in.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -48,6 +62,11 @@ const LoginPage = () => {
                     {/* Login Card */}
                     <div className="bg-white dark:bg-slate-900/50 p-8 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800">
                         <form className="space-y-5" onSubmit={handleLogin}>
+                            {error && (
+                                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-900/20 dark:text-red-300">
+                                    {error}
+                                </div>
+                            )}
                             {/* Email Field */}
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="email">Email Address</label>
@@ -97,8 +116,12 @@ const LoginPage = () => {
                             </div>
 
                             {/* Submit Button */}
-                            <button className="w-full bg-[#2262ec] hover:bg-[#2262ec]/90 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-[#2262ec]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2" type="submit">
-                                <span>Sign In</span>
+                            <button
+                                className="w-full bg-[#2262ec] hover:bg-[#2262ec]/90 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-[#2262ec]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                type="submit"
+                                disabled={isSubmitting}
+                            >
+                                <span>{isSubmitting ? 'Signing In...' : 'Sign In'}</span>
                             </button>
 
                             {/* Divider */}

@@ -6,7 +6,7 @@ import Button from '../components/ui/Button';
 import { UserCircle, MapPin, Building, Briefcase, ChevronRight, Download, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const BorrowerProfile = () => {
-  const { id } = useParams();
+  useParams();
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

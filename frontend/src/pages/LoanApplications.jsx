@@ -1,9 +1,78 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import LenderLayout from '../components/LenderLayout';
-import { mockApplications } from '../data/mockData';
+import { listApplications } from '../lib/api';
+
+const formatMoney = (value) => {
+    const numericValue = Number(value || 0);
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0,
+    }).format(Number.isFinite(numericValue) ? numericValue : 0);
+};
+
+const formatDate = (isoDate) => {
+    if (!isoDate) {
+        return 'N/A';
+    }
+    return new Date(isoDate).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    });
+};
+
+const statusToLabel = (status) => {
+    const map = {
+        new: 'New',
+        under_review: 'Under Review',
+        verified: 'Verified',
+        approved: 'Approved',
+        rejected: 'Rejected',
+    };
+    return map[status] || 'Under Review';
+};
+
+const inferScore = (status) => {
+    if (status === 'approved') return 820;
+    if (status === 'verified') return 760;
+    if (status === 'rejected') return 520;
+    if (status === 'new') return 700;
+    return 660;
+};
 
 const LoanApplications = () => {
+    const [applications, setApplications] = React.useState([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+    const [error, setError] = React.useState('');
+
+    React.useEffect(() => {
+        const loadApplications = async () => {
+            try {
+                const data = await listApplications();
+                const normalized = data.map((item) => ({
+                    id: item.application_id,
+                    name: item.borrower || 'Borrower',
+                    occupation: item.loan_type,
+                    loanType: item.loan_type,
+                    amount: formatMoney(item.requested_amount),
+                    aiScore: inferScore(item.status),
+                    appliedDate: formatDate(item.created_at),
+                    status: statusToLabel(item.status),
+                    avatarUrl: null,
+                }));
+                setApplications(normalized);
+            } catch (err) {
+                setError(err.message || 'Unable to load applications.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadApplications();
+    }, []);
+
     const getScoreStyle = (score) => {
         if (score >= 750) return { text: 'text-green-700 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/30', border: 'border-green-200 dark:border-green-800/30', dot: 'bg-green-600' };
         if (score >= 650) return { text: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-900/30', border: 'border-yellow-200 dark:border-yellow-800/30', dot: 'bg-yellow-600' };
@@ -46,14 +115,14 @@ const LoanApplications = () => {
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
                             <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Total Pending</p>
                             <div className="flex items-end justify-between">
-                                <h3 className="text-3xl font-bold">{mockApplications.length}</h3>
+                                <h3 className="text-3xl font-bold">{applications.length}</h3>
                                 <span className="text-xs font-semibold px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full dark:bg-yellow-900/30 dark:text-yellow-500">Action Required</span>
                             </div>
                         </div>
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
                             <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Average Health Score</p>
                             <div className="flex items-end justify-between">
-                                <h3 className="text-3xl font-bold">{Math.round(mockApplications.reduce((sum, a) => sum + a.aiScore, 0) / mockApplications.length)}</h3>
+                                <h3 className="text-3xl font-bold">{applications.length ? Math.round(applications.reduce((sum, a) => sum + a.aiScore, 0) / applications.length) : 0}</h3>
                                 <div className="flex text-green-600 dark:text-green-400 items-center text-sm font-medium">
                                     <span className="material-symbols-outlined text-base mr-1">trending_up</span>
                                     +12 pts
@@ -123,7 +192,17 @@ const LoanApplications = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                                    {mockApplications.map((app, index) => {
+                                    {isLoading && (
+                                        <tr>
+                                            <td colSpan="9" className="p-6 text-center text-slate-400">Loading applications...</td>
+                                        </tr>
+                                    )}
+                                    {!isLoading && error && (
+                                        <tr>
+                                            <td colSpan="9" className="p-6 text-center text-red-500">{error}</td>
+                                        </tr>
+                                    )}
+                                    {!isLoading && !error && applications.map((app) => {
                                         const scoreStyle = getScoreStyle(app.aiScore);
                                         const statusStyle = getStatusStyle(app.status);
                                         return (
@@ -144,7 +223,7 @@ const LoanApplications = () => {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="p-4 text-sm font-medium text-slate-600 dark:text-slate-400">#{app.id}</td>
+                                                <td className="p-4 text-sm font-medium text-slate-600 dark:text-slate-400">#{String(app.id).slice(0, 8)}</td>
                                                 <td className="p-4 text-sm font-medium">{app.loanType}</td>
                                                 <td className="p-4 text-sm font-bold text-slate-700 dark:text-slate-300">{app.amount}</td>
                                                 <td className="p-4">
@@ -161,7 +240,7 @@ const LoanApplications = () => {
                                                     </span>
                                                 </td>
                                                 <td className="p-4 text-right">
-                                                    <Link to={`/lender/applications/${index + 1}`} className={`inline-flex items-center justify-center px-4 py-2 ${app.status === 'Verified' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-primary hover:bg-blue-700'} text-white text-xs font-bold rounded-lg hover:shadow-md transition-all shadow-sm cursor-pointer`}>
+                                                    <Link to={`/lender/applications/${app.id}`} className={`inline-flex items-center justify-center px-4 py-2 ${app.status === 'Verified' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-primary hover:bg-blue-700'} text-white text-xs font-bold rounded-lg hover:shadow-md transition-all shadow-sm cursor-pointer`}>
                                                         {app.status === 'Verified' ? 'Process' : 'Review'}
                                                     </Link>
                                                 </td>
@@ -174,7 +253,7 @@ const LoanApplications = () => {
 
                         {/* Pagination */}
                         <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                            <p className="text-sm text-slate-500 font-medium">Showing {mockApplications.length} of {mockApplications.length} results</p>
+                            <p className="text-sm text-slate-500 font-medium">Showing {applications.length} of {applications.length} results</p>
                             <div className="flex items-center gap-2">
                                 <button className="p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 disabled:opacity-50 cursor-not-allowed" disabled>
                                     <span className="material-symbols-outlined text-sm m-0 leading-none">chevron_left</span>

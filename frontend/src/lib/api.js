@@ -1,0 +1,117 @@
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
+const TOKEN_KEY = 'finpulse_token';
+const USER_KEY = 'finpulse_user';
+
+export function getAuthToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function getCurrentUser() {
+  const rawUser = localStorage.getItem(USER_KEY);
+  if (!rawUser) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawUser);
+  } catch {
+    localStorage.removeItem(USER_KEY);
+    return null;
+  }
+}
+
+export function saveAuthSession(token, user) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  }
+  if (user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  }
+}
+
+export function clearAuthSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
+export async function apiRequest(path, options = {}) {
+  const token = getAuthToken();
+  const { method = 'GET', body, headers = {}, auth = true } = options;
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(auth && token ? { Authorization: `Token ${token}` } : {}),
+      ...headers,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      payload?.detail ||
+      payload?.message ||
+      payload?.non_field_errors?.[0] ||
+      'Request failed.';
+    throw new Error(message);
+  }
+
+  return payload;
+}
+
+export async function login(usernameOrEmail, password) {
+  return apiRequest('/auth/login/', {
+    method: 'POST',
+    auth: false,
+    body: {
+      username_or_email: usernameOrEmail,
+      password,
+    },
+  });
+}
+
+export async function registerBorrower(payload) {
+  return apiRequest('/auth/register/borrower/', {
+    method: 'POST',
+    auth: false,
+    body: payload,
+  });
+}
+
+export async function registerLender(payload) {
+  return apiRequest('/auth/register/lender/', {
+    method: 'POST',
+    auth: false,
+    body: payload,
+  });
+}
+
+export async function listBorrowers() {
+  return apiRequest('/borrowers/');
+}
+
+export async function listApplications() {
+  return apiRequest('/applications/');
+}
+
+export async function listLenders() {
+  return apiRequest('/lenders/');
+}
+
+export async function createLoanApplication(payload) {
+  return apiRequest('/applications/', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export async function getBorrowerById(id) {
+  return apiRequest(`/borrowers/${id}/`);
+}
+
+export async function getApplicationById(id) {
+  return apiRequest(`/applications/${id}/`);
+}

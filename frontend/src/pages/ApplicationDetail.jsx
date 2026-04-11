@@ -2,18 +2,46 @@ import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import { mockApplications } from '../data/mockData';
+import { getApplicationById } from '../lib/api';
 
 const ApplicationDetail = () => {
     const navigate = useNavigate();
     const { id } = useParams();
-    const appIndex = parseInt(id) - 1;
-    const app = mockApplications[appIndex] || mockApplications[0];
+    const appIndex = parseInt(id, 10) - 1;
+    const [apiApp, setApiApp] = React.useState(null);
+    const app = apiApp || mockApplications[Number.isNaN(appIndex) ? 0 : appIndex] || mockApplications[0];
 
-    const getScoreColor = (score) => {
-        if (score >= 750) return 'text-green-500';
-        if (score >= 650) return 'text-yellow-500';
-        return 'text-red-500';
-    };
+    React.useEffect(() => {
+        if (!id || !id.includes('-')) {
+            return;
+        }
+
+        const loadApplication = async () => {
+            try {
+                const data = await getApplicationById(id);
+                setApiApp({
+                    ...mockApplications[0],
+                    id: data.application_id,
+                    borrowerId: String(data.borrower || '').slice(0, 8),
+                    name: `Borrower ${String(data.borrower || '').slice(0, 6)}`,
+                    occupation: data.loan_type,
+                    location: 'N/A',
+                    loanType: data.loan_type,
+                    amount: new Intl.NumberFormat('en-IN', {
+                        style: 'currency',
+                        currency: 'INR',
+                        maximumFractionDigits: 0,
+                    }).format(Number(data.requested_amount || 0)),
+                    tenure: `${data.requested_tenure_months} Months`,
+                    status: data.status,
+                });
+            } catch {
+                // Keep fallback UI when API data is not available.
+            }
+        };
+
+        loadApplication();
+    }, [id]);
 
     const getScoreRingColor = (score) => {
         if (score >= 750) return 'text-green-500';

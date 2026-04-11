@@ -4,13 +4,50 @@ import Navbar from '../components/Navbar';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
+import { registerLender, saveAuthSession } from '../lib/api';
+
+const usernameFromEmail = (email) => {
+  const local = email.split('@')[0] || 'lender';
+  return `${local}_${Date.now().toString().slice(-6)}`;
+};
 
 const LenderRegistration = () => {
   const navigate = useNavigate();
+  const [form, setForm] = React.useState({
+    institution_name: '',
+    institution_type: 'Commercial Bank',
+    monthly_loan_volume: '',
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+  });
+  const [error, setError] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const handleNext = (e) => {
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleNext = async (e) => {
     e.preventDefault();
-    navigate('/lender/plans');
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      const payload = {
+        ...form,
+        username: usernameFromEmail(form.email),
+        monthly_loan_volume: Number(form.monthly_loan_volume || 0),
+      };
+      const data = await registerLender(payload);
+      saveAuthSession(data.token, data.user);
+      navigate('/lender/plans');
+    } catch (err) {
+      setError(err.message || 'Registration failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -37,37 +74,38 @@ const LenderRegistration = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleNext} className="space-y-6">
-                <Input label="Institution Name" placeholder="Acme Lending Corp" required />
+                {error && <p className="text-sm text-red-600">{error}</p>}
+                <Input label="Institution Name" placeholder="Acme Lending Corp" required name="institution_name" value={form.institution_name} onChange={handleChange} />
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Institution Type</label>
-                    <select className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500">
+                    <select name="institution_type" value={form.institution_type} onChange={handleChange} className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500">
                       <option>Commercial Bank</option>
                       <option>Credit Union</option>
                       <option>Private Equity</option>
                       <option>Alternative Lender</option>
                     </select>
                   </div>
-                  <Input label="Estimated Monthly Loan Volume" type="number" placeholder="$10,000,000" required />
+                  <Input label="Estimated Monthly Loan Volume" type="number" placeholder="10000000" required name="monthly_loan_volume" value={form.monthly_loan_volume} onChange={handleChange} />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Input label="Admin First Name" placeholder="John" required />
-                  <Input label="Admin Last Name" placeholder="Smith" required />
+                  <Input label="Admin First Name" placeholder="John" required name="first_name" value={form.first_name} onChange={handleChange} />
+                  <Input label="Admin Last Name" placeholder="Smith" required name="last_name" value={form.last_name} onChange={handleChange} />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Input label="Work Email Address" type="email" placeholder="john.smith@acmelending.com" required />
-                  <Input label="Work Phone" type="tel" placeholder="(555) 987-6543" required />
+                  <Input label="Work Email Address" type="email" placeholder="john.smith@acmelending.com" required name="email" value={form.email} onChange={handleChange} />
+                  <Input label="Password" type="password" minLength={8} placeholder="Minimum 8 characters" required name="password" value={form.password} onChange={handleChange} />
                 </div>
 
                 <div className="pt-6 border-t border-gray-100 flex justify-between items-center">
                   <Link to="/role-selection" className="text-gray-500 hover:text-gray-900 font-medium">
                     Back
                   </Link>
-                  <Button type="submit" className="px-8 bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500">
-                    View Plans
+                  <Button type="submit" className="px-8 bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500" disabled={isSubmitting}>
+                    {isSubmitting ? 'Creating Account...' : 'View Plans'}
                   </Button>
                 </div>
               </form>
