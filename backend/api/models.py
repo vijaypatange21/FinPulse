@@ -29,15 +29,64 @@ class User(AbstractUser):
 
 
 class BorrowerProfile(TimeStampedModel):
+    class RiskLevel(models.TextChoices):
+        LOW = "low", "Low"
+        MEDIUM = "medium", "Medium"
+        HIGH = "high", "High"
+
+    class RiskColor(models.TextChoices):
+        GREEN = "green", "Green"
+        YELLOW = "yellow", "Yellow"
+        RED = "red", "Red"
+
+    class Status(models.TextChoices):
+        ON_TRACK = "On Track", "On Track"
+        OVERDUE = "Overdue", "Overdue"
+        GRACE_PERIOD = "Grace Period", "Grace Period"
+        CLOSED = "Closed", "Closed"
+
     borrower_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="borrower_profile")
     phone_number = models.CharField(max_length=20, blank=True)
     city = models.CharField(max_length=100, blank=True)
     state = models.CharField(max_length=100, blank=True)
     occupation = models.CharField(max_length=120, blank=True)
+    avatar_url = models.URLField(blank=True)
+    loan_type = models.CharField(max_length=60, default="Personal")
+    principal_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    outstanding_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    next_emi_date = models.DateField(null=True, blank=True)
+    interest_rate_pa = models.DecimalField(max_digits=5, decimal_places=2, default=10.50)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ON_TRACK)
+    health_score = models.PositiveIntegerField(default=720)
+    health_label = models.CharField(max_length=30, default="Good")
+    risk_level = models.CharField(max_length=10, choices=RiskLevel.choices, default=RiskLevel.MEDIUM)
+    risk_color = models.CharField(max_length=10, choices=RiskColor.choices, default=RiskColor.GREEN)
+    risk_note = models.TextField(blank=True, default="")
+    insurance_expiry = models.DateField(null=True, blank=True)
+    policy_number = models.CharField(max_length=50, blank=True, default="")
+    repayment_percent = models.PositiveIntegerField(default=0)
+    total_paid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    remaining_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    emi_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    cash_flow = models.JSONField(default=list, blank=True)
+    timeline = models.JSONField(default=list, blank=True)
+    alert_text = models.TextField(blank=True, default="")
 
     def __str__(self):
         return f"Borrower {self.user.get_full_name() or self.user.username}"
+
+    @property
+    def display_name(self):
+        return self.user.get_full_name() or self.user.username
+
+    @property
+    def location(self):
+        return ", ".join(part for part in [self.city, self.state] if part) or "N/A"
+
+    @property
+    def product_type(self):
+        return self.occupation or "General"
 
 
 class LenderProfile(TimeStampedModel):
@@ -46,8 +95,20 @@ class LenderProfile(TimeStampedModel):
     institution_name = models.CharField(max_length=150)
     institution_type = models.CharField(max_length=100, blank=True)
     monthly_loan_volume = models.DecimalField(max_digits=16, decimal_places=2, default=0)
+    avatar_url = models.URLField(blank=True)
+    loan_range = models.CharField(max_length=50, blank=True, default="")
+    interest_rate = models.CharField(max_length=50, blank=True, default="")
+    approval_rate = models.CharField(max_length=20, blank=True, default="")
+    speed = models.CharField(max_length=50, blank=True, default="")
+    rating = models.DecimalField(max_digits=3, decimal_places=1, default=0)
+    reviews = models.PositiveIntegerField(default=0)
+    description = models.TextField(blank=True, default="")
 
     def __str__(self):
+        return self.institution_name
+
+    @property
+    def display_name(self):
         return self.institution_name
 
 
@@ -72,6 +133,20 @@ class LoanApplication(TimeStampedModel):
     requested_amount = models.DecimalField(max_digits=14, decimal_places=2)
     requested_tenure_months = models.PositiveIntegerField(default=12)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.NEW)
+    ai_score = models.PositiveIntegerField(default=700)
+    max_potential = models.PositiveIntegerField(default=850)
+    score_change = models.CharField(max_length=50, default="+0pts from last month")
+    payment_history = models.PositiveIntegerField(default=80)
+    credit_utilization = models.PositiveIntegerField(default=30)
+    account_age = models.CharField(max_length=50, default="1 Year")
+    credit_mix = models.CharField(max_length=50, default="Good")
+    risk_level = models.CharField(max_length=10, choices=BorrowerProfile.RiskLevel.choices, default=BorrowerProfile.RiskLevel.MEDIUM)
+    default_probability = models.CharField(max_length=20, default="5%")
+    prob_change = models.CharField(max_length=20, default="0%")
+    monthly_income = models.CharField(max_length=40, default="₹0")
+    debt_to_income = models.CharField(max_length=20, default="0%")
+    note = models.TextField(blank=True, default="")
+    activities = models.JSONField(default=list, blank=True)
 
     def __str__(self):
         return f"Application {self.application_id}"

@@ -10,6 +10,243 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["id", "username", "email", "first_name", "last_name", "role"]
 
 
+class UserReferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "first_name", "last_name", "role"]
+
+
+class BorrowerSnapshotSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(source="borrower_id", read_only=True)
+    name = serializers.CharField(source="display_name", read_only=True)
+    location = serializers.CharField(read_only=True)
+    productType = serializers.CharField(source="product_type", read_only=True)
+    principal = serializers.SerializerMethodField()
+    outstanding = serializers.SerializerMethodField()
+    nextEmi = serializers.SerializerMethodField()
+    status = serializers.CharField(source="status", read_only=True)
+    riskScore = serializers.IntegerField(source="health_score", read_only=True)
+    avatarUrl = serializers.CharField(source="avatar_url", read_only=True)
+    healthScore = serializers.IntegerField(source="health_score", read_only=True)
+    healthLabel = serializers.CharField(source="health_label", read_only=True)
+    memberSince = serializers.SerializerMethodField()
+    totalOutstanding = serializers.SerializerMethodField()
+    nextEmiDate = serializers.SerializerMethodField()
+    interestRate = serializers.SerializerMethodField()
+    riskLevel = serializers.CharField(source="risk_level", read_only=True)
+    riskColor = serializers.CharField(source="risk_color", read_only=True)
+    riskNote = serializers.CharField(source="risk_note", read_only=True)
+    insuranceExpiry = serializers.SerializerMethodField()
+    policyNumber = serializers.CharField(source="policy_number", read_only=True)
+    repaymentPercent = serializers.IntegerField(source="repayment_percent", read_only=True)
+    totalPaid = serializers.SerializerMethodField()
+    remaining = serializers.SerializerMethodField()
+    emiAmount = serializers.SerializerMethodField()
+    cashFlow = serializers.JSONField(read_only=True)
+    timeline = serializers.JSONField(read_only=True)
+    alertText = serializers.CharField(source="alert_text", read_only=True)
+    currentLoanType = serializers.CharField(source="loan_type", read_only=True)
+    currentStatus = serializers.CharField(source="status", read_only=True)
+
+    class Meta:
+        model = BorrowerProfile
+        fields = [
+            "id",
+            "borrower_id",
+            "user",
+            "name",
+            "location",
+            "productType",
+            "principal",
+            "outstanding",
+            "nextEmi",
+            "status",
+            "riskScore",
+            "avatarUrl",
+            "healthScore",
+            "healthLabel",
+            "memberSince",
+            "totalOutstanding",
+            "nextEmiDate",
+            "interestRate",
+            "riskLevel",
+            "riskColor",
+            "riskNote",
+            "insuranceExpiry",
+            "policyNumber",
+            "repaymentPercent",
+            "totalPaid",
+            "remaining",
+            "emiAmount",
+            "cashFlow",
+            "timeline",
+            "alertText",
+            "currentLoanType",
+            "currentStatus",
+            "phone_number",
+            "city",
+            "state",
+            "occupation",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_principal(self, obj):
+        return obj.principal_amount
+
+    def get_outstanding(self, obj):
+        return obj.outstanding_amount
+
+    def get_nextEmi(self, obj):
+        return obj.next_emi_date
+
+    def get_memberSince(self, obj):
+        return obj.created_at.date() if obj.created_at else None
+
+    def get_totalOutstanding(self, obj):
+        return obj.outstanding_amount
+
+    def get_nextEmiDate(self, obj):
+        return obj.next_emi_date
+
+    def get_interestRate(self, obj):
+        return f"{obj.interest_rate_pa}% p.a."
+
+    def get_insuranceExpiry(self, obj):
+        return obj.insurance_expiry
+
+    def get_totalPaid(self, obj):
+        return obj.total_paid
+
+    def get_remaining(self, obj):
+        return obj.remaining_amount
+
+    def get_emiAmount(self, obj):
+        return obj.emi_amount
+
+
+class LenderSnapshotSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(source="lender_id", read_only=True)
+    name = serializers.CharField(source="display_name", read_only=True)
+    type = serializers.CharField(source="institution_type", read_only=True)
+    loanRange = serializers.CharField(source="loan_range", read_only=True)
+    interestRate = serializers.CharField(source="interest_rate", read_only=True)
+    approvalRate = serializers.CharField(source="approval_rate", read_only=True)
+    speed = serializers.CharField(read_only=True)
+    rating = serializers.DecimalField(max_digits=3, decimal_places=1, read_only=True)
+    reviews = serializers.IntegerField(read_only=True)
+    avatarUrl = serializers.CharField(source="avatar_url", read_only=True)
+
+    class Meta:
+        model = LenderProfile
+        fields = [
+            "id",
+            "lender_id",
+            "user",
+            "name",
+            "type",
+            "loanRange",
+            "interestRate",
+            "approvalRate",
+            "speed",
+            "rating",
+            "reviews",
+            "avatarUrl",
+            "institution_name",
+            "institution_type",
+            "monthly_loan_volume",
+            "description",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class LoanApplicationSnapshotSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(source="application_id", read_only=True)
+    borrowerId = serializers.SerializerMethodField()
+    borrowerName = serializers.SerializerMethodField()
+    loanType = serializers.CharField(source="loan_type", read_only=True)
+    amount = serializers.SerializerMethodField()
+    aiScore = serializers.IntegerField(source="ai_score", read_only=True)
+    appliedDate = serializers.DateTimeField(source="created_at", read_only=True)
+    status = serializers.CharField(read_only=True)
+    avatarUrl = serializers.SerializerMethodField()
+    occupation = serializers.CharField(source="loan_type", read_only=True)
+    name = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
+    tenure = serializers.SerializerMethodField()
+    maxPotential = serializers.IntegerField(source="max_potential", read_only=True)
+    scoreChange = serializers.CharField(source="score_change", read_only=True)
+    paymentHistory = serializers.IntegerField(source="payment_history", read_only=True)
+    creditUtilization = serializers.IntegerField(source="credit_utilization", read_only=True)
+    accountAge = serializers.CharField(source="account_age", read_only=True)
+    creditMix = serializers.CharField(source="credit_mix", read_only=True)
+    riskLevel = serializers.CharField(source="risk_level", read_only=True)
+    defaultProbability = serializers.CharField(source="default_probability", read_only=True)
+    probChange = serializers.CharField(source="prob_change", read_only=True)
+    monthlyIncome = serializers.CharField(source="monthly_income", read_only=True)
+    debtToIncome = serializers.CharField(source="debt_to_income", read_only=True)
+    note = serializers.CharField(source="note", read_only=True)
+    activities = serializers.JSONField(read_only=True)
+
+    class Meta:
+        model = LoanApplication
+        fields = [
+            "id",
+            "application_id",
+            "borrower",
+            "preferred_lender",
+            "borrowerId",
+            "borrowerName",
+            "loanType",
+            "amount",
+            "aiScore",
+            "appliedDate",
+            "status",
+            "avatarUrl",
+            "occupation",
+            "name",
+            "location",
+            "tenure",
+            "requested_amount",
+            "requested_tenure_months",
+            "maxPotential",
+            "scoreChange",
+            "paymentHistory",
+            "creditUtilization",
+            "accountAge",
+            "creditMix",
+            "riskLevel",
+            "defaultProbability",
+            "probChange",
+            "monthlyIncome",
+            "debtToIncome",
+            "note",
+            "activities",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_borrowerId(self, obj):
+        return obj.borrower.borrower_id
+
+    def get_borrowerName(self, obj):
+        return obj.borrower.display_name
+
+    def get_amount(self, obj):
+        return obj.requested_amount
+
+    def get_avatarUrl(self, obj):
+        return obj.borrower.avatar_url
+
+    def get_name(self, obj):
+        return obj.borrower.display_name
+
+    def get_location(self, obj):
+        return obj.borrower.location
+
+    def get_tenure(self, obj):
+        return f"{obj.requested_tenure_months} Months"
 class BorrowerRegistrationSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     email = serializers.EmailField()
@@ -29,7 +266,19 @@ class BorrowerRegistrationSerializer(serializers.Serializer):
             "occupation": validated_data.pop("occupation", ""),
         }
         user = User.objects.create_user(role=User.Role.BORROWER, **validated_data)
-        BorrowerProfile.objects.create(user=user, **profile_data)
+        BorrowerProfile.objects.create(
+            user=user,
+            loan_type="Personal",
+            principal_amount=0,
+            outstanding_amount=0,
+            status=BorrowerProfile.Status.ON_TRACK,
+            health_score=720,
+            health_label="Good",
+            risk_level=BorrowerProfile.RiskLevel.MEDIUM,
+            risk_color=BorrowerProfile.RiskColor.GREEN,
+            repayment_percent=0,
+            **profile_data,
+        )
         return user
 
 
@@ -50,7 +299,16 @@ class LenderRegistrationSerializer(serializers.Serializer):
             "monthly_loan_volume": validated_data.pop("monthly_loan_volume", 0),
         }
         user = User.objects.create_user(role=User.Role.LENDER, **validated_data)
-        LenderProfile.objects.create(user=user, **profile_data)
+        LenderProfile.objects.create(
+            user=user,
+            approval_rate="90%",
+            loan_range="₹10K - ₹50L",
+            interest_rate="Starting 11% p.a.",
+            speed="3 Days",
+            rating=4.5,
+            reviews=0,
+            **profile_data,
+        )
         return user
 
 
@@ -78,40 +336,18 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
-class BorrowerProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-
-    class Meta:
-        model = BorrowerProfile
-        fields = ["borrower_id", "user", "phone_number", "city", "state", "occupation", "created_at"]
+class BorrowerProfileSerializer(BorrowerSnapshotSerializer):
+    user = UserReferenceSerializer(read_only=True)
 
 
-class LenderProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-
-    class Meta:
-        model = LenderProfile
-        fields = [
-            "lender_id",
-            "user",
-            "institution_name",
-            "institution_type",
-            "monthly_loan_volume",
-            "created_at",
-        ]
+class LenderProfileSerializer(LenderSnapshotSerializer):
+    user = UserReferenceSerializer(read_only=True)
 
 
-class LoanApplicationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LoanApplication
-        fields = [
-            "application_id",
-            "borrower",
-            "preferred_lender",
-            "loan_type",
-            "requested_amount",
-            "requested_tenure_months",
-            "status",
-            "created_at",
-            "updated_at",
-        ]
+class LoanApplicationSerializer(LoanApplicationSnapshotSerializer):
+    borrower = serializers.PrimaryKeyRelatedField(queryset=BorrowerProfile.objects.all())
+    preferred_lender = serializers.PrimaryKeyRelatedField(
+        queryset=LenderProfile.objects.all(),
+        required=False,
+        allow_null=True,
+    )
