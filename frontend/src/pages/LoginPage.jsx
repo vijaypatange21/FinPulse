@@ -3,6 +3,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import { login, saveAuthSession } from '../lib/api';
 
+const demoAccounts = {
+    borrower: {
+        usernameOrEmail: 'borrower0@example.com',
+        password: 'Test1234',
+    },
+    lender: {
+        usernameOrEmail: 'lender0@example.com',
+        password: 'Test1234',
+    },
+};
+
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -10,13 +21,12 @@ const LoginPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate();
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
+    const performLogin = async (usernameOrEmail, userPassword) => {
         setError('');
         setIsSubmitting(true);
 
         try {
-            const data = await login(email, password);
+            const data = await login(usernameOrEmail, userPassword);
             saveAuthSession(data.token, data.user);
 
             if (data?.user?.role === 'lender') {
@@ -29,6 +39,18 @@ const LoginPage = () => {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        await performLogin(email, password);
+    };
+
+    const handleDemoLogin = async (role) => {
+        const credentials = demoAccounts[role];
+        setEmail(credentials.usernameOrEmail);
+        setPassword(credentials.password);
+        await performLogin(credentials.usernameOrEmail, credentials.password);
     };
 
     return (
@@ -154,20 +176,14 @@ const LoginPage = () => {
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setEmail('borrower@demo.com');
-                                            setPassword('password123');
-                                        }}
+                                        onClick={() => handleDemoLogin('borrower')}
                                         className="w-full inline-flex justify-center py-2 px-4 border border-slate-200 dark:hover:border-slate-600 rounded-lg shadow-sm bg-white dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
                                     >
                                         Borrower Demo
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setEmail('lender@demo.com');
-                                            setPassword('password123');
-                                        }}
+                                        onClick={() => handleDemoLogin('lender')}
                                         className="w-full inline-flex justify-center py-2 px-4 border border-slate-200 dark:hover:border-slate-600 rounded-lg shadow-sm bg-white dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
                                     >
                                         Lender Demo
