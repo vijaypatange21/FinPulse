@@ -305,6 +305,8 @@ class BorrowerDocument(TimeStampedModel):
     file_name = models.CharField(max_length=255)
     file_size = models.CharField(max_length=50, default="Unknown")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="processing")
+    parsed_data = models.JSONField(default=dict, blank=True)
+
 
     class Meta:
         db_table = "borrower_documents"

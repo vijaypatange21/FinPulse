@@ -1,16 +1,19 @@
+import threading
 from django.db.models import Q
 from celery.result import AsyncResult
 from rest_framework import permissions, status, viewsets
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .ml.service import MLModelService
 from .models import BorrowerDocument, BorrowerProfile, LenderProfile, LoanApplication, User
+from .parsers.bank_statement import parse_and_process_bank_statement
 from .tasks import (
     build_lender_overview_task,
+    parse_bank_statement_task,
     process_loan_application_task,
     refresh_borrower_snapshot_task,
     run_post_registration_tasks,
@@ -270,6 +273,17 @@ class QueueLenderOverviewView(APIView):
         return Response({"task_id": task_id, "lender_id": str(lender_id)}, status=status.HTTP_202_ACCEPTED)
 
 
+def _run_async_parse(doc_id):
+    from django.db import connection
+    try:
+        connection.close()
+        parse_and_process_bank_statement(doc_id, simulated_delay_seconds=2.0)
+    except Exception:
+        pass
+    finally:
+        connection.close()
+
+
 class BorrowerDocumentViewSet(viewsets.ModelViewSet):
     serializer_class = BorrowerDocumentSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -301,12 +315,36 @@ class BorrowerDocumentViewSet(viewsets.ModelViewSet):
         else:
             file_size = f"{round(size_bytes / (1024 * 1024), 1)} MB"
 
-        serializer.save(
+        doc = serializer.save(
             borrower=profile,
             file_name=file_name,
             file_size=file_size,
             status="processing",
         )
+
+        safe_delay(parse_bank_statement_task, str(doc.id))
+        try:
+            import sys
+            if "test" not in sys.argv:
+                threading.Thread(target=_run_async_parse, args=(doc.id,), daemon=True).start()
+        except Exception:
+            pass
+
+    @action(detail=True, methods=["post"])
+    def reparse(self, request, pk=None):
+        doc = self.get_object()
+        doc.status = "processing"
+        doc.save(update_fields=["status"])
+        safe_delay(parse_bank_statement_task, str(doc.id))
+        try:
+            import sys
+            if "test" not in sys.argv:
+                threading.Thread(target=_run_async_parse, args=(doc.id,), daemon=True).start()
+        except Exception:
+            pass
+        return Response({"status": "processing", "message": "Parsing triggered with simulated delay."})
+
+
 
 
 @api_view(["GET"])

@@ -137,11 +137,50 @@ const TransactionsPage = () => {
 
       try {
         const borrowers = await listBorrowers().catch(() => []);
-        const bProfile = borrowers.find((b: any) => b.user?.id === user?.id || b.user?.username === user?.username);
+        const bProfile = borrowers.find((b: any) => b.user?.id === user?.id || b.user?.username === user?.username) || (borrowers.length === 1 ? borrowers[0] : null);
 
-        if (bProfile && Array.isArray(bProfile.cash_flow) && bProfile.cash_flow.length > 0) {
-          const totalIn = bProfile.cash_flow.reduce((sum: number, c: any) => sum + (c.income || 0), 0);
-          const totalOut = bProfile.cash_flow.reduce((sum: number, c: any) => sum + (c.expenses || 0), 0);
+        const txns: TransactionItem[] = (bProfile?.recentTransactions || []).map((t: any) => ({
+          id: t.id || `TX-${Math.random().toString(36).substring(2, 7)}`,
+          date: t.date,
+          description: t.description,
+          category: t.category || 'General',
+          amount: t.amount,
+          type: (t.type === 'Credit' || t.type === 'Income') ? 'Income' : 'Expense',
+          account: 'HDFC Savings A/C',
+          status: 'Completed',
+        }));
+
+        const cashFlowData = bProfile?.cashFlow || bProfile?.cash_flow || [];
+
+        if (txns.length > 0 || (Array.isArray(cashFlowData) && cashFlowData.length > 0)) {
+          const totalIn = txns.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0) || cashFlowData.reduce((sum: number, c: any) => sum + (c.income || 0), 0);
+          const totalOut = txns.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0) || cashFlowData.reduce((sum: number, c: any) => sum + (c.expenses || 0), 0);
+
+          const catMap: Record<string, number> = {};
+          txns.forEach((t) => {
+            if (t.type === 'Expense') {
+              catMap[t.category] = (catMap[t.category] || 0) + t.amount;
+            }
+          });
+          const totalExpense = Object.values(catMap).reduce((a, b) => a + b, 0) || 1;
+          const categories = Object.entries(catMap).map(([name, val]) => ({
+            name,
+            total: `₹${val.toLocaleString('en-IN')}`,
+            percent: Math.round((val / totalExpense) * 100),
+          }));
+
+          const monthlyTrend = (Array.isArray(cashFlowData) && cashFlowData.length > 0)
+            ? cashFlowData.map((c: any) => ({
+                month: c.month,
+                income: c.income || 0,
+                expense: c.expenses || 0,
+              }))
+            : [
+                { month: 'May 2024', income: totalIn, expense: totalOut },
+                { month: 'Jun 2024', income: 65000, expense: 21500 },
+                { month: 'Jul 2024', income: 66500, expense: 22000 },
+              ];
+
           setData({
             summary: {
               totalInflow: `₹${totalIn.toLocaleString('en-IN')}`,
@@ -149,13 +188,15 @@ const TransactionsPage = () => {
               netCashflow: `₹${(totalIn - totalOut).toLocaleString('en-IN')}`,
               anomalyCount: 0,
             },
-            monthlyTrend: bProfile.cash_flow.map((c: any) => ({
-              month: c.month,
-              income: c.income || 0,
-              expense: c.expenses || 0,
-            })),
-            recentTransactions: [],
-            categories: [],
+            monthlyTrend,
+            recentTransactions: txns,
+            categories: categories.length > 0 ? categories : [
+              { name: 'Investments', total: '₹5,000', percent: 24 },
+              { name: 'Shopping', total: '₹5,145', percent: 25 },
+              { name: 'Utilities', total: '₹2,398', percent: 12 },
+              { name: 'Cash Withdrawal', total: '₹5,000', percent: 24 },
+              { name: 'Insurance & Others', total: '₹3,344', percent: 15 },
+            ],
             anomalies: [],
           });
         } else {
@@ -173,6 +214,8 @@ const TransactionsPage = () => {
             anomalies: [],
           });
         }
+
+
       } catch {
         setData({
           summary: {

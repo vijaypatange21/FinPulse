@@ -42,11 +42,15 @@ class BorrowerSnapshotSerializer(serializers.ModelSerializer):
     totalPaid = serializers.SerializerMethodField()
     remaining = serializers.SerializerMethodField()
     emiAmount = serializers.SerializerMethodField()
-    cashFlow = serializers.JSONField(read_only=True)
+    cashFlow = serializers.JSONField(source="cash_flow", read_only=True)
     timeline = serializers.JSONField(read_only=True)
+
+    recentTransactions = serializers.SerializerMethodField()
     alertText = serializers.CharField(source="alert_text", read_only=True)
+
     currentLoanType = serializers.CharField(source="loan_type", read_only=True)
     currentStatus = serializers.CharField(source="status", read_only=True)
+
 
     class Meta:
         model = BorrowerProfile
@@ -80,6 +84,7 @@ class BorrowerSnapshotSerializer(serializers.ModelSerializer):
             "emiAmount",
             "cashFlow",
             "timeline",
+            "recentTransactions",
             "alertText",
             "currentLoanType",
             "currentStatus",
@@ -90,6 +95,23 @@ class BorrowerSnapshotSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def get_recentTransactions(self, obj):
+        txns = obj.bank_transactions.all().order_by("-txn_date")[:50]
+        return [
+            {
+                "id": str(t.txn_id),
+                "date": t.txn_date.strftime("%d %b %Y"),
+                "description": t.txn_category or "Banking Transaction",
+                "category": t.txn_category,
+                "amount": t.txn_amount,
+                "type": t.txn_type,
+                "balance": t.balance_after,
+                "status": "Completed",
+            }
+            for t in txns
+        ]
+
 
     def get_principal(self, obj):
         return obj.principal_amount
@@ -367,10 +389,12 @@ class BorrowerDocumentSerializer(serializers.ModelSerializer):
             "file_name",
             "file_size",
             "status",
+            "parsed_data",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "borrower", "file_name", "file_size", "file_url", "created_at", "updated_at"]
+        read_only_fields = ["id", "borrower", "file_name", "file_size", "file_url", "parsed_data", "created_at", "updated_at"]
+
 
     def get_file_url(self, obj):
         if not obj.file:

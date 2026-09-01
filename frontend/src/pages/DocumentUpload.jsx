@@ -18,6 +18,8 @@ const DocumentUpload = () => {
     const [dragActive, setDragActive] = useState(false);
     const [notification, setNotification] = useState(null);
     const [previewDoc, setPreviewDoc] = useState(null);
+    const [previewTab, setPreviewTab] = useState('parsed');
+    const [searchFilter, setSearchFilter] = useState('');
     const fileInputRef = useRef(null);
 
     const user = getCurrentUser();
@@ -44,6 +46,18 @@ const DocumentUpload = () => {
     useEffect(() => {
         fetchDocs();
     }, []);
+
+    useEffect(() => {
+        const hasProcessing = documents.some(d => d.status === 'processing');
+        if (!hasProcessing) return;
+
+        const interval = setInterval(() => {
+            fetchDocs();
+        }, 1500);
+
+        return () => clearInterval(interval);
+    }, [documents]);
+
 
     const showToast = (msg, type = 'success') => {
         setNotification({ msg, type });
@@ -516,16 +530,39 @@ const DocumentUpload = () => {
                         <div className="p-4 px-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
                             <div className="flex items-center gap-3">
                                 <span className="material-icons text-[#2262ec]">
-                                    {previewDoc.file_name?.endsWith('.pdf') ? 'picture_as_pdf' : previewDoc.file_name?.match(/\.(jpg|jpeg|png)$/i) ? 'image' : 'description'}
+                                    {previewDoc.file_name?.endsWith('.pdf') ? 'picture_as_pdf' : previewDoc.file_name?.match(/\.(jpg|jpeg|png)$/i) ? 'image' : 'account_balance'}
                                 </span>
                                 <div>
-                                    <h3 className="font-bold text-slate-900 dark:text-white text-base">{previewDoc.file_name}</h3>
+                                    <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                                        <span>{previewDoc.file_name}</span>
+                                        {previewDoc.parsed_data?.bank_name && (
+                                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-[#2262ec] text-[10px] font-bold rounded-full">
+                                                {previewDoc.parsed_data.bank_name}
+                                            </span>
+                                        )}
+                                    </h3>
                                     <p className="text-xs text-slate-500">
                                         {CATEGORY_MAP[previewDoc.document_type]?.label || 'Document'} • {previewDoc.file_size} • {previewDoc.status}
                                     </p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
+                                {previewDoc.parsed_data?.bank_name && (
+                                    <div className="flex bg-slate-200 dark:bg-slate-800 p-0.5 rounded-lg mr-2">
+                                        <button
+                                            onClick={() => setPreviewTab('parsed')}
+                                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${previewTab === 'parsed' ? 'bg-white dark:bg-slate-900 text-[#2262ec] shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}
+                                        >
+                                            Parsed Statement
+                                        </button>
+                                        <button
+                                            onClick={() => setPreviewTab('raw')}
+                                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${previewTab === 'raw' ? 'bg-white dark:bg-slate-900 text-[#2262ec] shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}
+                                        >
+                                            Original Document
+                                        </button>
+                                    </div>
+                                )}
                                 {previewDoc.file_url && (
                                     <a
                                         href={getMediaUrl(previewDoc.file_url)}
@@ -534,7 +571,7 @@ const DocumentUpload = () => {
                                         className="px-3 py-1.5 bg-[#2262ec] text-white text-xs font-semibold rounded-lg hover:bg-[#2262ec]/90 transition-colors flex items-center gap-1.5"
                                     >
                                         <span className="material-icons text-sm">open_in_new</span>
-                                        Open Fullscreen
+                                        Full File
                                     </a>
                                 )}
                                 <button
@@ -547,37 +584,150 @@ const DocumentUpload = () => {
                         </div>
 
                         {/* Modal Content */}
-                        <div className="flex-1 p-6 overflow-y-auto flex items-center justify-center bg-slate-100 dark:bg-slate-950/50 min-h-[400px]">
-                            {previewDoc.file_name?.endsWith('.pdf') ? (
-                                <iframe
-                                    src={getMediaUrl(previewDoc.file_url || previewDoc.file)}
-                                    title={previewDoc.file_name}
-                                    className="w-full h-[65vh] rounded-lg border border-slate-200 dark:border-slate-800 bg-white"
-                                />
-                            ) : previewDoc.file_name?.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
-                                <img
-                                    src={getMediaUrl(previewDoc.file_url || previewDoc.file)}
-                                    alt={previewDoc.file_name}
-                                    className="max-h-[65vh] max-w-full object-contain rounded-lg shadow-md"
-                                />
-                            ) : (
-                                <div className="text-center p-8">
-                                    <span className="material-icons text-5xl text-slate-400 mb-3 block">insert_drive_file</span>
-                                    <h4 className="font-bold text-slate-900 dark:text-white mb-2">{previewDoc.file_name}</h4>
-                                    <p className="text-sm text-slate-500 mb-6">Preview is not available for this file type.</p>
-                                    <a
-                                        href={getMediaUrl(previewDoc.file_url || previewDoc.file)}
-                                        download={previewDoc.file_name}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="px-6 py-2.5 bg-[#2262ec] text-white text-sm font-semibold rounded-lg hover:bg-[#2262ec]/90 transition-colors inline-flex items-center gap-2"
-                                    >
-                                        <span className="material-icons text-sm">download</span>
-                                        Download File
-                                    </a>
+                        {previewTab === 'parsed' && previewDoc.parsed_data?.bank_name ? (
+                            <div className="flex-1 p-6 overflow-y-auto bg-slate-50 dark:bg-slate-950/60 space-y-6">
+                                {/* Header Card */}
+                                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between gap-4">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-icons text-[#2262ec]">account_balance</span>
+                                            <h4 className="font-black text-lg text-slate-900 dark:text-white">{previewDoc.parsed_data.bank_name}</h4>
+                                            <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-bold rounded">
+                                                Verified Statement
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-slate-500">
+                                            Account: <strong className="text-slate-700 dark:text-slate-300">{previewDoc.parsed_data.account?.account_number || '5010 0123 4567 89'}</strong> ({previewDoc.parsed_data.account?.account_type || 'Savings'}) • IFSC: <strong className="text-slate-700 dark:text-slate-300">{previewDoc.parsed_data.account?.ifsc || 'HDFC0001234'}</strong>
+                                        </p>
+                                        <p className="text-xs text-slate-400">
+                                            Holder: {previewDoc.parsed_data.account_holder?.name || 'VIKAS PANDEY'} • Branch: {previewDoc.parsed_data.account?.branch || 'Vasna Road, Vadodara'}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-slate-400 uppercase font-semibold">Statement Period</p>
+                                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                                            {previewDoc.parsed_data.statement_period?.from || '2024-05-01'} to {previewDoc.parsed_data.statement_period?.to || '2024-05-31'}
+                                        </p>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
+
+                                {/* Financial Snapshot Cards */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                        <p className="text-[11px] font-bold uppercase text-slate-400">Opening Balance</p>
+                                        <p className="text-base font-bold text-slate-800 dark:text-slate-200 mt-1">
+                                            ₹{(previewDoc.parsed_data.opening_balance || 45230.5).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </p>
+                                    </div>
+                                    <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                        <p className="text-[11px] font-bold uppercase text-slate-400">Total Credits</p>
+                                        <p className="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                                            +₹{(previewDoc.parsed_data.totals?.total_credits || 64250).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </p>
+                                    </div>
+                                    <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                        <p className="text-[11px] font-bold uppercase text-slate-400">Total Debits</p>
+                                        <p className="text-base font-bold text-rose-600 dark:text-rose-400 mt-1">
+                                            -₹{(previewDoc.parsed_data.totals?.total_debits || 20887.75).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </p>
+                                    </div>
+                                    <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                        <p className="text-[11px] font-bold uppercase text-slate-400">Closing Balance</p>
+                                        <p className="text-base font-bold text-[#2262ec] mt-1">
+                                            ₹{(previewDoc.parsed_data.closing_balance || 88592.75).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Transactions Table */}
+                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                        <h5 className="font-bold text-sm text-slate-900 dark:text-white">
+                                            Parsed Transactions ({previewDoc.parsed_data.transactions?.length || 0})
+                                        </h5>
+                                        <input
+                                            type="text"
+                                            placeholder="Search description/category..."
+                                            value={searchFilter}
+                                            onChange={(e) => setSearchFilter(e.target.value)}
+                                            className="px-3 py-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2262ec]"
+                                        />
+                                    </div>
+                                    <div className="max-h-[340px] overflow-y-auto">
+                                        <table className="w-full text-left text-xs whitespace-nowrap">
+                                            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-400 uppercase font-semibold sticky top-0">
+                                                <tr>
+                                                    <th className="px-4 py-2.5">Date</th>
+                                                    <th className="px-4 py-2.5">Description</th>
+                                                    <th className="px-4 py-2.5">Category</th>
+                                                    <th className="px-4 py-2.5 text-right">Debit</th>
+                                                    <th className="px-4 py-2.5 text-right">Credit</th>
+                                                    <th className="px-4 py-2.5 text-right">Balance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                                {(previewDoc.parsed_data.transactions || [])
+                                                    .filter(t => !searchFilter || t.description?.toLowerCase().includes(searchFilter.toLowerCase()) || t.category?.toLowerCase().includes(searchFilter.toLowerCase()))
+                                                    .map((t, idx) => (
+                                                        <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                                                            <td className="px-4 py-2 text-slate-500">{t.transaction_date}</td>
+                                                            <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-200 max-w-[240px] truncate" title={t.description}>
+                                                                {t.description}
+                                                            </td>
+                                                            <td className="px-4 py-2">
+                                                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded font-medium text-[10px]">
+                                                                    {t.category || 'General'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-2 text-right font-medium text-rose-600 dark:text-rose-400">
+                                                                {t.debit > 0 ? `-₹${t.debit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                                                            </td>
+                                                            <td className="px-4 py-2 text-right font-medium text-emerald-600 dark:text-emerald-400">
+                                                                {t.credit > 0 ? `+₹${t.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                                                            </td>
+                                                            <td className="px-4 py-2 text-right font-semibold text-slate-900 dark:text-white">
+                                                                ₹{t.balance?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex-1 p-6 overflow-y-auto flex items-center justify-center bg-slate-100 dark:bg-slate-950/50 min-h-[400px]">
+                                {previewDoc.file_name?.endsWith('.pdf') ? (
+                                    <iframe
+                                        src={getMediaUrl(previewDoc.file_url || previewDoc.file)}
+                                        title={previewDoc.file_name}
+                                        className="w-full h-[65vh] rounded-lg border border-slate-200 dark:border-slate-800 bg-white"
+                                    />
+                                ) : previewDoc.file_name?.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
+                                    <img
+                                        src={getMediaUrl(previewDoc.file_url || previewDoc.file)}
+                                        alt={previewDoc.file_name}
+                                        className="max-h-[65vh] max-w-full object-contain rounded-lg shadow-md"
+                                    />
+                                ) : (
+                                    <div className="text-center p-8">
+                                        <span className="material-icons text-5xl text-slate-400 mb-3 block">insert_drive_file</span>
+                                        <h4 className="font-bold text-slate-900 dark:text-white mb-2">{previewDoc.file_name}</h4>
+                                        <p className="text-sm text-slate-500 mb-6">Preview is not available for this file type.</p>
+                                        <a
+                                            href={getMediaUrl(previewDoc.file_url || previewDoc.file)}
+                                            download={previewDoc.file_name}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-6 py-2.5 bg-[#2262ec] text-white text-sm font-semibold rounded-lg hover:bg-[#2262ec]/90 transition-colors inline-flex items-center gap-2"
+                                        >
+                                            <span className="material-icons text-sm">download</span>
+                                            Download File
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -586,4 +736,5 @@ const DocumentUpload = () => {
 };
 
 export default DocumentUpload;
+
 

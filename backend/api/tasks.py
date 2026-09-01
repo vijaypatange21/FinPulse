@@ -73,3 +73,10 @@ def build_lender_overview_task(self, lender_id):
         "rejected": lender_apps.filter(status=LoanApplication.Status.REJECTED).count(),
     }
     return payload
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=3, retry_kwargs={"max_retries": 3})
+def parse_bank_statement_task(self, document_id):
+    from .parsers.bank_statement import parse_and_process_bank_statement
+    return parse_and_process_bank_statement(document_id, simulated_delay_seconds=2.0)
+

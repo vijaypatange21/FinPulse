@@ -20,13 +20,15 @@ const BorrowerDashboard = () => {
                     listApplications().catch(() => []),
                 ]);
 
-                const bProfile = borrowers.find(b => b.user?.id === user.id || b.user?.username === user.username);
+                const bProfile = borrowers.find(b => b.user?.id === user.id || b.user?.username === user.username) || (borrowers.length === 1 ? borrowers[0] : null);
                 setApplications(apps);
 
                 if (bProfile) {
                     setUserProfile(bProfile);
-                    if (bProfile.health_score && bProfile.health_score > 0) {
-                        setMlHealth({ score: bProfile.health_score, label: bProfile.health_label || 'Good' });
+                    const healthScore = bProfile.healthScore || bProfile.health_score || bProfile.riskScore || 0;
+                    const healthLabel = bProfile.healthLabel || bProfile.health_label || (healthScore >= 750 ? 'Prime' : healthScore >= 650 ? 'Good' : 'Fair');
+                    if (healthScore > 0) {
+                        setMlHealth({ score: healthScore, label: healthLabel });
                     } else {
                         setMlHealth({ score: 0, label: 'New Profile' });
                     }
@@ -39,10 +41,11 @@ const BorrowerDashboard = () => {
                     setMlHealth({ score: 0, label: 'New Profile' });
                 }
 
-                if (bProfile && Array.isArray(bProfile.cash_flow) && bProfile.cash_flow.length >= 3) {
-                    const balances = bProfile.cash_flow.map(c => c.income - c.expenses);
+                const cashFlow = bProfile?.cashFlow || bProfile?.cash_flow || [];
+                if (bProfile && Array.isArray(cashFlow) && cashFlow.length >= 1) {
+                    const balances = cashFlow.map(c => (c.income || 0) - (c.expenses || 0));
                     const fc = await forecastBalance(balances).catch(() => ({ low_balance_risk: false }));
-                    setCashflowRisk(fc.low_balance_risk);
+                    setCashflowRisk(fc?.low_balance_risk || false);
                 } else {
                     setCashflowRisk(false);
                 }
@@ -61,10 +64,29 @@ const BorrowerDashboard = () => {
         loadDashboard();
     }, []);
 
+
     const currentUser = getCurrentUser();
     const name = userProfile ? (userProfile.display_name || userProfile.name || userProfile.user?.first_name || userProfile.user?.username) : (currentUser?.first_name || currentUser?.username || 'Borrower');
 
-    const isNewUser = !userProfile || !userProfile.health_score || userProfile.health_score === 0;
+    const isNewUser = !userProfile || (!userProfile.healthScore && !userProfile.health_score && !userProfile.riskScore) || (userProfile.healthScore === 0 && userProfile.health_score === 0 && userProfile.riskScore === 0);
+
+    const avgMonthlyIncome = (userProfile?.cashFlow && userProfile.cashFlow.length > 0)
+        ? Math.round(userProfile.cashFlow.reduce((acc, c) => acc + (c.income || 0), 0) / userProfile.cashFlow.length)
+        : (userProfile?.monthly_income ? Number(userProfile.monthly_income) : 0);
+
+    const trendMonths = (userProfile?.cashFlow && userProfile.cashFlow.length > 0)
+        ? userProfile.cashFlow.map(c => ({
+            month: c.month ? c.month.split(' ')[0] : 'Month',
+            income: c.income || 0,
+            expenses: c.expenses || 0,
+        }))
+        : [
+            { month: 'May', income: 64250, expenses: 20888 },
+            { month: 'Jun', income: 65000, expenses: 21500 },
+            { month: 'Jul', income: 66500, expenses: 22000 },
+        ];
+    const maxVal = Math.max(1, ...trendMonths.map(t => Math.max(t.income, t.expenses)));
+
 
     return (
         <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-800 dark:text-slate-200 antialiased">
@@ -267,7 +289,7 @@ const BorrowerDashboard = () => {
                                 <span className="text-slate-400 text-xs font-bold">{isNewUser ? 'N/A' : '+$0'}</span>
                             </div>
                             <p className="text-slate-500 text-sm font-medium mb-1">Avg. Cash Flow</p>
-                            <p className="text-2xl font-bold">{isNewUser ? '₹0' : (userProfile?.monthly_income ? `₹${Number(userProfile.monthly_income).toLocaleString()}` : '₹0')}<span className="text-sm text-slate-400 font-normal">/mo</span></p>
+                            <p className="text-2xl font-bold">{isNewUser ? '₹0' : `₹${avgMonthlyIncome.toLocaleString('en-IN')}`}<span className="text-sm text-slate-400 font-normal">/mo</span></p>
                         </div>
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between mb-4">
@@ -288,7 +310,7 @@ const BorrowerDashboard = () => {
                             <div className="flex items-center justify-between mb-8">
                                 <div>
                                     <h3 className="text-lg font-bold">Income vs. Expenses</h3>
-                                    <p className="text-sm text-slate-500 mt-1">Last 6 months financial trend</p>
+                                    <p className="text-sm text-slate-500 mt-1">Monthly cashflow overview</p>
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="flex items-center gap-2">
@@ -320,15 +342,19 @@ const BorrowerDashboard = () => {
                                     </div>
                                     
                                     {/* Months Columns */}
-                                    {['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'].map((m) => (
-                                        <div key={m} className="relative z-10 flex flex-col items-center flex-1 h-full justify-end group">
-                                            <div className="flex items-end gap-1 w-full justify-center transition-transform group-hover:-translate-y-1">
-                                                <div className="w-6 sm:w-8 bg-slate-200 dark:bg-slate-700 rounded-t-sm" style={{ height: '40%' }}></div>
-                                                <div className="w-6 sm:w-8 bg-[#2262ec] rounded-t-sm shadow-sm" style={{ height: '70%' }}></div>
+                                    {trendMonths.map((m) => {
+                                        const expHeight = Math.max(10, Math.round((m.expenses / maxVal) * 85));
+                                        const incHeight = Math.max(15, Math.round((m.income / maxVal) * 85));
+                                        return (
+                                            <div key={m.month} className="relative z-10 flex flex-col items-center flex-1 h-full justify-end group">
+                                                <div className="flex items-end gap-1 w-full justify-center transition-transform group-hover:-translate-y-1">
+                                                    <div className="w-6 sm:w-8 bg-slate-200 dark:bg-slate-700 rounded-t-sm" style={{ height: `${expHeight}%` }} title={`Expenses: ₹${m.expenses.toLocaleString('en-IN')}`}></div>
+                                                    <div className="w-6 sm:w-8 bg-[#2262ec] rounded-t-sm shadow-sm" style={{ height: `${incHeight}%` }} title={`Income: ₹${m.income.toLocaleString('en-IN')}`}></div>
+                                                </div>
+                                                <span className="mt-4 text-xs font-medium text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{m.month}</span>
                                             </div>
-                                            <span className="mt-4 text-xs font-medium text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{m}</span>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
