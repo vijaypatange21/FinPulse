@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .ml.service import MLModelService
-from .models import BorrowerDocument, BorrowerProfile, LenderProfile, LoanApplication
+from .models import BorrowerDocument, BorrowerProfile, LenderProfile, LoanApplication, User
 from .tasks import (
     build_lender_overview_task,
     process_loan_application_task,
@@ -101,9 +101,27 @@ class LoginView(APIView):
         )
 
 
+from .ml.underwriter import evaluate_and_score_application
+
 class BorrowerProfileViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = BorrowerProfile.objects.select_related("user").all()
     serializer_class = BorrowerProfileSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return BorrowerProfile.objects.none()
+
+        if user.role == User.Role.BORROWER and hasattr(user, "borrower_profile"):
+            return BorrowerProfile.objects.filter(user=user)
+
+        if user.role == User.Role.LENDER and hasattr(user, "lender_profile"):
+            lender = user.lender_profile
+            return BorrowerProfile.objects.filter(applications__preferred_lender=lender).distinct()
+
+        if user.is_staff or user.role == User.Role.ADMIN:
+            return BorrowerProfile.objects.select_related("user").all()
+
+        return BorrowerProfile.objects.none()
 
 
 class LenderProfileViewSet(viewsets.ReadOnlyModelViewSet):
@@ -126,20 +144,40 @@ class LoanApplicationViewSet(viewsets.ModelViewSet):
 
         if user.role == user.Role.LENDER and hasattr(user, "lender_profile"):
             lender = user.lender_profile
-            return queryset.filter(Q(preferred_lender=lender) | Q(preferred_lender__isnull=True))
+            return queryset.filter(preferred_lender=lender)
 
-        return queryset
+        if user.is_staff or user.role == User.Role.ADMIN:
+            return queryset
+
+        return LoanApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         application = serializer.save()
+
+        try:
+            application = evaluate_and_score_application(application)
+        except Exception:
+            pass
+
         task_id = safe_delay(process_loan_application_task, str(application.application_id))
 
         data = self.get_serializer(application).data
         data["background_task_id"] = task_id
         headers = self.get_success_headers(data)
         return Response(data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_update(self, serializer):
+        application = serializer.save()
+        if application.status == LoanApplication.Status.APPROVED:
+            borrower = application.borrower
+            borrower.principal_amount = application.requested_amount
+            borrower.outstanding_amount = application.requested_amount
+            borrower.loan_type = application.loan_type
+            borrower.status = BorrowerProfile.Status.ON_TRACK
+            borrower.save(update_fields=["principal_amount", "outstanding_amount", "loan_type", "status", "updated_at"])
+
 
 
 class HealthScorePredictionView(APIView):

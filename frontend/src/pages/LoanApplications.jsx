@@ -34,14 +34,6 @@ const statusToLabel = (status) => {
     return map[status] || 'Under Review';
 };
 
-const inferScore = (status) => {
-    if (status === 'approved') return 820;
-    if (status === 'verified') return 760;
-    if (status === 'rejected') return 520;
-    if (status === 'new') return 700;
-    return 660;
-};
-
 const LoanApplications = () => {
     const [applications, setApplications] = React.useState([]);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -51,13 +43,14 @@ const LoanApplications = () => {
         const loadApplications = async () => {
             try {
                 const data = await listApplications();
-                const normalized = data.map((item) => ({
+                const appList = Array.isArray(data) ? data : (data?.results || []);
+                const normalized = appList.map((item) => ({
                     id: item.id || item.application_id,
                     name: item.borrowerName || item.name || 'Borrower',
                     occupation: item.occupation || item.loanType || item.loan_type || 'General',
                     loanType: item.loanType || item.loan_type,
                     amount: formatMoney(item.amount || item.requested_amount),
-                    aiScore: item.aiScore || inferScore(item.status),
+                    aiScore: item.aiScore ?? item.ai_score ?? 0,
                     appliedDate: formatDate(item.appliedDate || item.created_at),
                     status: statusToLabel(item.status),
                     avatarUrl: item.avatarUrl || null,

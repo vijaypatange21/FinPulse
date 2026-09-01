@@ -55,6 +55,7 @@ function App() {
             <Route path="/lender/borrowers/:id" element={<BorrowerMonitoring />} />
             <Route path="/lender/applications" element={<LoanApplications />} />
             <Route path="/lender/applications/:id" element={<ApplicationDetail />} />
+            <Route path="/lender/alerts" element={<AlertDetail />} />
             <Route path="/lender/alerts/:id" element={<AlertDetail />} />
             <Route path="/borrower/profile/:id" element={<BorrowerProfile />} />
             <Route path="/borrower/find-lender" element={<FindLender />} />

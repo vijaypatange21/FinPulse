@@ -98,10 +98,11 @@ const LoanApplication = () => {
       }
 
       const borrowerId = borrowerProfile.borrower_id || borrowerProfile.id;
+      const selectedLender = form.preferred_lender || (lenders[0]?.id || lenders[0]?.lender_id || null);
 
       await createLoanApplication({
         borrower: borrowerId,
-        preferred_lender: form.preferred_lender ? form.preferred_lender : null,
+        preferred_lender: selectedLender,
         loan_type: form.loan_type,
         requested_amount: amount,
         requested_tenure_months: tenure,

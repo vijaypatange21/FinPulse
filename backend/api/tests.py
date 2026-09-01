@@ -83,9 +83,11 @@ class FinPulseAPITests(TestCase):
         self.assertIn("token", response.data)
 
     def test_list_borrowers(self):
+        self.client.force_authenticate(user=self.lender_user)
         response = self.client.get("/api/v1/borrowers/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(len(response.data) >= 1)
+
 
     def test_list_lenders(self):
         response = self.client.get("/api/v1/lenders/")

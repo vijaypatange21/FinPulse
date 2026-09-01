@@ -8,8 +8,9 @@ const navItems = [
   { key: 'borrowers', label: 'Borrowers', icon: 'people', to: '/lender/borrowers' },
   { key: 'applications', label: 'Applications', icon: 'assignment', to: '/lender/applications' },
   { key: 'portfolio', label: 'Portfolio', icon: 'account_balance_wallet', to: '/lender/portfolio' },
-  { key: 'alerts', label: 'Alerts', icon: 'notifications_active', to: '/lender/alerts/1' },
+  { key: 'alerts', label: 'Alerts', icon: 'notifications_active', to: '/lender/alerts' },
 ];
+
 
 const LenderLayout = ({ activeSection = 'dashboard', children }) => {
   const user = getCurrentUser();

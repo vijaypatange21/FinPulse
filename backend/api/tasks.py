@@ -34,30 +34,18 @@ def process_loan_application_task(self, application_id):
         application.status = LoanApplication.Status.UNDER_REVIEW
         application.save(update_fields=["status", "updated_at"])
 
-    borrower = application.borrower
-    ml_service = MLModelService()
-
-    synthetic_payload = {
-        "features": {
-            "monthly_income": 50000,
-            "total_expense": 32000,
-            "savings_rate": 0.18,
-            "emi_income_ratio": 0.24,
-            "cashflow_volatility": 0.16,
-        }
-    }
-
-    health_result = ml_service.predict_health_score(synthetic_payload)
-    BankSummaryDim.objects.get_or_create(
-        borrower=borrower,
-        defaults={"financial_stress_index": max(0.0, 100.0 - float(health_result.get("health_score", 50.0)) / 100.0)},
-    )
+    try:
+        from .ml.underwriter import evaluate_and_score_application
+        evaluate_and_score_application(application)
+    except Exception:
+        pass
 
     return {
         "application_id": str(application.application_id),
-        "status": "queued-processing-complete",
-        "health_score": health_result,
+        "status": "underwriting-complete",
+        "ai_score": application.ai_score,
     }
+
 
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=3, retry_kwargs={"max_retries": 3})
