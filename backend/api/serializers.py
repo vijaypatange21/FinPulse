@@ -24,7 +24,7 @@ class BorrowerSnapshotSerializer(serializers.ModelSerializer):
     principal = serializers.SerializerMethodField()
     outstanding = serializers.SerializerMethodField()
     nextEmi = serializers.SerializerMethodField()
-    status = serializers.CharField(source="status", read_only=True)
+    status = serializers.CharField(read_only=True)
     riskScore = serializers.IntegerField(source="health_score", read_only=True)
     avatarUrl = serializers.CharField(source="avatar_url", read_only=True)
     healthScore = serializers.IntegerField(source="health_score", read_only=True)
@@ -186,7 +186,7 @@ class LoanApplicationSnapshotSerializer(serializers.ModelSerializer):
     probChange = serializers.CharField(source="prob_change", read_only=True)
     monthlyIncome = serializers.CharField(source="monthly_income", read_only=True)
     debtToIncome = serializers.CharField(source="debt_to_income", read_only=True)
-    note = serializers.CharField(source="note", read_only=True)
+    note = serializers.CharField(read_only=True)
     activities = serializers.JSONField(read_only=True)
 
     class Meta:
