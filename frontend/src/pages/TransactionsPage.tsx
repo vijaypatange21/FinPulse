@@ -230,6 +230,33 @@ const TransactionsPage = () => {
     loadTransactions();
   }, []);
 
+  const handleExportCSV = () => {
+    if (!data || !data.recentTransactions.length) {
+      alert('No transaction records available to export.');
+      return;
+    }
+
+    const headers = ['Date', 'Description', 'Account', 'Category', 'Type', 'Amount (INR)', 'Status'];
+    const rows = data.recentTransactions.map(tx => [
+      `"${tx.date}"`,
+      `"${tx.description.replace(/"/g, '""')}"`,
+      `"${tx.account}"`,
+      `"${tx.category}"`,
+      `"${tx.type}"`,
+      tx.amount,
+      `"${tx.status}"`,
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `FinPulse_Transactions_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const displayName = currentUser ? (`${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username) : 'Borrower';
 
   return (
@@ -323,7 +350,12 @@ const TransactionsPage = () => {
                       <h3 className="text-lg font-bold">Recent transactions</h3>
                       <p className="text-sm text-slate-500 mt-1">Latest entries from connected accounts</p>
                     </div>
-                    <button className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Export CSV</button>
+                    <button
+                      onClick={handleExportCSV}
+                      className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5"
+                    >
+                      <span className="material-icons text-sm">download</span> Export CSV
+                    </button>
                   </CardHeader>
                   <CardContent className="overflow-x-auto p-0">
                     <table className="w-full text-left">

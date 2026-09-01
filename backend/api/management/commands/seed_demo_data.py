@@ -337,7 +337,25 @@ class Command(BaseCommand):
                 )
                 seeded_lender_profiles.append(lender_profile)
 
-            # 3. Create Loan Applications
+            # 3. Create Admin Demo User
+            admin_user, _ = User.objects.get_or_create(
+                username="admin",
+                defaults={
+                    "email": "admin@finpulse.com",
+                    "first_name": "Site",
+                    "last_name": "Admin",
+                    "role": User.Role.ADMIN,
+                    "is_staff": True,
+                    "is_superuser": True,
+                },
+            )
+            admin_user.set_password("Admin@123")
+            admin_user.role = User.Role.ADMIN
+            admin_user.is_staff = True
+            admin_user.is_superuser = True
+            admin_user.save()
+
+            # 4. Create Loan Applications
             applications_data = [
                 {
                     "borrower_idx": 0,

@@ -8,6 +8,7 @@ const BorrowerDashboard = () => {
     const [applications, setApplications] = React.useState([]);
     const [mlHealth, setMlHealth] = React.useState({ score: 0, label: 'New Profile' });
     const [cashflowRisk, setCashflowRisk] = React.useState(false);
+    const [showNotifications, setShowNotifications] = React.useState(false);
 
     React.useEffect(() => {
         const loadDashboard = async () => {
@@ -145,10 +146,35 @@ const BorrowerDashboard = () => {
                     </div>
                     <div className="flex items-center gap-4">
                         <ThemeToggle />
-                        <button className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors relative">
-                            <span className="material-icons text-[20px]">notifications</span>
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                        </button>
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowNotifications(!showNotifications)}
+                                className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors relative"
+                                title="Notifications"
+                            >
+                                <span className="material-icons text-[20px]">notifications</span>
+                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                            </button>
+
+                            {showNotifications && (
+                                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in">
+                                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">Notifications</h4>
+                                        <button onClick={() => setShowNotifications(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-semibold">Close</button>
+                                    </div>
+                                    <div className="mt-3 space-y-3">
+                                        <div className="p-3 bg-blue-50/60 dark:bg-blue-950/20 rounded-xl text-xs space-y-1">
+                                            <p className="font-bold text-slate-900 dark:text-white">Bank Statement Parsed</p>
+                                            <p className="text-slate-500">Your statement was ingested and submitted for verification.</p>
+                                        </div>
+                                        <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/20 rounded-xl text-xs space-y-1">
+                                            <p className="font-bold text-slate-900 dark:text-white">Health Score Ready</p>
+                                            <p className="text-slate-500">Your credit assessment score is updated and pre-qualifies for prime rates.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                         <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
                             <div className="text-right flex flex-col justify-center">
                                 <p className="text-sm font-semibold leading-tight">{name}</p>
@@ -374,15 +400,15 @@ const BorrowerDashboard = () => {
                                         <p className="text-xs text-slate-500 mt-0.5">Personal or Business</p>
                                     </div>
                                 </Link>
-                                <button className="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-[#2262ec]/50 hover:bg-[#2262ec]/5 transition-all text-left group">
+                                <Link to="/borrower/find-lender" className="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-[#2262ec]/50 hover:bg-[#2262ec]/5 transition-all text-left group">
                                     <div className="w-10 h-10 bg-[#2262ec]/10 rounded-lg flex items-center justify-center text-[#2262ec] group-hover:bg-[#2262ec] group-hover:text-white transition-colors shadow-sm">
                                         <span className="material-icons">history_edu</span>
                                     </div>
                                     <div>
                                         <p className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-[#2262ec] transition-colors">Review Offers</p>
-                                        <p className="text-xs text-slate-500 mt-0.5">Submit request to view offers</p>
+                                        <p className="text-xs text-slate-500 mt-0.5">Browse pre-qualified loan offers</p>
                                     </div>
-                                </button>
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -391,9 +417,9 @@ const BorrowerDashboard = () => {
                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                         <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20">
                             <h3 className="font-bold text-lg">Active Applications</h3>
-                            <button className="text-sm font-bold text-[#2262ec] hover:underline flex items-center gap-1">
+                            <Link to="/borrower/loans" className="text-sm font-bold text-[#2262ec] hover:underline flex items-center gap-1">
                                 View All <span className="material-icons text-sm">arrow_forward</span>
-                            </button>
+                            </Link>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left whitespace-nowrap">

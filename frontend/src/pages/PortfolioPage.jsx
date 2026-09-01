@@ -88,12 +88,50 @@ const PortfolioPage = () => {
   const circumference = 2 * Math.PI * radius;
   let accumulated = 0;
 
+  const [toastMsg, setToastMsg] = useState('');
+
+  const handleExportPortfolio = () => {
+    const csvContent = 'data:text/csv;charset=utf-8,' + [
+      'Borrower Name,Facility Type,Exposure (INR),Risk Level',
+      ...borrowers.map(b => `"${b.name || 'Borrower'}","${b.productType || b.occupation || 'Loan'}","${b.principal || b.outstanding || 0}","${(b.healthScore || b.riskScore || 700) >= 750 ? 'Low' : (b.healthScore || b.riskScore || 700) >= 650 ? 'Medium' : 'High'}"`)
+    ].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `FinPulse_Portfolio_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setToastMsg('Portfolio report exported as CSV.');
+    setTimeout(() => setToastMsg(''), 3000);
+  };
+
   return (
     <LenderLayout activeSection="portfolio">
       <div className="max-w-7xl mx-auto w-full space-y-6">
-        <div>
-          <h2 className="text-3xl font-black tracking-tight">Portfolio</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Overview of exposure, yield, risk mix, and loan maturity trends.</p>
+        {toastMsg && (
+          <div className="p-4 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold flex items-center justify-between shadow-xl animate-fade-in">
+            <div className="flex items-center gap-2">
+              <span className="material-icons text-emerald-400 text-base">check_circle</span>
+              <span>{toastMsg}</span>
+            </div>
+            <button onClick={() => setToastMsg('')} className="text-slate-400 hover:text-white">✕</button>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-black tracking-tight">Portfolio</h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">Overview of exposure, yield, risk mix, and loan maturity trends.</p>
+          </div>
+          <button
+            onClick={handleExportPortfolio}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2262ec] hover:bg-[#2262ec]/90 text-white text-xs font-bold rounded-xl shadow-md transition-all self-start sm:self-auto"
+          >
+            <span className="material-icons text-sm">download</span>
+            Export Report
+          </button>
         </div>
 
         {loading ? (

@@ -37,6 +37,99 @@ const Recommendations = () => {
         fetchProfileAndAi();
     }, [user?.id, user?.username]);
 
+    const [activeFilter, setActiveFilter] = React.useState('all');
+    const [startedGoals, setStartedGoals] = React.useState(['credit_builder']);
+    const [toastMessage, setToastMessage] = React.useState(null);
+
+    const showToast = (msg) => {
+        setToastMessage(msg);
+        setTimeout(() => setToastMessage(null), 3500);
+    };
+
+    const toggleGoal = (goalId, goalTitle) => {
+        if (startedGoals.includes(goalId)) {
+            setStartedGoals(prev => prev.filter(g => g !== goalId));
+            showToast(`Goal paused: ${goalTitle}`);
+        } else {
+            setStartedGoals(prev => [...prev, goalId]);
+            showToast(`Goal activated! Track your progress under Active Goals.`);
+        }
+    };
+
+    const recommendationsList = [
+        {
+            id: 'reduce_dining',
+            category: 'quick_wins',
+            icon: 'restaurant',
+            iconColor: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600',
+            points: '+25 Points',
+            title: 'Reduce Dining Expenses',
+            difficulty: 'Low',
+            stars: 2,
+            why: 'Lowering your monthly non-essential spending improves your debt-to-income ratio, making you a safer candidate for future loans.',
+        },
+        {
+            id: 'emergency_fund',
+            category: 'high_impact',
+            icon: 'savings',
+            iconColor: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600',
+            points: '+40 Points',
+            title: 'Build Emergency Fund',
+            difficulty: 'Medium',
+            stars: 4,
+            why: 'An emergency fund provides a safety net that prevents you from taking on high-interest debt during unexpected financial shocks.',
+        },
+        {
+            id: 'consolidate_debt',
+            category: 'high_impact',
+            icon: 'merge_type',
+            iconColor: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600',
+            points: '+30 Points',
+            title: 'Consolidate Debt',
+            difficulty: 'Medium',
+            stars: 3,
+            why: 'Simplifying multiple high-interest payments into one lower-interest loan reduces financial stress and improves payment reliability.',
+        },
+        {
+            id: 'auto_pay',
+            category: 'quick_wins',
+            icon: 'auto_graph',
+            iconColor: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600',
+            points: '+50 Points',
+            title: 'Setup Auto-Pay',
+            difficulty: 'Very Easy',
+            stars: 1,
+            why: 'Consistent on-time payments are the #1 factor for credit scores. Auto-pay ensures you never miss a deadline again.',
+        },
+        {
+            id: 'credit_limit_utilization',
+            category: 'long_term',
+            icon: 'credit_card',
+            iconColor: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600',
+            points: '+35 Points',
+            title: 'Maintain <30% Card Utilization',
+            difficulty: 'Medium',
+            stars: 3,
+            why: 'Keeping credit utilization below 30% demonstrates responsible credit management and signals high repayment safety to lenders.',
+        },
+        {
+            id: 'diversify_credit',
+            category: 'long_term',
+            icon: 'account_tree',
+            iconColor: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600',
+            points: '+20 Points',
+            title: 'Diversify Credit Mix',
+            difficulty: 'Hard',
+            stars: 4,
+            why: 'A balanced portfolio of secured and unsecured credit histories boosts long-term financial resilience scores.',
+        }
+    ];
+
+    const filteredRecommendations = recommendationsList.filter(rec => {
+        if (activeFilter === 'all') return true;
+        return rec.category === activeFilter;
+    });
+
     const score = borrowerProfile?.health_score || 0;
     const isNew = score === 0;
     const statusLabel = isNew ? 'New Profile' : (score >= 750 ? 'Excellent' : score >= 650 ? 'Good Standing' : 'Fair');
@@ -172,135 +265,102 @@ const Recommendations = () => {
                                 </div>
                             </section>
 
+                            {/* Toast Notification */}
+                            {toastMessage && (
+                                <div className="mb-6 p-4 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold flex items-center justify-between shadow-xl animate-fade-in">
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-icons text-emerald-400 text-base">check_circle</span>
+                                        <span>{toastMessage}</span>
+                                    </div>
+                                    <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-white">✕</button>
+                                </div>
+                            )}
+
                             {/* Filters */}
                             <div className="flex flex-wrap items-center gap-3 mb-6">
-                                <button className="px-5 py-2 bg-[#2262ec] text-white rounded-full font-medium text-sm shadow-md shadow-[#2262ec]/20">All Recommendations</button>
-                                <button className="px-5 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full font-medium text-sm hover:border-[#2262ec] transition-all">🔥 High Impact</button>
-                                <button className="px-5 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full font-medium text-sm hover:border-[#2262ec] transition-all">⚡ Quick Wins</button>
-                                <button className="px-5 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full font-medium text-sm hover:border-[#2262ec] transition-all">📅 Long Term</button>
+                                {[
+                                    { id: 'all', label: 'All Recommendations' },
+                                    { id: 'high_impact', label: '🔥 High Impact' },
+                                    { id: 'quick_wins', label: '⚡ Quick Wins' },
+                                    { id: 'long_term', label: '📅 Long Term' },
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveFilter(tab.id)}
+                                        className={`px-5 py-2 rounded-full font-medium text-sm transition-all ${
+                                            activeFilter === tab.id
+                                                ? 'bg-[#2262ec] text-white shadow-md shadow-[#2262ec]/20'
+                                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#2262ec]'
+                                        }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
                             </div>
 
                             {/* Recommendation Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-                                {/* Recommendation Card 1 */}
-                                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl hover:border-[#2262ec]/30 transition-all group">
-                                    <div className="p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center text-orange-600">
-                                                <span className="material-icons">restaurant</span>
-                                            </div>
-                                            <div className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-xs font-bold">
-                                                +25 Points
-                                            </div>
-                                        </div>
-                                        <h4 className="text-xl font-bold mb-2">Reduce Dining Expenses</h4>
-                                        <div className="flex items-center gap-1 mb-4 text-yellow-500">
-                                            <span className="material-icons text-sm">star</span>
-                                            <span className="material-icons text-sm">star</span>
-                                            <span className="material-icons text-sm text-slate-200 dark:text-slate-600">star</span>
-                                            <span className="material-icons text-sm text-slate-200 dark:text-slate-600">star</span>
-                                            <span className="material-icons text-sm text-slate-200 dark:text-slate-600">star</span>
-                                            <span className="text-xs text-slate-400 ml-2 font-normal">Difficulty: Low</span>
-                                        </div>
-                                        <div className="bg-[#f6f6f8] dark:bg-slate-900/50 p-4 rounded-lg mb-6">
-                                            <p className="text-xs font-bold text-[#2262ec] uppercase tracking-wider mb-1">Why this helps</p>
-                                            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Lowering your monthly non-essential spending improves your debt-to-income ratio, making you a safer candidate for future loans.</p>
-                                        </div>
-                                        <button className="w-full py-3 bg-[#2262ec] text-white rounded-lg font-bold hover:bg-[#2262ec]/90 transition-colors flex items-center justify-center gap-2">
-                                            Start This Goal <span className="material-icons text-sm">arrow_forward</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                {/* Recommendation Card 2 */}
-                                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl hover:border-[#2262ec]/30 transition-all">
-                                    <div className="p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-blue-600">
-                                                <span className="material-icons">savings</span>
-                                            </div>
-                                            <div className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-xs font-bold">
-                                                +40 Points
-                                            </div>
-                                        </div>
-                                        <h4 className="text-xl font-bold mb-2">Build Emergency Fund</h4>
-                                        <div className="flex items-center gap-1 mb-4 text-yellow-500">
-                                            <span className="material-icons text-sm">star</span>
-                                            <span className="material-icons text-sm">star</span>
-                                            <span className="material-icons text-sm">star</span>
-                                            <span className="material-icons text-sm">star</span>
-                                            <span className="material-icons text-sm text-slate-200 dark:text-slate-600">star</span>
-                                            <span className="text-xs text-slate-400 ml-2 font-normal">Difficulty: Medium</span>
-                                        </div>
-                                        <div className="bg-[#f6f6f8] dark:bg-slate-900/50 p-4 rounded-lg mb-6">
-                                            <p className="text-xs font-bold text-[#2262ec] uppercase tracking-wider mb-1">Why this helps</p>
-                                            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">An emergency fund provides a safety net that prevents you from taking on high-interest debt during unexpected financial shocks.</p>
-                                        </div>
-                                        <button className="w-full py-3 bg-[#2262ec] text-white rounded-lg font-bold hover:bg-[#2262ec]/90 transition-colors flex items-center justify-center gap-2">
-                                            Start This Goal <span className="material-icons text-sm">arrow_forward</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                {/* Recommendation Card 3 */}
-                                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl hover:border-[#2262ec]/30 transition-all">
-                                    <div className="p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center text-purple-600">
-                                                <span className="material-icons">merge_type</span>
-                                            </div>
-                                            <div className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-xs font-bold">
-                                                +30 Points
+                                {filteredRecommendations.map((rec) => {
+                                    const isStarted = startedGoals.includes(rec.id);
+                                    return (
+                                        <div
+                                            key={rec.id}
+                                            className={`bg-white dark:bg-slate-800 rounded-xl border transition-all ${
+                                                isStarted
+                                                    ? 'border-emerald-500 shadow-md shadow-emerald-500/10'
+                                                    : 'border-slate-200 dark:border-slate-700 hover:shadow-xl hover:border-[#2262ec]/30'
+                                            }`}
+                                        >
+                                            <div className="p-6">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${rec.iconColor}`}>
+                                                        <span className="material-icons">{rec.icon}</span>
+                                                    </div>
+                                                    <div className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-xs font-bold">
+                                                        {rec.points}
+                                                    </div>
+                                                </div>
+                                                <h4 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">{rec.title}</h4>
+                                                <div className="flex items-center gap-1 mb-4 text-yellow-500">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <span
+                                                            key={i}
+                                                            className={`material-icons text-sm ${
+                                                                i < rec.stars ? 'text-yellow-500' : 'text-slate-200 dark:text-slate-600'
+                                                            }`}
+                                                        >
+                                                            star
+                                                        </span>
+                                                    ))}
+                                                    <span className="text-xs text-slate-400 ml-2 font-normal">Difficulty: {rec.difficulty}</span>
+                                                </div>
+                                                <div className="bg-[#f6f6f8] dark:bg-slate-900/50 p-4 rounded-lg mb-6">
+                                                    <p className="text-xs font-bold text-[#2262ec] uppercase tracking-wider mb-1">Why this helps</p>
+                                                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{rec.why}</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => toggleGoal(rec.id, rec.title)}
+                                                    className={`w-full py-3 rounded-lg font-bold transition-colors flex items-center justify-center gap-2 ${
+                                                        isStarted
+                                                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100'
+                                                            : 'bg-[#2262ec] text-white hover:bg-[#2262ec]/90'
+                                                    }`}
+                                                >
+                                                    {isStarted ? (
+                                                        <>
+                                                            <span className="material-icons text-sm">check_circle</span>
+                                                            Goal In Progress (Click to Pause)
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            Start This Goal <span className="material-icons text-sm">arrow_forward</span>
+                                                        </>
+                                                    )}
+                                                </button>
                                             </div>
                                         </div>
-                                        <h4 className="text-xl font-bold mb-2">Consolidate Debt</h4>
-                                        <div className="flex items-center gap-1 mb-4 text-yellow-500">
-                                            <span className="material-icons text-sm">star</span>
-                                            <span className="material-icons text-sm">star</span>
-                                            <span className="material-icons text-sm">star</span>
-                                            <span className="material-icons text-sm text-slate-200 dark:text-slate-600">star</span>
-                                            <span className="material-icons text-sm text-slate-200 dark:text-slate-600">star</span>
-                                            <span className="text-xs text-slate-400 ml-2 font-normal">Difficulty: Medium</span>
-                                        </div>
-                                        <div className="bg-[#f6f6f8] dark:bg-slate-900/50 p-4 rounded-lg mb-6">
-                                            <p className="text-xs font-bold text-[#2262ec] uppercase tracking-wider mb-1">Why this helps</p>
-                                            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Simplifying multiple high-interest payments into one lower-interest loan reduces financial stress and improves payment reliability.</p>
-                                        </div>
-                                        <button className="w-full py-3 bg-[#2262ec] text-white rounded-lg font-bold hover:bg-[#2262ec]/90 transition-colors flex items-center justify-center gap-2">
-                                            Start This Goal <span className="material-icons text-sm">arrow_forward</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                {/* Recommendation Card 4 */}
-                                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl hover:border-[#2262ec]/30 transition-all">
-                                    <div className="p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center text-emerald-600">
-                                                <span className="material-icons">auto_graph</span>
-                                            </div>
-                                            <div className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-xs font-bold">
-                                                +50 Points
-                                            </div>
-                                        </div>
-                                        <h4 className="text-xl font-bold mb-2">Setup Auto-Pay</h4>
-                                        <div className="flex items-center gap-1 mb-4 text-yellow-500">
-                                            <span className="material-icons text-sm">star</span>
-                                            <span className="material-icons text-sm text-slate-200 dark:text-slate-600">star</span>
-                                            <span className="material-icons text-sm text-slate-200 dark:text-slate-600">star</span>
-                                            <span className="material-icons text-sm text-slate-200 dark:text-slate-600">star</span>
-                                            <span className="material-icons text-sm text-slate-200 dark:text-slate-600">star</span>
-                                            <span className="text-xs text-slate-400 ml-2 font-normal">Difficulty: Very Easy</span>
-                                        </div>
-                                        <div className="bg-[#f6f6f8] dark:bg-slate-900/50 p-4 rounded-lg mb-6">
-                                            <p className="text-xs font-bold text-[#2262ec] uppercase tracking-wider mb-1">Why this helps</p>
-                                            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Consistent on-time payments are the #1 factor for credit scores. Auto-pay ensures you never miss a deadline again.</p>
-                                        </div>
-                                        <button className="w-full py-3 bg-[#2262ec] text-white rounded-lg font-bold hover:bg-[#2262ec]/90 transition-colors flex items-center justify-center gap-2">
-                                            Start This Goal <span className="material-icons text-sm">arrow_forward</span>
-                                        </button>
-                                    </div>
-                                </div>
+                                    );
+                                })}
                             </div>
                         </div>
                         
@@ -310,24 +370,32 @@ const Recommendations = () => {
                             <section className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <div className="flex items-center justify-between mb-6">
                                     <h3 className="text-lg font-bold">Active Goals</h3>
-                                    <span className="text-xs bg-[#2262ec]/10 text-[#2262ec] px-2 py-1 rounded font-bold">{isNew ? '0 ACTIVE' : '1 IN PROGRESS'}</span>
+                                    <span className="text-xs bg-[#2262ec]/10 text-[#2262ec] px-2 py-1 rounded font-bold">
+                                        {startedGoals.length} IN PROGRESS
+                                    </span>
                                 </div>
-                                {isNew ? (
+                                {startedGoals.length === 0 ? (
                                     <p className="text-sm text-slate-500 py-4 text-center">No active goals. Pick a recommendation on the left to set your first milestone.</p>
                                 ) : (
-                                    <div className="space-y-6">
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between items-end">
-                                                <div>
-                                                    <p className="text-sm font-bold">Credit Builder</p>
-                                                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Goal: Maintain 100% on-time</p>
+                                    <div className="space-y-4">
+                                        {startedGoals.map((gId) => {
+                                            const match = recommendationsList.find(r => r.id === gId);
+                                            const label = match ? match.title : 'Credit Builder';
+                                            return (
+                                                <div key={gId} className="space-y-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                                                    <div className="flex justify-between items-end">
+                                                        <div>
+                                                            <p className="text-sm font-bold text-slate-900 dark:text-white">{label}</p>
+                                                            <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wider">In Progress • Active Goal</p>
+                                                        </div>
+                                                        <span className="text-xs font-bold text-[#2262ec]">Active</span>
+                                                    </div>
+                                                    <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-emerald-500 rounded-full animate-pulse" style={{ width: '75%' }}></div>
+                                                    </div>
                                                 </div>
-                                                <span className="text-xs font-bold text-[#2262ec]">Active</span>
-                                            </div>
-                                            <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                                <div className="h-full bg-[#2262ec] rounded-full" style={{ width: '100%' }}></div>
-                                            </div>
-                                        </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </section>

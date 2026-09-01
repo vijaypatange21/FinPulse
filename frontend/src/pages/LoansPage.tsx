@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { getCurrentUser, listApplications } from '../lib/api';
@@ -243,6 +243,23 @@ const LoansPage = () => {
     return Math.round(data.loans.reduce((sum, loan) => sum + loan.progress, 0) / data.loans.length);
   }, [data]);
 
+  const [reminderModal, setReminderModal] = useState(false);
+  const [calculatorModal, setCalculatorModal] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [calcPrincipal, setCalcPrincipal] = useState(500000);
+  const [calcPrepay, setCalcPrepay] = useState(100000);
+  const [calcRate, setCalcRate] = useState(9.5);
+
+  const calculatedSavings = useMemo(() => {
+    const interestSaved = Math.round((calcPrepay * (calcRate / 100)) * 3.5);
+    return interestSaved;
+  }, [calcPrepay, calcRate]);
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3000);
+  };
+
   const displayName = currentUser ? (`${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username) : 'Borrower';
 
   return (
@@ -257,10 +274,6 @@ const LoansPage = () => {
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <button className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors relative">
-              <span className="material-icons text-[20px]">notifications</span>
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
-            </button>
             <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
               <div className="text-right flex flex-col justify-center">
                 <p className="text-sm font-semibold leading-tight">{displayName}</p>
@@ -274,9 +287,28 @@ const LoansPage = () => {
         </header>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">My Loans</h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-2">A consolidated view of your active loans, payment progress, and repayment schedule.</p>
+          {toastMsg && (
+            <div className="mb-6 p-4 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold flex items-center justify-between shadow-xl animate-fade-in">
+              <div className="flex items-center gap-2">
+                <span className="material-icons text-emerald-400 text-base">check_circle</span>
+                <span>{toastMsg}</span>
+              </div>
+              <button onClick={() => setToastMsg(null)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+          )}
+
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-bold text-slate-900 dark:text-white">My Loans</h2>
+              <p className="text-slate-500 dark:text-slate-400 mt-2">A consolidated view of your active loans, payment progress, and repayment schedule.</p>
+            </div>
+            <Link
+              to="/borrower/find-lender"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2262ec] hover:bg-[#2262ec]/90 text-white text-sm font-bold rounded-xl shadow-lg shadow-[#2262ec]/20 transition-all shrink-0"
+            >
+              <span className="material-icons text-sm">add_circle</span>
+              Find & Apply for Loan
+            </Link>
           </div>
 
           {loading || !data ? (
@@ -431,16 +463,25 @@ const LoansPage = () => {
                       <h3 className="text-lg font-bold text-slate-900 dark:text-white">Quick actions</h3>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#2262ec]/40 hover:bg-[#2262ec]/5 transition-all text-left">
+                      <Link
+                        to="/borrower/transactions"
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#2262ec]/40 hover:bg-[#2262ec]/5 transition-all text-left"
+                      >
                         <span className="flex items-center gap-3 font-medium text-slate-700 dark:text-slate-300"><span className="material-icons text-[#2262ec]">download</span> Download statements</span>
                         <span className="material-icons text-slate-400">arrow_forward</span>
-                      </button>
-                      <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#2262ec]/40 hover:bg-[#2262ec]/5 transition-all text-left">
+                      </Link>
+                      <button
+                        onClick={() => setReminderModal(true)}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#2262ec]/40 hover:bg-[#2262ec]/5 transition-all text-left"
+                      >
                         <span className="flex items-center gap-3 font-medium text-slate-700 dark:text-slate-300"><span className="material-icons text-[#2262ec]">notifications_active</span> Set EMI reminder</span>
                         <span className="material-icons text-slate-400">arrow_forward</span>
                       </button>
-                      <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#2262ec]/40 hover:bg-[#2262ec]/5 transition-all text-left">
-                        <span className="flex items-center gap-3 font-medium text-slate-700 dark:text-slate-300"><span className="material-icons text-[#2262ec]">schedule</span> Foreclosure calculator</span>
+                      <button
+                        onClick={() => setCalculatorModal(true)}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#2262ec]/40 hover:bg-[#2262ec]/5 transition-all text-left"
+                      >
+                        <span className="flex items-center gap-3 font-medium text-slate-700 dark:text-slate-300"><span className="material-icons text-[#2262ec]">calculate</span> Foreclosure calculator</span>
                         <span className="material-icons text-slate-400">arrow_forward</span>
                       </button>
                     </CardContent>
@@ -550,6 +591,136 @@ const LoansPage = () => {
             </div>
           )}
         </div>
+
+        {/* EMI Reminder Modal */}
+        {reminderModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="material-icons text-[#2262ec]">notifications_active</span> Set EMI Reminder
+                </h3>
+                <button onClick={() => setReminderModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-sm">✕</button>
+              </div>
+              <p className="text-xs text-slate-500">Configure real-time automated SMS and dashboard alerts before your monthly EMI due dates.</p>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Reminder Lead Time</label>
+                  <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm">
+                    <option>3 days before due date</option>
+                    <option>5 days before due date</option>
+                    <option>1 day before due date</option>
+                    <option>On the due date (morning)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Notification Channel</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer">
+                      <input type="checkbox" defaultChecked className="rounded text-[#2262ec]" /> Dashboard Bell
+                    </label>
+                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer">
+                      <input type="checkbox" defaultChecked className="rounded text-[#2262ec]" /> Email Digest
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setReminderModal(false)}
+                  className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setReminderModal(false);
+                    showToast('EMI reminder schedule updated successfully!');
+                  }}
+                  className="flex-1 py-2.5 bg-[#2262ec] hover:bg-[#2262ec]/90 text-white font-bold rounded-xl text-xs shadow-md shadow-[#2262ec]/20"
+                >
+                  Save Reminder
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Foreclosure / Prepayment Calculator Modal */}
+        {calculatorModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="material-icons text-[#2262ec]">calculate</span> Prepayment & Foreclosure Calculator
+                </h3>
+                <button onClick={() => setCalculatorModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-sm">✕</button>
+              </div>
+              <div className="space-y-4 text-sm">
+                <div>
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    <span>Outstanding Principal</span>
+                    <span>₹{calcPrincipal.toLocaleString('en-IN')}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="100000"
+                    max="5000000"
+                    step="50000"
+                    value={calcPrincipal}
+                    onChange={(e) => setCalcPrincipal(Number(e.target.value))}
+                    className="w-full accent-[#2262ec]"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    <span>Lump Sum Prepayment Amount</span>
+                    <span className="text-[#2262ec] font-bold">₹{calcPrepay.toLocaleString('en-IN')}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="10000"
+                    max={calcPrincipal}
+                    step="10000"
+                    value={calcPrepay}
+                    onChange={(e) => setCalcPrepay(Number(e.target.value))}
+                    className="w-full accent-[#2262ec]"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    <span>Interest Rate</span>
+                    <span>{calcRate}% p.a.</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="6"
+                    max="20"
+                    step="0.5"
+                    value={calcRate}
+                    onChange={(e) => setCalcRate(Number(e.target.value))}
+                    className="w-full accent-[#2262ec]"
+                  />
+                </div>
+
+                <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 space-y-1">
+                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Estimated Interest Savings</p>
+                  <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-300">₹{calculatedSavings.toLocaleString('en-IN')}</p>
+                  <p className="text-xs text-slate-500">By making this prepayment, you also reduce your repayment tenure by approximately ~8 months.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setCalculatorModal(false);
+                  showToast(`Calculation logged! Total estimated savings: ₹${calculatedSavings.toLocaleString('en-IN')}`);
+                }}
+                className="w-full py-3 bg-[#2262ec] hover:bg-[#2262ec]/90 text-white font-bold rounded-xl text-xs shadow-md shadow-[#2262ec]/20 transition-all"
+              >
+                Close Calculator
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

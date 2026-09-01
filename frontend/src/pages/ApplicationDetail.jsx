@@ -11,8 +11,14 @@ const ApplicationDetail = () => {
     const [apiApp, setApiApp] = React.useState(null);
     const app = apiApp || mockApplications[Number.isNaN(appIndex) ? 0 : appIndex] || mockApplications[0];
 
-    const [isUpdating, setIsUpdating] = React.useState(false);
-    const [actionMessage, setActionMessage] = React.useState('');
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [actionMessage, setActionMessage] = useState('');
+    const [activeTab, setActiveTab] = useState('overview');
+    const [noteModal, setNoteModal] = useState(false);
+    const [requestInfoModal, setRequestInfoModal] = useState(false);
+    const [customNote, setCustomNote] = useState('');
+    const [appNotes, setAppNotes] = useState([]);
+    const [requestedDocType, setRequestedDocType] = useState('Latest 3 Months Salary Slips');
 
     React.useEffect(() => {
         if (!id) {
@@ -177,87 +183,166 @@ const ApplicationDetail = () => {
                             {/* Tabs Navigation */}
                             <div className="border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
                                 <nav className="flex gap-8 min-w-max">
-                                    <button className="border-b-2 border-primary pb-4 px-1 text-sm font-semibold text-primary flex items-center gap-2">
-                                        <span className="material-icons text-sm">dashboard</span> Overview
-                                    </button>
-                                    <button className="border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-slate-500 hover:text-primary transition-colors flex items-center gap-2">
-                                        <span className="material-icons text-sm">account_balance_wallet</span> Financial Data
-                                    </button>
-                                    <button className="border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-slate-500 hover:text-primary transition-colors flex items-center gap-2">
-                                        <span className="material-icons text-sm">description</span> Documents
-                                    </button>
-                                    <button className="border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-slate-500 hover:text-primary transition-colors flex items-center gap-2">
-                                        <span className="material-icons text-sm">history</span> Loan History
-                                    </button>
+                                    {[
+                                        { id: 'overview', label: 'Overview', icon: 'dashboard' },
+                                        { id: 'financials', label: 'Financial Data', icon: 'account_balance_wallet' },
+                                        { id: 'documents', label: 'Documents', icon: 'description' },
+                                        { id: 'history', label: 'Loan History', icon: 'history' },
+                                    ].map((tab) => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setActiveTab(tab.id)}
+                                            className={`pb-4 px-1 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+                                                activeTab === tab.id
+                                                    ? 'border-primary text-primary'
+                                                    : 'border-transparent text-slate-500 hover:text-primary'
+                                            }`}
+                                        >
+                                            <span className="material-icons text-sm">{tab.icon}</span> {tab.label}
+                                        </button>
+                                    ))}
                                 </nav>
                             </div>
 
-                            {/* Main Viewport Section */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                {/* Score Breakdown */}
-                                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-primary/5 transition-all hover:shadow-md">
-                                    <h3 className="text-base font-bold mb-6 flex items-center gap-2">
-                                        <span className="material-icons text-primary text-sm">insights</span> Score Breakdown
-                                    </h3>
-                                    <div className="space-y-6">
-                                        <div>
-                                            <div className="flex justify-between mb-2">
-                                                <span className="text-sm text-slate-600 dark:text-slate-400">Payment History</span>
-                                                <span className={`text-sm font-bold ${app.paymentHistory >= 90 ? 'text-green-500' : app.paymentHistory >= 75 ? 'text-yellow-500' : 'text-red-500'}`}>{app.paymentHistory}%</span>
-                                            </div>
-                                            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                <div className={`h-full ${app.paymentHistory >= 90 ? 'bg-green-500' : app.paymentHistory >= 75 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{width: `${app.paymentHistory}%`}}></div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="flex justify-between mb-2">
-                                                <span className="text-sm text-slate-600 dark:text-slate-400">Credit Utilization</span>
-                                                <span className={`text-sm font-bold ${app.creditUtilization <= 30 ? 'text-green-500' : app.creditUtilization <= 50 ? 'text-yellow-500' : 'text-red-500'}`}>{app.creditUtilization}%</span>
-                                            </div>
-                                            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                <div className={`h-full ${app.creditUtilization <= 30 ? 'bg-green-500' : app.creditUtilization <= 50 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{width: `${app.creditUtilization}%`}}></div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="flex justify-between mb-2">
-                                                <span className="text-sm text-slate-600 dark:text-slate-400">Account Age</span>
-                                                <span className="text-sm font-bold text-primary">{app.accountAge}</span>
-                                            </div>
-                                            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                <div className="h-full bg-primary" style={{width: `${Math.min(parseFloat(app.accountAge) / 10 * 100, 100)}%`}}></div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="flex justify-between mb-2">
-                                                <span className="text-sm text-slate-600 dark:text-slate-400">Credit Mix</span>
-                                                <span className="text-sm font-bold text-primary">{app.creditMix}</span>
-                                            </div>
-                                            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                <div className="h-full bg-primary" style={{width: `${app.creditMix === 'Excellent' ? 90 : app.creditMix === 'Good' ? 75 : app.creditMix === 'Average' ? 55 : 40}%`}}></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                {/* Activity Timeline */}
-                                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-primary/5 transition-all hover:shadow-md">
-                                    <h3 className="text-base font-bold mb-6 flex items-center gap-2">
-                                        <span className="material-icons text-primary text-sm">update</span> Recent Activity
-                                    </h3>
-                                    <div className="space-y-6 relative before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100 dark:before:bg-slate-800">
-                                        {app.activities.map((act, i) => (
-                                            <div key={i} className="relative pl-8">
-                                                <div className={`absolute left-0 top-1.5 w-6 h-6 rounded-full ${act.color === 'green' ? 'bg-green-500' : act.color === 'red' ? 'bg-red-500' : act.color === 'primary' ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'} border-4 border-white dark:border-slate-900 z-10 flex items-center justify-center`}>
-                                                    {act.color === 'green' && <span className="material-icons text-[10px] text-white">check</span>}
+                            {/* Main Viewport Section based on Active Tab */}
+                            {activeTab === 'overview' && (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    {/* Score Breakdown */}
+                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-primary/5 transition-all hover:shadow-md">
+                                        <h3 className="text-base font-bold mb-6 flex items-center gap-2">
+                                            <span className="material-icons text-primary text-sm">insights</span> Score Breakdown
+                                        </h3>
+                                        <div className="space-y-6">
+                                            <div>
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="text-sm text-slate-600 dark:text-slate-400">Payment History</span>
+                                                    <span className={`text-sm font-bold ${app.paymentHistory >= 90 ? 'text-green-500' : app.paymentHistory >= 75 ? 'text-yellow-500' : 'text-red-500'}`}>{app.paymentHistory}%</span>
                                                 </div>
-                                                <p className="text-sm font-semibold">{act.text}</p>
-                                                <p className="text-xs text-slate-500">{act.detail}</p>
-                                                <p className="text-[10px] text-slate-400 mt-1 uppercase">{act.time}</p>
+                                                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className={`h-full ${app.paymentHistory >= 90 ? 'bg-green-500' : app.paymentHistory >= 75 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{width: `${app.paymentHistory}%`}}></div>
+                                                </div>
                                             </div>
-                                        ))}
+                                            <div>
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="text-sm text-slate-600 dark:text-slate-400">Credit Utilization</span>
+                                                    <span className={`text-sm font-bold ${app.creditUtilization <= 30 ? 'text-green-500' : app.creditUtilization <= 50 ? 'text-yellow-500' : 'text-red-500'}`}>{app.creditUtilization}%</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className={`h-full ${app.creditUtilization <= 30 ? 'bg-green-500' : app.creditUtilization <= 50 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{width: `${app.creditUtilization}%`}}></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="text-sm text-slate-600 dark:text-slate-400">Account Age</span>
+                                                    <span className="text-sm font-bold text-primary">{app.accountAge}</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-primary" style={{width: `${Math.min(parseFloat(app.accountAge) / 10 * 100, 100)}%`}}></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="text-sm text-slate-600 dark:text-slate-400">Credit Mix</span>
+                                                    <span className="text-sm font-bold text-primary">{app.creditMix}</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-primary" style={{width: `${app.creditMix === 'Excellent' ? 90 : app.creditMix === 'Good' ? 75 : app.creditMix === 'Average' ? 55 : 40}%`}}></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Activity Timeline */}
+                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-primary/5 transition-all hover:shadow-md">
+                                        <h3 className="text-base font-bold mb-6 flex items-center gap-2">
+                                            <span className="material-icons text-primary text-sm">history</span> Activity Timeline
+                                        </h3>
+                                        <div className="space-y-6 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
+                                            {app.activities.map((activity, i) => (
+                                                <div key={i} className="flex gap-4 relative">
+                                                    <div className={`size-6 rounded-full bg-${activity.color === 'green' ? 'green-500' : 'primary'} flex items-center justify-center text-white ring-4 ring-white dark:ring-slate-900 shrink-0 z-10`}>
+                                                        <span className="material-icons text-xs">done</span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold">{activity.text}</p>
+                                                        <p className="text-xs text-slate-500">{activity.detail}</p>
+                                                        <span className="text-[10px] text-slate-400 font-medium">{activity.time}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
+
+                            {activeTab === 'financials' && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
+                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
+                                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Monthly Inflow</p>
+                                        <h4 className="text-2xl font-bold text-slate-900 dark:text-white">{app.monthlyIncome}</h4>
+                                        <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1 font-semibold">
+                                            <span className="material-icons text-xs">trending_up</span> Consistent salary credit
+                                        </p>
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
+                                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Debt-to-Income (DTI)</p>
+                                        <h4 className="text-2xl font-bold text-[#2262ec]">{app.debtToIncome}</h4>
+                                        <p className="text-xs text-slate-500 mt-2 font-medium">Within safe underwriter threshold (&lt;45%)</p>
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
+                                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Default Probability</p>
+                                        <h4 className="text-2xl font-bold text-emerald-600">{app.defaultProbability}</h4>
+                                        <p className="text-xs text-slate-500 mt-2 font-medium">Predicted by FinPulse ML Model</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'documents' && (
+                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4 animate-fade-in">
+                                    <h4 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                                        <span className="material-icons text-[#2262ec]">folder</span> Verified Underwriting Documents
+                                    </h4>
+                                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                                        <div className="py-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <span className="material-icons text-emerald-500">description</span>
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-900 dark:text-white">Bank Statement (6 Months)</p>
+                                                    <p className="text-xs text-slate-500">Parsed & Verified via FinPulse OCR</p>
+                                                </div>
+                                            </div>
+                                            <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded-full">Verified</span>
+                                        </div>
+                                        <div className="py-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <span className="material-icons text-emerald-500">badge</span>
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-900 dark:text-white">PAN Card Verification</p>
+                                                    <p className="text-xs text-slate-500">NSDL / UIDAI Database Match</p>
+                                                </div>
+                                            </div>
+                                            <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded-full">Verified</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'history' && (
+                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 animate-fade-in">
+                                    <h4 className="font-bold text-base text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                        <span className="material-icons text-[#2262ec]">history_toggle_off</span> Past Credit Facilities
+                                    </h4>
+                                    <div className="space-y-4">
+                                        <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex justify-between items-center">
+                                            <div>
+                                                <p className="font-bold text-sm text-slate-900 dark:text-white">Prior Vehicle Loan</p>
+                                                <p className="text-xs text-slate-500">Closed on 12 Jan 2024 • 0 Overdue Defaults</p>
+                                            </div>
+                                            <span className="px-2.5 py-1 text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg">Settled</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         
                         {/* Sidebar (Quick Stats & Risk Analysis) */}
@@ -300,8 +385,21 @@ const ApplicationDetail = () => {
                                 <p className="text-xs text-slate-600 dark:text-slate-400 italic mb-4 leading-relaxed">
                                     "{app.note}"
                                 </p>
-                                <button className="w-full py-2.5 bg-white dark:bg-slate-800 text-primary border border-primary/20 text-xs font-bold rounded-lg hover:bg-primary hover:text-white transition-all shadow-sm">
-                                    Add New Note
+                                {appNotes.length > 0 && (
+                                    <div className="mb-4 space-y-2">
+                                        {appNotes.map((n, i) => (
+                                            <div key={i} className="p-3 bg-white dark:bg-slate-800 rounded-lg text-xs border border-primary/10">
+                                                <p className="font-semibold text-slate-900 dark:text-white">{n.text}</p>
+                                                <span className="text-[10px] text-slate-400">{n.timestamp}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <button
+                                    onClick={() => setNoteModal(true)}
+                                    className="w-full py-2.5 bg-white dark:bg-slate-800 text-primary border border-primary/20 text-xs font-bold rounded-lg hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center gap-1"
+                                >
+                                    <span className="material-icons text-sm">edit_note</span> Add New Note
                                 </button>
                             </div>
                             <div className="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-primary/5">
@@ -361,7 +459,10 @@ const ApplicationDetail = () => {
                         >
                             Reject
                         </button>
-                        <button className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-colors whitespace-nowrap hidden lg:block">
+                        <button
+                            onClick={() => setRequestInfoModal(true)}
+                            className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-colors whitespace-nowrap hidden lg:block"
+                        >
                             Request Info
                         </button>
                         <button
@@ -375,6 +476,95 @@ const ApplicationDetail = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Note Addition Modal */}
+            {noteModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span className="material-icons text-primary">edit_note</span> Add Underwriting Note
+                            </h3>
+                            <button onClick={() => setNoteModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+                        </div>
+                        <textarea
+                            value={customNote}
+                            onChange={(e) => setCustomNote(e.target.value)}
+                            placeholder="Type evaluation notes or observations regarding borrower income stability..."
+                            className="w-full h-28 p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                        />
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setNoteModal(false)}
+                                className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (customNote.trim()) {
+                                        setAppNotes(prev => [...prev, { text: customNote.trim(), timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+                                        setCustomNote('');
+                                        setNoteModal(false);
+                                        setActionMessage('Underwriter note recorded.');
+                                        setTimeout(() => setActionMessage(''), 3000);
+                                    }
+                                }}
+                                className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:bg-primary/90"
+                            >
+                                Save Note
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Request Info Modal */}
+            {requestInfoModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span className="material-icons text-primary">contact_support</span> Request Additional Information
+                            </h3>
+                            <button onClick={() => setRequestInfoModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+                        </div>
+                        <p className="text-xs text-slate-500">Send an automated request notice to the applicant's dashboard asking for missing records.</p>
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Required Document / Information</label>
+                            <select
+                                value={requestedDocType}
+                                onChange={(e) => setRequestedDocType(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs"
+                            >
+                                <option>Latest 3 Months Salary Slips</option>
+                                <option>ITR-V Acknowledgement Form</option>
+                                <option>GST-3B Returns (Latest Quarter)</option>
+                                <option>Proof of Current Business Address</option>
+                                <option>Explanation of Recent Credit Enquiries</option>
+                            </select>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                            <button
+                                onClick={() => setRequestInfoModal(false)}
+                                className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setRequestInfoModal(false);
+                                    setActionMessage(`Notice sent: Requesting ${requestedDocType}`);
+                                    setTimeout(() => setActionMessage(''), 4000);
+                                }}
+                                className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:bg-primary/90"
+                            >
+                                Send Request Notice
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

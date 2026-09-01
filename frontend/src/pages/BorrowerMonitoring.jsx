@@ -59,6 +59,41 @@ const BorrowerMonitoring = () => {
         loadBorrower();
     }, [id]);
 
+    const [activeTab, setActiveTab] = React.useState('overview');
+    const [actionMsg, setActionMsg] = React.useState('');
+    const [reminderModal, setReminderModal] = React.useState(false);
+    const [limitModal, setLimitModal] = React.useState(false);
+    const [recoveryModal, setRecoveryModal] = React.useState(false);
+    const [forecloseModal, setForecloseModal] = React.useState(false);
+    const [creditLimit, setCreditLimit] = React.useState(500000);
+
+    const showActionToast = (msg) => {
+        setActionMsg(msg);
+        setTimeout(() => setActionMsg(''), 3500);
+    };
+
+    const handleDownloadSummary = () => {
+        const content = `FINPULSE BORROWER MONITORING DOSSIER\n` +
+            `====================================\n` +
+            `Borrower Name: ${borrower.name}\n` +
+            `Location: ${borrower.location}\n` +
+            `Facility Type: ${borrower.productType}\n` +
+            `Principal: ${borrower.principal}\n` +
+            `Outstanding: ${borrower.outstanding}\n` +
+            `Health Score: ${borrower.healthScore}/850 (${borrower.healthLabel})\n` +
+            `Risk Level: ${borrower.riskLevel}\n` +
+            `Generated On: ${new Date().toLocaleString()}\n`;
+
+        const element = document.createElement('a');
+        const file = new Blob([content], { type: 'text/plain' });
+        element.href = URL.createObjectURL(file);
+        element.download = `Dossier_${borrower.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.txt`;
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+        showActionToast('Dossier downloaded successfully.');
+    };
+
     const riskColors = {
         green: { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-400', border: 'border-green-100 dark:border-green-800/30', dot: 'bg-green-500' },
         yellow: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-100 dark:border-amber-800/30', dot: 'bg-amber-500' },
@@ -175,8 +210,18 @@ const BorrowerMonitoring = () => {
                                             <span className="font-bold text-slate-900 dark:text-white">{borrower.productType}</span>
                                         </div>
                                         <div className="mt-4 flex gap-2">
-                                            <button className="flex-1 py-2 text-xs font-bold text-primary bg-primary/10 rounded-lg hover:bg-primary hover:text-white transition-colors">Download PDF</button>
-                                            <button className="flex-1 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Foreclose</button>
+                                            <button
+                                                onClick={handleDownloadSummary}
+                                                className="flex-1 py-2 text-xs font-bold text-primary bg-primary/10 rounded-lg hover:bg-primary hover:text-white transition-colors flex items-center justify-center gap-1"
+                                            >
+                                                <span className="material-icons text-xs">download</span> Download PDF
+                                            </button>
+                                            <button
+                                                onClick={() => setForecloseModal(true)}
+                                                className="flex-1 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                            >
+                                                Foreclose
+                                            </button>
                                         </div>
                                         <div className="mt-2 pt-5 border-t border-slate-100 dark:border-slate-800">
                                             <div className="flex justify-between items-center mb-3">
@@ -196,16 +241,19 @@ const BorrowerMonitoring = () => {
                                                 <span className="material-icons text-lg">verified_user</span> Insurance Coverage
                                             </h4>
                                             <span className="bg-white/80 dark:bg-slate-800/80 p-1.5 rounded-lg text-primary shadow-sm backdrop-blur-sm">
-                                                <span className="material-icons text-[16px] block">shield</span>
+                                                <span className="material-icons text-lg block">shield</span>
                                             </span>
                                         </div>
                                         <div className="flex flex-col gap-3">
                                             <p className="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">Comprehensive Loan Protection Plan active until <strong className="text-slate-900 dark:text-white">{borrower.insuranceExpiry}</strong>.</p>
                                             <div className="flex items-center justify-between">
                                                 <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Policy #{borrower.policyNumber}</span>
-                                                <a className="text-xs font-bold text-primary hover:underline flex items-center gap-1 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-primary/20 shadow-sm transition-all hover:shadow-md" href="#">
+                                                <button
+                                                    onClick={() => showActionToast(`Displaying Policy Certificate #${borrower.policyNumber}`)}
+                                                    className="text-xs font-bold text-primary hover:underline flex items-center gap-1 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-primary/20 shadow-sm transition-all hover:shadow-md"
+                                                >
                                                     View Cert <span className="material-icons text-[14px]">arrow_forward</span>
-                                                </a>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -230,18 +278,24 @@ const BorrowerMonitoring = () => {
                             {/* Main Content Area */}
                             <div className="lg:col-span-8 flex flex-col">
                                 <div className="border-b border-slate-200 dark:border-slate-800 mb-6 flex gap-6 overflow-x-auto pb-0.5 no-scrollbar">
-                                    <button className="pb-4 border-b-2 border-primary text-primary font-bold text-sm whitespace-nowrap flex items-center gap-2 px-1">
-                                        <span className="material-icons text-sm">dashboard</span> Overview
-                                    </button>
-                                    <button className="pb-4 border-b-2 border-transparent text-slate-500 dark:text-slate-400 font-medium text-sm hover:text-slate-700 dark:hover:text-slate-300 whitespace-nowrap transition-colors flex items-center gap-2 px-1">
-                                        <span className="material-icons text-sm">payments</span> Repayment Schedule
-                                    </button>
-                                    <button className="pb-4 border-b-2 border-transparent text-slate-500 dark:text-slate-400 font-medium text-sm hover:text-slate-700 dark:hover:text-slate-300 whitespace-nowrap transition-colors flex items-center gap-2 px-1">
-                                        <span className="material-icons text-sm">monitoring</span> Transaction Monitoring
-                                    </button>
-                                    <button className="pb-4 border-b-2 border-transparent text-slate-500 dark:text-slate-400 font-medium text-sm hover:text-slate-700 dark:hover:text-slate-300 whitespace-nowrap transition-colors flex items-center gap-2 px-1">
-                                        <span className="material-icons text-sm">description</span> Documents
-                                    </button>
+                                    {[
+                                        { id: 'overview', label: 'Overview', icon: 'dashboard' },
+                                        { id: 'repayment', label: 'Repayment Schedule', icon: 'payments' },
+                                        { id: 'transactions', label: 'Transaction Monitoring', icon: 'monitoring' },
+                                        { id: 'documents', label: 'Documents', icon: 'description' },
+                                    ].map((tab) => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setActiveTab(tab.id)}
+                                            className={`pb-4 px-1 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+                                                activeTab === tab.id
+                                                    ? 'border-primary text-primary'
+                                                    : 'border-transparent text-slate-500 hover:text-primary'
+                                            }`}
+                                        >
+                                            <span className="material-icons text-sm">{tab.icon}</span> {tab.label}
+                                        </button>
+                                    ))}
                                 </div>
 
                                 {/* Progress Bar Section */}
@@ -348,27 +402,169 @@ const BorrowerMonitoring = () => {
                         </div>
                     </main>
 
+                    {/* Action Toast */}
+                    {actionMsg && (
+                        <div className="fixed top-20 right-8 z-50 p-4 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold flex items-center gap-2 shadow-2xl animate-fade-in">
+                            <span className="material-icons text-emerald-400 text-base">check_circle</span>
+                            <span>{actionMsg}</span>
+                        </div>
+                    )}
+
                     {/* Sticky Bottom Action Bar */}
-                    <footer className="sticky bottom-0 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 sm:px-6 lg:px-40 py-4 lg:py-4 z-50 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)]">
+                    <footer className="sticky bottom-0 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 sm:px-6 lg:px-40 py-4 lg:py-4 z-40 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)]">
                         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                             <div className="hidden lg:flex items-center gap-3 bg-amber-50 dark:bg-amber-900/10 px-4 py-2 rounded-lg border border-amber-100 dark:border-amber-900/30">
                                 <span className="material-icons text-amber-500">info</span>
                                 <p className="text-sm text-amber-900 dark:text-amber-200 font-medium">Next formal review scheduled in <span className="font-bold underline decoration-amber-400">12 days</span>. {borrower.healthLabel} financial profile.</p>
                             </div>
                             <div className="flex flex-wrap md:flex-nowrap justify-center sm:justify-end gap-3 w-full lg:w-auto">
-                                <button className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => setReminderModal(true)}
+                                    className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center gap-2"
+                                >
                                     <span className="material-icons text-lg">notifications_active</span> <span className="hidden sm:inline">Send Reminder</span><span className="sm:hidden">Remind</span>
                                 </button>
-                                <button className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => setLimitModal(true)}
+                                    className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center gap-2"
+                                >
                                     <span className="material-icons text-lg">edit_note</span> Adjust Limit
                                 </button>
                                 <div className="h-10 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1 hidden sm:block"></div>
-                                <button className="flex-[2] sm:flex-none px-4 sm:px-6 py-2.5 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-400 text-sm font-bold rounded-lg transition-all border border-red-200 dark:border-red-900/50 shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                                <button
+                                    onClick={() => setRecoveryModal(true)}
+                                    className="flex-[2] sm:flex-none px-4 sm:px-6 py-2.5 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-400 text-sm font-bold rounded-lg transition-all border border-red-200 dark:border-red-900/50 shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
+                                >
                                     <span className="material-icons text-lg">gavel</span> Initiate Recovery
                                 </button>
                             </div>
                         </div>
                     </footer>
+
+            {/* Reminder Modal */}
+            {reminderModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span className="material-icons text-primary">notifications_active</span> Send Borrower Notice
+                            </h3>
+                            <button onClick={() => setReminderModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+                        </div>
+                        <p className="text-xs text-slate-500">Dispatch an automated payment reminder to <strong>{borrower.name}</strong> for upcoming EMI ({borrower.emiAmount}) due on {borrower.nextEmiDate}.</p>
+                        <div className="flex gap-3 pt-2">
+                            <button onClick={() => setReminderModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300">Cancel</button>
+                            <button
+                                onClick={() => {
+                                    setReminderModal(false);
+                                    showActionToast(`Payment reminder SMS & email dispatched to ${borrower.name}.`);
+                                }}
+                                className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:bg-primary/90"
+                            >
+                                Dispatch Notice
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Limit Adjustment Modal */}
+            {limitModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span className="material-icons text-primary">tune</span> Modify Credit Exposure Limit
+                            </h3>
+                            <button onClick={() => setLimitModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+                        </div>
+                        <div>
+                            <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                                <span>Sanctioned Credit Limit</span>
+                                <span className="text-primary font-bold">₹{creditLimit.toLocaleString('en-IN')}</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="100000"
+                                max="2000000"
+                                step="50000"
+                                value={creditLimit}
+                                onChange={(e) => setCreditLimit(Number(e.target.value))}
+                                className="w-full accent-primary"
+                            />
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                            <button onClick={() => setLimitModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300">Cancel</button>
+                            <button
+                                onClick={() => {
+                                    setLimitModal(false);
+                                    showActionToast(`Credit limit for ${borrower.name} adjusted to ₹${creditLimit.toLocaleString('en-IN')}.`);
+                                }}
+                                className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:bg-primary/90"
+                            >
+                                Confirm Adjustment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Recovery Modal */}
+            {recoveryModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-base font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
+                                <span className="material-icons">gavel</span> Initiate Legal Recovery Notice
+                            </h3>
+                            <button onClick={() => setRecoveryModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+                        </div>
+                        <p className="text-xs text-slate-500">Initiate formal loan default escalation and issue formal legal recovery proceedings for outstanding amount {borrower.totalOutstanding}.</p>
+                        <div className="flex gap-3 pt-2">
+                            <button onClick={() => setRecoveryModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300">Cancel</button>
+                            <button
+                                onClick={() => {
+                                    setRecoveryModal(false);
+                                    showActionToast(`Recovery notice initiated against facility #${borrower.id}.`);
+                                }}
+                                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md"
+                            >
+                                Proceed with Notice
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Foreclose Modal */}
+            {forecloseModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span className="material-icons text-primary">account_balance</span> Foreclosure Settlement
+                            </h3>
+                            <button onClick={() => setForecloseModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+                        </div>
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-1 text-xs">
+                            <p className="text-slate-500">Total Outstanding Balance: <strong className="text-slate-900 dark:text-white">{borrower.totalOutstanding}</strong></p>
+                            <p className="text-slate-500">Foreclosure Waiver: <strong>100% Prepayment Penalty Waived</strong></p>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                            <button onClick={() => setForecloseModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300">Cancel</button>
+                            <button
+                                onClick={() => {
+                                    setForecloseModal(false);
+                                    showActionToast(`Foreclosure demand note issued for ${borrower.name}.`);
+                                }}
+                                className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:bg-primary/90"
+                            >
+                                Issue Settlement
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
                 </div>
             </div>
         </div>
