@@ -24,18 +24,15 @@ const MyBorrowers = () => {
         const data = await listBorrowers();
         setBorrowers(
           data.map((item) => ({
-            id: item.borrower_id,
-            name:
-              `${item.user?.first_name || ''} ${item.user?.last_name || ''}`.trim() ||
-              item.user?.username ||
-              'Borrower',
-            location: [item.city, item.state].filter(Boolean).join(', ') || 'N/A',
-            productType: item.occupation || 'General',
-            principal: formatMoney(0),
-            outstanding: formatMoney(0),
-            nextEmi: 'TBD',
-            status: 'On Track',
-            riskScore: 650,
+            id: item.id || item.borrower_id,
+            name: item.name || 'Borrower',
+            location: item.location || 'N/A',
+            productType: item.productType || item.occupation || 'General',
+            principal: formatMoney(item.principal),
+            outstanding: formatMoney(item.outstanding),
+            nextEmi: item.nextEmi || item.nextEmiDate || 'TBD',
+            status: item.status || 'On Track',
+            riskScore: item.healthScore || item.riskScore || 650,
           })),
         );
       } catch (err) {

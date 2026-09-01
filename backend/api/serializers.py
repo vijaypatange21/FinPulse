@@ -169,7 +169,7 @@ class LoanApplicationSnapshotSerializer(serializers.ModelSerializer):
     amount = serializers.SerializerMethodField()
     aiScore = serializers.IntegerField(source="ai_score", read_only=True)
     appliedDate = serializers.DateTimeField(source="created_at", read_only=True)
-    status = serializers.CharField(read_only=True)
+    status = serializers.CharField(required=False)
     avatarUrl = serializers.SerializerMethodField()
     occupation = serializers.CharField(source="loan_type", read_only=True)
     name = serializers.SerializerMethodField()

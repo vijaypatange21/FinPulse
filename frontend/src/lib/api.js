@@ -115,3 +115,51 @@ export async function getBorrowerById(id) {
 export async function getApplicationById(id) {
   return apiRequest(`/applications/${id}/`);
 }
+
+export async function updateApplicationStatus(id, status, note = '') {
+  return apiRequest(`/applications/${id}/`, {
+    method: 'PATCH',
+    body: { status, note },
+  });
+}
+
+export async function predictHealthScore(features) {
+  return apiRequest('/predict/health-score/', {
+    method: 'POST',
+    body: { features },
+    auth: false,
+  });
+}
+
+export async function predictDefaultRisk(features) {
+  return apiRequest('/predict/default-risk/', {
+    method: 'POST',
+    body: { features },
+    auth: false,
+  });
+}
+
+export async function detectAnomaly(transaction) {
+  return apiRequest('/detect/anomaly/', {
+    method: 'POST',
+    body: { transaction },
+    auth: false,
+  });
+}
+
+export async function forecastBalance(balanceHistory) {
+  return apiRequest('/forecast/balance/', {
+    method: 'POST',
+    body: { balance_history: balanceHistory },
+    auth: false,
+  });
+}
+
+export async function recommendWellness(features) {
+  return apiRequest('/recommend/wellness/', {
+    method: 'POST',
+    body: { features },
+    auth: false,
+  });
+}
+

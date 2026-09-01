@@ -1,13 +1,40 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { mockLenders } from '../data/mockData';
+import { listLenders } from '../lib/api';
 
 const lenderIcons = ['domain', 'payments', 'corporate_fare', 'home_work', 'savings', 'currency_exchange', 'account_balance', 'storefront', 'assured_workload', 'credit_card'];
 
 const FindLender = () => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [lenders, setLenders] = useState([]);
 
-    const filteredLenders = mockLenders.filter((l) => {
+    React.useEffect(() => {
+        const loadLenders = async () => {
+            try {
+                const data = await listLenders();
+                if (Array.isArray(data) && data.length) {
+                    setLenders(data.map((l, idx) => ({
+                        id: l.id || l.lender_id || idx,
+                        name: l.name || l.institution_name,
+                        type: l.type || l.institution_type || 'Financial Institution',
+                        interestRate: l.interestRate || l.interest_rate || ' Starting 9.5% p.a.',
+                        loanRange: l.loanRange || l.loan_range || '₹1L - ₹50L',
+                        speed: l.speed || '24-48 Hours',
+                        rating: Number(l.rating) || 4.8,
+                        reviews: Number(l.reviews) || 120,
+                        approvalRate: l.approvalRate || '90%',
+                    })));
+                    return;
+                }
+            } catch {
+                // Fall back to mock lenders if backend is unavailable.
+            }
+            setLenders(mockLenders);
+        };
+        loadLenders();
+    }, []);
+
+    const filteredLenders = lenders.filter((l) => {
         const q = searchQuery.toLowerCase();
         return l.name.toLowerCase().includes(q) || l.type.toLowerCase().includes(q);
     });

@@ -1,8 +1,44 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
+import { getCurrentUser, listApplications, listBorrowers } from '../lib/api';
 
 const LenderDashboard = () => {
+    const [stats, setStats] = React.useState({
+        totalBorrowers: 5,
+        totalApplications: 5,
+        pendingReviewCount: 3,
+        approvedCount: 1,
+    });
+    const [recentApps, setRecentApps] = React.useState([]);
+
+    React.useEffect(() => {
+        const loadLenderStats = async () => {
+            try {
+                const [apps, borrowers] = await Promise.all([
+                    listApplications(),
+                    listBorrowers(),
+                ]);
+
+                if (Array.isArray(apps)) {
+                    setRecentApps(apps.slice(0, 5));
+                    setStats({
+                        totalBorrowers: borrowers.length || 5,
+                        totalApplications: apps.length,
+                        pendingReviewCount: apps.filter(a => a.status === 'under_review' || a.status === 'new').length,
+                        approvedCount: apps.filter(a => a.status === 'approved').length,
+                    });
+                }
+            } catch {
+                // Fallback
+            }
+        };
+
+        loadLenderStats();
+    }, []);
+
+    const user = getCurrentUser();
+    const lenderName = user?.first_name || user?.username || 'Senior Risk Officer';
     return (
         <div className="flex h-screen overflow-hidden bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100 antialiased">
             <style>{`

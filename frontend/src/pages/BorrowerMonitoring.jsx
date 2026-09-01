@@ -12,7 +12,7 @@ const BorrowerMonitoring = () => {
     const borrower = apiBorrower || mockBorrowers[Number.isNaN(borrowerIndex) ? 0 : borrowerIndex] || mockBorrowers[0];
 
     React.useEffect(() => {
-        if (!id || !id.includes('-')) {
+        if (!id) {
             return;
         }
 
@@ -20,11 +20,36 @@ const BorrowerMonitoring = () => {
             try {
                 const data = await getBorrowerById(id);
                 setApiBorrower({
-                    ...mockBorrowers[0],
-                    id: data.borrower_id,
-                    name: `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim() || data.user?.username || 'Borrower',
-                    location: [data.city, data.state].filter(Boolean).join(', ') || 'N/A',
-                    productType: data.occupation || 'General',
+                    id: data.id || data.borrower_id,
+                    name: data.name || 'Borrower',
+                    location: data.location || 'N/A',
+                    productType: data.productType || data.occupation || 'General',
+                    principal: data.principal,
+                    outstanding: data.outstanding,
+                    totalOutstanding: data.totalOutstanding || data.outstanding,
+                    nextEmiDate: data.nextEmiDate || data.nextEmi || 'TBD',
+                    interestRate: data.interestRate || '10.5% p.a.',
+                    status: data.status || 'On Track',
+                    healthScore: data.healthScore || 720,
+                    healthLabel: data.healthLabel || 'Good',
+                    riskLevel: data.riskLevel || 'low',
+                    riskColor: data.riskColor || 'green',
+                    riskNote: data.riskNote || 'ML Evaluated Profile',
+                    avatarUrl: data.avatarUrl || '',
+                    repaymentPercent: data.repaymentPercent || 0,
+                    totalPaid: data.totalPaid || 0,
+                    remaining: data.remaining || 0,
+                    emiAmount: data.emiAmount || 0,
+                    cashFlow: Array.isArray(data.cashFlow) ? data.cashFlow.map(cf => ({
+                        month: cf.month,
+                        incomeH: Math.min(100, Math.round((cf.income / 120000) * 100)),
+                        expenseH: Math.min(100, Math.round((cf.expenses / 120000) * 100)),
+                    })) : [],
+                    timeline: data.timeline || [],
+                    alertText: data.alertText || 'Account active with low volatility.',
+                    memberSince: data.memberSince || '2026',
+                    policyNumber: data.policyNumber || 'None',
+                    insuranceExpiry: data.insuranceExpiry || 'N/A',
                 });
             } catch {
                 // Keep fallback UI when API data is not available.

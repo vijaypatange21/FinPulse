@@ -2,9 +2,30 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 
+import { recommendWellness } from '../lib/api';
+
 const Recommendations = () => {
+    const [aiRecommendation, setAiRecommendation] = React.useState(null);
+
+    React.useEffect(() => {
+        const fetchAiWellness = async () => {
+            try {
+                const res = await recommendWellness({
+                    savings_rate: 0.12,
+                    debt_income_ratio: 0.35,
+                    discretionary_spending_ratio: 0.3,
+                    health_score: 745,
+                    risk_class: "Safe",
+                });
+                setAiRecommendation(res);
+            } catch {
+                // Keep default UI
+            }
+        };
+        fetchAiWellness();
+    }, []);
+
     return (
-        <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100 antialiased">
             {/* Sidebar Navigation */}
             <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col fixed h-full z-20">
                 <div className="p-6 flex items-center gap-3">
@@ -91,7 +112,16 @@ const Recommendations = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                         {/* Left Column: Main Content */}
                         <div className="lg:col-span-8">
-                            
+                            {aiRecommendation && (
+                                <section className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 shadow-lg text-white mb-8">
+                                    <div className="flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-wider text-blue-200">
+                                        <span className="material-icons text-sm">auto_awesome</span> Live ML Model Insight
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-1">Recommended Action: {aiRecommendation.recommendation_code}</h3>
+                                    <p className="text-sm text-blue-100 leading-relaxed font-medium">{aiRecommendation.advice}</p>
+                                </section>
+                            )}
+
                             {/* Financial Health Summary */}
                             <section className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-[#2262ec]/10 mb-8">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

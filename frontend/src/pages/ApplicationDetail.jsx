@@ -11,8 +11,11 @@ const ApplicationDetail = () => {
     const [apiApp, setApiApp] = React.useState(null);
     const app = apiApp || mockApplications[Number.isNaN(appIndex) ? 0 : appIndex] || mockApplications[0];
 
+    const [isUpdating, setIsUpdating] = React.useState(false);
+    const [actionMessage, setActionMessage] = React.useState('');
+
     React.useEffect(() => {
-        if (!id || !id.includes('-')) {
+        if (!id) {
             return;
         }
 
@@ -20,20 +23,42 @@ const ApplicationDetail = () => {
             try {
                 const data = await getApplicationById(id);
                 setApiApp({
-                    ...mockApplications[0],
-                    id: data.application_id,
-                    borrowerId: String(data.borrower || '').slice(0, 8),
-                    name: `Borrower ${String(data.borrower || '').slice(0, 6)}`,
-                    occupation: data.loan_type,
-                    location: 'N/A',
-                    loanType: data.loan_type,
+                    id: data.id || data.application_id,
+                    borrowerId: String(data.borrowerId || data.borrower || '').slice(0, 8),
+                    name: data.name || data.borrowerName || `Borrower ${String(data.borrower || '').slice(0, 6)}`,
+                    occupation: data.occupation || data.loanType || data.loan_type,
+                    location: data.location || 'N/A',
+                    loanType: data.loanType || data.loan_type,
                     amount: new Intl.NumberFormat('en-IN', {
                         style: 'currency',
                         currency: 'INR',
                         maximumFractionDigits: 0,
-                    }).format(Number(data.requested_amount || 0)),
-                    tenure: `${data.requested_tenure_months} Months`,
+                    }).format(Number(data.amount || data.requested_amount || 0)),
+                    tenure: data.tenure || `${data.requested_tenure_months} Months`,
+                    interestRate: data.interestRate || '10.5% p.a.',
                     status: data.status,
+                    healthScore: data.aiScore || 720,
+                    maxPotential: data.maxPotential || 850,
+                    scoreChange: data.scoreChange || '+12pts from last month',
+                    paymentHistory: data.paymentHistory || 95,
+                    creditUtilization: data.creditUtilization || 25,
+                    accountAge: data.accountAge || '4 Years',
+                    creditMix: data.creditMix || 'Good',
+                    riskLevel: data.riskLevel === 'high' ? 'High' : (data.riskLevel === 'medium' ? 'Medium' : 'Low'),
+                    defaultProbability: data.defaultProbability || '10%',
+                    probChange: data.probChange || '-2%',
+                    monthlyIncome: data.monthlyIncome || '₹75,000',
+                    debtToIncome: data.debtToIncome || '20%',
+                    note: data.note || 'Application submitted for underwriter evaluation.',
+                    activities: Array.isArray(data.activities) && data.activities.length ? data.activities.map(a => ({
+                        text: a.title || a.text,
+                        detail: a.description || a.detail,
+                        time: a.date || a.time,
+                        color: 'primary',
+                    })) : [
+                        { text: 'Application Submitted', detail: 'Form completed with verified documents.', time: '2026-08-28', color: 'green' }
+                    ],
+                    avatarUrl: data.avatarUrl || '',
                 });
             } catch {
                 // Keep fallback UI when API data is not available.
@@ -42,6 +67,20 @@ const ApplicationDetail = () => {
 
         loadApplication();
     }, [id]);
+
+    const handleStatusUpdate = async (newStatus) => {
+        setIsUpdating(true);
+        setActionMessage('');
+        try {
+            await updateApplicationStatus(id, newStatus, `Status updated to ${newStatus} by underwriter.`);
+            setApiApp(prev => prev ? { ...prev, status: newStatus } : prev);
+            setActionMessage(`Application ${newStatus} successfully!`);
+        } catch (err) {
+            setActionMessage(`Failed to update status: ${err.message}`);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     const getScoreRingColor = (score) => {
         if (score >= 750) return 'text-green-500';
@@ -310,13 +349,26 @@ const ApplicationDetail = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
-                        <button className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 border border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-bold rounded-lg transition-colors whitespace-nowrap">
+                        {actionMessage && (
+                            <span className="text-xs font-bold text-primary px-3 py-1 bg-primary/10 rounded-lg">
+                                {actionMessage}
+                            </span>
+                        )}
+                        <button
+                            onClick={() => handleStatusUpdate('rejected')}
+                            disabled={isUpdating}
+                            className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 border border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-bold rounded-lg transition-colors whitespace-nowrap disabled:opacity-50"
+                        >
                             Reject
                         </button>
                         <button className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-colors whitespace-nowrap hidden lg:block">
                             Request Info
                         </button>
-                        <button className="flex-1 sm:flex-none px-4 sm:px-8 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg shadow-lg shadow-green-600/20 transition-all flex items-center justify-center gap-2 whitespace-nowrap">
+                        <button
+                            onClick={() => handleStatusUpdate('approved')}
+                            disabled={isUpdating}
+                            className="flex-1 sm:flex-none px-4 sm:px-8 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg shadow-lg shadow-green-600/20 transition-all flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50"
+                        >
                             <span className="material-icons text-sm hidden sm:block">verified_user</span> 
                             Approve
                         </button>

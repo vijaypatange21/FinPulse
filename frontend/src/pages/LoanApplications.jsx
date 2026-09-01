@@ -52,15 +52,15 @@ const LoanApplications = () => {
             try {
                 const data = await listApplications();
                 const normalized = data.map((item) => ({
-                    id: item.application_id,
-                    name: item.borrower || 'Borrower',
-                    occupation: item.loan_type,
-                    loanType: item.loan_type,
-                    amount: formatMoney(item.requested_amount),
-                    aiScore: inferScore(item.status),
-                    appliedDate: formatDate(item.created_at),
+                    id: item.id || item.application_id,
+                    name: item.borrowerName || item.name || 'Borrower',
+                    occupation: item.occupation || item.loanType || item.loan_type || 'General',
+                    loanType: item.loanType || item.loan_type,
+                    amount: formatMoney(item.amount || item.requested_amount),
+                    aiScore: item.aiScore || inferScore(item.status),
+                    appliedDate: formatDate(item.appliedDate || item.created_at),
                     status: statusToLabel(item.status),
-                    avatarUrl: null,
+                    avatarUrl: item.avatarUrl || null,
                 }));
                 setApplications(normalized);
             } catch (err) {

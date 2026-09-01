@@ -1,8 +1,49 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
+import { getCurrentUser, listBorrowers, predictHealthScore, forecastBalance } from '../lib/api';
 
 const BorrowerDashboard = () => {
+    const [userProfile, setUserProfile] = React.useState(null);
+    const [mlHealth, setMlHealth] = React.useState({ score: 720, label: 'Good' });
+    const [cashflowRisk, setCashflowRisk] = React.useState(false);
+
+    React.useEffect(() => {
+        const loadDashboard = async () => {
+            const user = getCurrentUser();
+            if (!user) return;
+
+            try {
+                const borrowers = await listBorrowers();
+                const bProfile = borrowers.find(b => b.user?.id === user.id || b.user?.username === user.username) || borrowers[0];
+                if (bProfile) {
+                    setUserProfile(bProfile);
+                }
+
+                // Call ML Health Score API
+                const hs = await predictHealthScore({
+                    monthly_income: bProfile?.monthly_income || 85000,
+                    total_expense: bProfile?.total_expense || 35000,
+                    savings_rate: 0.35,
+                    emi_income_ratio: 0.18,
+                    cashflow_volatility: 0.08,
+                });
+                const mappedScore = Math.round(hs.health_score * 7.5 + 100);
+                setMlHealth({ score: Math.max(550, Math.min(850, mappedScore)), label: hs.risk_label === 'Low' ? 'Excellent' : 'Good' });
+
+                // Call ML Forecast API
+                const fc = await forecastBalance([45000, 48000, 52000, 50000, 55000]);
+                setCashflowRisk(fc.low_balance_risk);
+            } catch {
+                // Fallback
+            }
+        };
+
+        loadDashboard();
+    }, []);
+
+    const name = userProfile ? (userProfile.display_name || userProfile.name || userProfile.user?.first_name || userProfile.user?.username) : 'Borrower';
+
     return (
         <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-800 dark:text-slate-200 antialiased">
             {/* Sidebar Navigation */}
