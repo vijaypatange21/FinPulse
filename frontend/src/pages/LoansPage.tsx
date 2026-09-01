@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
+import { getCurrentUser, listApplications } from '../lib/api';
 
 type LoanStatus = 'On Track' | 'Due Soon' | 'Grace Period' | 'Closed';
 
@@ -165,20 +166,84 @@ const NavSidebar = () => (
 const LoansPage = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<LoansData | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setData(mockLoansData);
-      setLoading(false);
-    }, 600);
+    const loadLoans = async () => {
+      const user = getCurrentUser();
+      setCurrentUser(user);
 
-    return () => window.clearTimeout(timer);
+      try {
+        const apps = await listApplications().catch(() => []);
+        const approvedLoans = apps.filter((a: any) => a.status === 'approved');
+
+        if (approvedLoans.length > 0) {
+          const totalAmt = approvedLoans.reduce((sum: number, l: any) => sum + Number(l.amount || l.requested_amount || 0), 0);
+          setData({
+            summary: {
+              activeLoans: approvedLoans.length,
+              totalOutstanding: `₹${totalAmt.toLocaleString('en-IN')}`,
+              nextPayment: 'No upcoming payment',
+              onTimeRate: '100%',
+            },
+            loans: approvedLoans.map((l: any) => ({
+              id: `LN-${String(l.id || l.application_id).slice(0, 5)}`,
+              name: `${l.loanType || l.loan_type || 'Personal'} Loan`,
+              type: l.loanType || l.loan_type || 'Personal',
+              lender: l.preferred_lender?.institution_name || 'FinPulse Partner Bank',
+              principal: `₹${Number(l.amount || l.requested_amount || 0).toLocaleString('en-IN')}`,
+              outstanding: `₹${Number(l.amount || l.requested_amount || 0).toLocaleString('en-IN')}`,
+              emiAmount: `₹${Math.round(Number(l.amount || l.requested_amount || 0) / (Number(l.tenure || l.requested_tenure_months || 12))).toLocaleString('en-IN')}`,
+              interestRate: '10.5% p.a.',
+              nextDue: 'Next month',
+              remainingTenure: `${l.tenure || l.requested_tenure_months || 12} months`,
+              progress: 0,
+              status: 'On Track' as LoanStatus,
+              autopay: true,
+            })),
+            schedule: [],
+            averageEmi: '₹0',
+          });
+        } else {
+          // Clean empty state for new borrower
+          setData({
+            summary: {
+              activeLoans: 0,
+              totalOutstanding: '₹0',
+              nextPayment: 'N/A',
+              onTimeRate: 'N/A',
+            },
+            loans: [],
+            schedule: [],
+            averageEmi: '₹0',
+          });
+        }
+      } catch {
+        setData({
+          summary: {
+            activeLoans: 0,
+            totalOutstanding: '₹0',
+            nextPayment: 'N/A',
+            onTimeRate: 'N/A',
+          },
+          loans: [],
+          schedule: [],
+          averageEmi: '₹0',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadLoans();
   }, []);
 
   const averageProgress = useMemo(() => {
-    if (!data) return 0;
+    if (!data || !data.loans.length) return 0;
     return Math.round(data.loans.reduce((sum, loan) => sum + loan.progress, 0) / data.loans.length);
   }, [data]);
+
+  const displayName = currentUser ? (`${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username) : 'Borrower';
 
   return (
     <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100 antialiased">
@@ -198,10 +263,12 @@ const LoansPage = () => {
             </button>
             <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
               <div className="text-right flex flex-col justify-center">
-                <p className="text-sm font-semibold leading-tight">Jonathan Doe</p>
-                <p className="text-xs text-slate-500 italic leading-tight">Premium Borrower</p>
+                <p className="text-sm font-semibold leading-tight">{displayName}</p>
+                <p className="text-xs text-slate-500 italic leading-tight">Borrower</p>
               </div>
-              <img alt="User profile" className="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXlOr5gEy6Odf5E0XG75fdX9iJGZuS8GogdcGueycEPpns-h7Mi862_Q1EcNCjkK5VzqnGymt5xd6cSYpVzTpPOS0yM7-9MHvDjH9ppp-R8UkxuAgiyGyqtlHMLCTsK7Lv0IgwLUXkeS1GSvVgBcehU4Spgw4SjKOabyOzMfvUjhwdbh9Wr7APEnPZZfZjHYcUUa89J3W1xgtlnMAd6qst9IvI7fmSU5qLRkW4iUeZARbUsAeaFUIHhr7uUQtrW2As9Kv7WPE1OJs" />
+              <div className="w-10 h-10 rounded-full bg-[#2262ec] text-white flex items-center justify-center font-bold">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
             </div>
           </div>
         </header>
@@ -239,15 +306,15 @@ const LoansPage = () => {
                 <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                   <CardContent className="p-6">
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Next Payment</p>
-                    <p className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">₹32,500</p>
-                    <p className="mt-2 text-sm text-slate-500">Due in 4 days on your highest priority loan.</p>
+                    <p className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">{data.summary.nextPayment}</p>
+                    <p className="mt-2 text-sm text-slate-500">{data.loans.length > 0 ? 'Due on your active loan facility.' : 'No upcoming payments due.'}</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                   <CardContent className="p-6">
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">On-time Rate</p>
                     <p className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">{data.summary.onTimeRate}</p>
-                    <p className="mt-2 text-sm text-slate-500">Average EMI progress: {averageProgress}% paid.</p>
+                    <p className="mt-2 text-sm text-slate-500">{data.loans.length > 0 ? `Average EMI progress: ${averageProgress}% paid.` : 'No repayment history yet.'}</p>
                   </CardContent>
                 </Card>
               </div>
@@ -264,7 +331,19 @@ const LoansPage = () => {
                     </Link>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {data.loans.map((loan) => (
+                    {data.loans.length === 0 ? (
+                      <div className="py-12 text-center">
+                        <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-[#2262ec] rounded-full flex items-center justify-center mx-auto mb-4">
+                          <span className="material-icons text-3xl">account_balance</span>
+                        </div>
+                        <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No Active Loans</h4>
+                        <p className="text-sm text-slate-500 max-w-md mx-auto mb-6">You currently have no active borrowing facilities. Submit an application to get started.</p>
+                        <Link to="/loan-application" className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#2262ec] text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                          <span className="material-icons text-sm">add</span> Apply for Loan
+                        </Link>
+                      </div>
+                    ) : (
+                      data.loans.map((loan) => (
                       <div key={loan.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 p-5">
                         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
                           <div>
@@ -313,7 +392,7 @@ const LoansPage = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )))}
                   </CardContent>
                 </Card>
 
@@ -323,7 +402,10 @@ const LoansPage = () => {
                       <h3 className="text-lg font-bold text-slate-900 dark:text-white">Upcoming EMIs</h3>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {data.schedule.map((item) => (
+                      {data.schedule.length === 0 ? (
+                        <p className="text-sm text-slate-500 py-4 text-center">No upcoming EMIs scheduled.</p>
+                      ) : (
+                        data.schedule.map((item) => (
                         <div key={`${item.month}-${item.dueDate}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/60 dark:bg-slate-800/30">
                           <div>
                             <p className="font-semibold text-slate-900 dark:text-white">{item.dueDate}</p>
@@ -334,7 +416,7 @@ const LoansPage = () => {
                             <span className={`text-[10px] font-bold uppercase tracking-wider ${item.status === 'Paid' ? 'text-green-600 dark:text-green-400' : item.status === 'Late' ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>{item.status}</span>
                           </div>
                         </div>
-                      ))}
+                      )))}
                     </CardContent>
                   </Card>
 

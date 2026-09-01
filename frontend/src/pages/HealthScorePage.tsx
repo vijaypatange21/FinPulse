@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
+import { getCurrentUser, listBorrowers } from '../lib/api';
 
 type RiskLabel = 'Low' | 'Medium' | 'High';
 
@@ -189,17 +190,60 @@ const ScoreHistoryChart = ({ history }: { history: HistoryPoint[] }) => {
 const HealthScorePage = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<HealthScoreData | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setData(mockHealthScoreData);
-      setLoading(false);
-    }, 650);
+    const loadProfile = async () => {
+      const user = getCurrentUser();
+      setCurrentUser(user);
 
-    return () => window.clearTimeout(timer);
+      try {
+        const borrowers = await listBorrowers().catch(() => []);
+        const bProfile = borrowers.find((b: any) => b.user?.id === user?.id || b.user?.username === user?.username);
+
+        if (bProfile && bProfile.health_score > 0) {
+          setData({
+            score: bProfile.health_score,
+            risk_label: (bProfile.risk_level === 'high' ? 'High' : bProfile.risk_level === 'medium' ? 'Medium' : 'Low') as RiskLabel,
+            breakdown: [
+              { factor: 'Savings Rate', impact: 8, type: 'positive' },
+              { factor: 'EMI / Income Ratio', impact: -12, type: 'negative' },
+              { factor: 'Cashflow Volatility', impact: -6, type: 'negative' },
+              { factor: 'Credit History Length', impact: 10, type: 'positive' },
+            ],
+            history: [
+              { month: 'Current', score: bProfile.health_score },
+            ],
+            average_score: 720,
+          });
+        } else {
+          // New borrower profile with no evaluation yet
+          setData({
+            score: 0,
+            risk_label: 'Low' as RiskLabel,
+            breakdown: [],
+            history: [],
+            average_score: 720,
+          });
+        }
+      } catch {
+        setData({
+          score: 0,
+          risk_label: 'Low' as RiskLabel,
+          breakdown: [],
+          history: [],
+          average_score: 720,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
   }, []);
 
   const risk = data ? riskStyles[data.risk_label] : riskStyles.Low;
+  const displayName = currentUser ? (`${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username) : 'Borrower';
 
   return (
     <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100 antialiased">
@@ -219,10 +263,12 @@ const HealthScorePage = () => {
             </button>
             <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
               <div className="text-right flex flex-col justify-center">
-                <p className="text-sm font-semibold leading-tight">Jonathan Doe</p>
-                <p className="text-xs text-slate-500 italic leading-tight">Premium Borrower</p>
+                <p className="text-sm font-semibold leading-tight">{displayName}</p>
+                <p className="text-xs text-slate-500 italic leading-tight">Borrower</p>
               </div>
-              <img alt="User profile" className="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXlOr5gEy6Odf5E0XG75fdX9iJGZuS8GogdcGueycEPpns-h7Mi862_Q1EcNCjkK5VzqnGymt5xd6cSYpVzTpPOS0yM7-9MHvDjH9ppp-R8UkxuAgiyGyqtlHMLCTsK7Lv0IgwLUXkeS1GSvVgBcehU4Spgw4SjKOabyOzMfvUjhwdbh9Wr7APEnPZZfZjHYcUUa89J3W1xgtlnMAd6qst9IvI7fmSU5qLRkW4iUeZARbUsAeaFUIHhr7uUQtrW2As9Kv7WPE1OJs" />
+              <div className="w-10 h-10 rounded-full bg-[#2262ec] text-white flex items-center justify-center font-bold">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
             </div>
           </div>
         </header>

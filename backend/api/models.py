@@ -282,3 +282,33 @@ class MasterMLTrainingTable(TimeStampedModel):
 
     class Meta:
         db_table = "master_ml_training_table"
+
+
+class BorrowerDocument(TimeStampedModel):
+    DOCUMENT_TYPES = [
+        ("bank_statement", "Bank Statement"),
+        ("gst", "GST Records"),
+        ("itr", "ITR Records"),
+        ("upi", "UPI History"),
+        ("other", "Other Document"),
+    ]
+    STATUS_CHOICES = [
+        ("verified", "Verified"),
+        ("processing", "Processing"),
+        ("flagged", "Flagged"),
+    ]
+
+    borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE, related_name="documents")
+    file = models.FileField(upload_to="documents/%Y/%m/")
+    document_type = models.CharField(max_length=30, choices=DOCUMENT_TYPES, default="bank_statement")
+    file_name = models.CharField(max_length=255)
+    file_size = models.CharField(max_length=50, default="Unknown")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="verified")
+
+    class Meta:
+        db_table = "borrower_documents"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.borrower.name} - {self.file_name} ({self.document_type})"
+

@@ -1,10 +1,127 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
+import { getCurrentUser, listDocuments, uploadDocument, deleteDocument } from '../lib/api';
+
+const CATEGORY_MAP = {
+    bank_statement: { label: 'Bank Statement', color: 'blue', icon: 'account_balance', desc: 'Latest 6 months of your primary savings account.' },
+    gst: { label: 'GST Records', color: 'purple', icon: 'receipt_long', desc: 'GSTR-3B filings for the last 4 quarters.' },
+    itr: { label: 'ITR Records', color: 'amber', icon: 'description', desc: 'Income Tax Returns for the last 2 financial years.' },
+    upi: { label: 'UPI History', color: 'emerald', icon: 'qr_code_2', desc: 'Digital transaction logs from the last 90 days.' },
+};
 
 const DocumentUpload = () => {
+    const [documents, setDocuments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState('bank_statement');
+    const [dragActive, setDragActive] = useState(false);
+    const [notification, setNotification] = useState(null);
+    const fileInputRef = useRef(null);
+
+    const user = getCurrentUser();
+    const displayName = user ? (`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username) : 'Borrower';
+    const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    const fetchDocs = async () => {
+        try {
+            const data = await listDocuments();
+            if (Array.isArray(data)) {
+                setDocuments(data);
+            } else if (data && Array.isArray(data.results)) {
+                setDocuments(data.results);
+            } else {
+                setDocuments([]);
+            }
+        } catch {
+            setDocuments([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchDocs();
+    }, []);
+
+    const showToast = (msg, type = 'success') => {
+        setNotification({ msg, type });
+        setTimeout(() => setNotification(null), 4000);
+    };
+
+    const handleFiles = async (files, docType = selectedCategory) => {
+        if (!files || files.length === 0) return;
+        setUploading(true);
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('document_type', docType);
+                await uploadDocument(formData);
+            }
+            showToast(`Successfully uploaded ${files.length} document${files.length > 1 ? 's' : ''}!`);
+            await fetchDocs();
+        } catch (err) {
+            showToast(err?.message || 'Failed to upload document. Please try again.', 'error');
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const triggerUploadForCategory = (catKey) => {
+        setSelectedCategory(catKey);
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleDelete = async (id, name) => {
+        if (!window.confirm(`Are you sure you want to delete ${name}?`)) return;
+        try {
+            await deleteDocument(id);
+            setDocuments(prev => prev.filter(d => d.id !== id));
+            showToast('Document deleted.');
+        } catch {
+            showToast('Failed to delete document.', 'error');
+        }
+    };
+
+    const handleDrag = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === 'dragenter' || e.type === 'dragover') {
+            setDragActive(true);
+        } else if (e.type === 'dragleave') {
+            setDragActive(false);
+        }
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFiles(e.dataTransfer.files, selectedCategory);
+        }
+    };
+
+    const getCategoryCount = (key) => documents.filter(d => d.document_type === key).length;
+
     return (
         <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-800 dark:text-slate-200 antialiased">
+            {/* Hidden File Input */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                className="hidden"
+                onChange={(e) => handleFiles(e.target.files, selectedCategory)}
+            />
+
             {/* Sidebar Navigation */}
             <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col fixed h-full z-20">
                 <div className="p-6 flex items-center gap-3">
@@ -62,8 +179,8 @@ const DocumentUpload = () => {
                 {/* Top Header */}
                 <header className="h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 sticky top-0 z-10 shrink-0">
                     <div>
-                        <h1 className="text-xl font-bold">Hello, Jonathan</h1>
-                        <p className="text-sm text-slate-500">Here's your financial status as of Oct 24, 2023.</p>
+                        <h1 className="text-xl font-bold">Hello, {displayName.split(' ')[0]}</h1>
+                        <p className="text-sm text-slate-500">Document status as of {currentDate}.</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <ThemeToggle />
@@ -73,13 +190,23 @@ const DocumentUpload = () => {
                         </button>
                         <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
                             <div className="text-right flex flex-col justify-center">
-                                <p className="text-sm font-semibold leading-tight">Jonathan Doe</p>
-                                <p className="text-xs text-slate-500 italic leading-tight">Premium Borrower</p>
+                                <p className="text-sm font-semibold leading-tight">{displayName}</p>
+                                <p className="text-xs text-slate-500 italic leading-tight">Borrower</p>
                             </div>
-                            <img alt="User profile" className="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXlOr5gEy6Odf5E0XG75fdX9iJGZuS8GogdcGueycEPpns-h7Mi862_Q1EcNCjkK5VzqnGymt5xd6cSYpVzTpPOS0yM7-9MHvDjH9ppp-R8UkxuAgiyGyqtlHMLCTsK7Lv0IgwLUXkeS1GSvVgBcehU4Spgw4SjKOabyOzMfvUjhwdbh9Wr7APEnPZZfZjHYcUUa89J3W1xgtlnMAd6qst9IvI7fmSU5qLRkW4iUeZARbUsAeaFUIHhr7uUQtrW2As9Kv7WPE1OJs" />
+                            <div className="w-10 h-10 rounded-full bg-[#2262ec] text-white flex items-center justify-center font-bold">
+                                {displayName.charAt(0).toUpperCase()}
+                            </div>
                         </div>
                     </div>
                 </header>
+
+                {/* Toast Notification */}
+                {notification && (
+                    <div className={`fixed top-24 right-8 z-50 px-6 py-3 rounded-lg shadow-xl text-white font-medium flex items-center gap-3 animate-fade-in ${notification.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
+                        <span className="material-icons text-sm">{notification.type === 'error' ? 'error' : 'check_circle'}</span>
+                        {notification.msg}
+                    </div>
+                )}
 
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
                     {/* Header */}
@@ -110,17 +237,50 @@ const DocumentUpload = () => {
                     
                     {/* Main Upload Hero Zone */}
                     <section className="mb-10">
-                        <div className="relative group">
+                        <div
+                            onDragEnter={handleDrag}
+                            onDragLeave={handleDrag}
+                            onDragOver={handleDrag}
+                            onDrop={handleDrop}
+                            onClick={() => fileInputRef.current?.click()}
+                            className={`relative group cursor-pointer transition-all ${dragActive ? 'scale-[1.01]' : ''}`}
+                        >
                             <div className="absolute -inset-1 bg-gradient-to-r from-[#2262ec] to-blue-400 rounded-xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-                            <div className="relative flex flex-col items-center justify-center border-2 border-dashed border-[#2262ec]/30 bg-white dark:bg-slate-900 rounded-xl p-12 text-center hover:border-[#2262ec] transition-all cursor-pointer">
+                            <div className={`relative flex flex-col items-center justify-center border-2 border-dashed ${dragActive ? 'border-[#2262ec] bg-blue-50/50 dark:bg-blue-900/20' : 'border-[#2262ec]/30 bg-white dark:bg-slate-900'} rounded-xl p-12 text-center hover:border-[#2262ec] transition-all`}>
                                 <div className="w-20 h-20 bg-[#2262ec]/10 rounded-full flex items-center justify-center mb-6">
-                                    <span className="material-icons text-[#2262ec] text-4xl">cloud_upload</span>
+                                    <span className="material-icons text-[#2262ec] text-4xl">
+                                        {uploading ? 'hourglass_top' : 'cloud_upload'}
+                                    </span>
                                 </div>
-                                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Upload your financial documents</h2>
-                                <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">Drag and drop your files here, or click to browse from your computer. Supports PDF, JPG, PNG (Max 10MB each).</p>
-                                <button className="bg-[#2262ec] hover:bg-[#2262ec]/90 text-white font-semibold py-3 px-8 rounded-lg shadow-lg shadow-[#2262ec]/20 transition-all flex items-center">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                                    {uploading ? 'Uploading your files...' : 'Upload your financial documents'}
+                                </h2>
+                                <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
+                                    Drag and drop your files here, or click to browse from your computer. Supports PDF, JPG, PNG, DOC (Max 10MB each).
+                                </p>
+                                
+                                <div className="flex items-center gap-3 mb-4" onClick={(e) => e.stopPropagation()}>
+                                    <label className="text-xs font-semibold text-slate-500">Target Category:</label>
+                                    <select
+                                        value={selectedCategory}
+                                        onChange={(e) => setSelectedCategory(e.target.value)}
+                                        className="text-xs font-semibold bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#2262ec]"
+                                    >
+                                        <option value="bank_statement">Bank Statements</option>
+                                        <option value="gst">GST Records</option>
+                                        <option value="itr">ITR Records</option>
+                                        <option value="upi">UPI History</option>
+                                        <option value="other">Other Document</option>
+                                    </select>
+                                </div>
+
+                                <button
+                                    disabled={uploading}
+                                    type="button"
+                                    className="bg-[#2262ec] hover:bg-[#2262ec]/90 text-white font-semibold py-3 px-8 rounded-lg shadow-lg shadow-[#2262ec]/20 transition-all flex items-center disabled:opacity-50"
+                                >
                                     <span className="material-icons mr-2">add_circle_outline</span>
-                                    Browse Files
+                                    {uploading ? 'Processing...' : 'Browse Files'}
                                 </button>
                             </div>
                         </div>
@@ -137,13 +297,18 @@ const DocumentUpload = () => {
                                     <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                         <span className="material-icons text-[#2262ec]">account_balance</span>
                                     </div>
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                        2 files uploaded
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryCount('bank_statement') > 0 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'}`}>
+                                        {getCategoryCount('bank_statement') > 0 ? `${getCategoryCount('bank_statement')} file${getCategoryCount('bank_statement') > 1 ? 's' : ''} uploaded` : 'Not uploaded'}
                                     </span>
                                 </div>
                                 <h4 className="font-bold text-slate-900 dark:text-white mb-1">Bank Statements</h4>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 flex-1">Latest 6 months of your primary savings account.</p>
-                                <button className="w-full py-2 border border-[#2262ec] text-[#2262ec] hover:bg-[#2262ec]/5 font-medium rounded-lg transition-colors text-sm">Upload More</button>
+                                <button
+                                    onClick={() => triggerUploadForCategory('bank_statement')}
+                                    className="w-full py-2 bg-[#2262ec] text-white font-medium rounded-lg hover:bg-[#2262ec]/90 transition-colors text-sm"
+                                >
+                                    {getCategoryCount('bank_statement') > 0 ? 'Upload More' : 'Upload Now'}
+                                </button>
                             </div>
                             
                             {/* GST Records */}
@@ -152,28 +317,38 @@ const DocumentUpload = () => {
                                     <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                                         <span className="material-icons text-purple-600">receipt_long</span>
                                     </div>
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300">
-                                        Not uploaded
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryCount('gst') > 0 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'}`}>
+                                        {getCategoryCount('gst') > 0 ? `${getCategoryCount('gst')} file${getCategoryCount('gst') > 1 ? 's' : ''} uploaded` : 'Not uploaded'}
                                     </span>
                                 </div>
                                 <h4 className="font-bold text-slate-900 dark:text-white mb-1">GST Records</h4>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 flex-1">GSTR-3B filings for the last 4 quarters.</p>
-                                <button className="w-full py-2 bg-[#2262ec] text-white font-medium rounded-lg transition-colors hover:bg-[#2262ec]/90 text-sm">Upload Now</button>
+                                <button
+                                    onClick={() => triggerUploadForCategory('gst')}
+                                    className="w-full py-2 bg-[#2262ec] text-white font-medium rounded-lg hover:bg-[#2262ec]/90 transition-colors text-sm"
+                                >
+                                    {getCategoryCount('gst') > 0 ? 'Upload More' : 'Upload Now'}
+                                </button>
                             </div>
                             
                             {/* ITR */}
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow border-l-4 border-l-amber-400 flex flex-col">
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow flex flex-col">
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
                                         <span className="material-icons text-amber-600">description</span>
                                     </div>
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-                                        1 file uploaded
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryCount('itr') > 0 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'}`}>
+                                        {getCategoryCount('itr') > 0 ? `${getCategoryCount('itr')} file${getCategoryCount('itr') > 1 ? 's' : ''} uploaded` : 'Not uploaded'}
                                     </span>
                                 </div>
                                 <h4 className="font-bold text-slate-900 dark:text-white mb-1">ITR Records</h4>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 flex-1">Income Tax Returns for the last 2 financial years.</p>
-                                <button className="w-full py-2 border border-[#2262ec] text-[#2262ec] hover:bg-[#2262ec]/5 font-medium rounded-lg transition-colors text-sm">Upload More</button>
+                                <button
+                                    onClick={() => triggerUploadForCategory('itr')}
+                                    className="w-full py-2 bg-[#2262ec] text-white font-medium rounded-lg hover:bg-[#2262ec]/90 transition-colors text-sm"
+                                >
+                                    {getCategoryCount('itr') > 0 ? 'Upload More' : 'Upload Now'}
+                                </button>
                             </div>
                             
                             {/* UPI History */}
@@ -182,27 +357,29 @@ const DocumentUpload = () => {
                                     <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
                                         <span className="material-icons text-emerald-600">qr_code_2</span>
                                     </div>
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300">
-                                        Not uploaded
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryCount('upi') > 0 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'}`}>
+                                        {getCategoryCount('upi') > 0 ? `${getCategoryCount('upi')} file${getCategoryCount('upi') > 1 ? 's' : ''} uploaded` : 'Not uploaded'}
                                     </span>
                                 </div>
                                 <h4 className="font-bold text-slate-900 dark:text-white mb-1">UPI History</h4>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 flex-1">Digital transaction logs from the last 90 days.</p>
-                                <button className="w-full py-2 bg-[#2262ec] text-white font-medium rounded-lg hover:bg-[#2262ec]/90 transition-colors text-sm">Upload Now</button>
+                                <button
+                                    onClick={() => triggerUploadForCategory('upi')}
+                                    className="w-full py-2 bg-[#2262ec] text-white font-medium rounded-lg hover:bg-[#2262ec]/90 transition-colors text-sm"
+                                >
+                                    {getCategoryCount('upi') > 0 ? 'Upload More' : 'Upload Now'}
+                                </button>
                             </div>
                         </div>
                     </section>
                     
                     {/* Uploaded Files List Table */}
-                    <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
                         <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Uploaded Files List</h3>
-                            <div className="flex space-x-2">
-                                <div className="relative">
-                                    <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-                                    <input className="pl-10 pr-4 py-2 w-full text-sm border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg focus:ring-[#2262ec] focus:border-[#2262ec] outline-none" placeholder="Search files..." type="text"/>
-                                </div>
-                            </div>
+                            <span className="text-xs font-semibold px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-400">
+                                {documents.length} Total Uploaded
+                            </span>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left whitespace-nowrap">
@@ -217,74 +394,74 @@ const DocumentUpload = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-                                    <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center">
-                                                <span className="material-icons text-red-500 mr-3">picture_as_pdf</span>
-                                                <span className="font-medium text-slate-900 dark:text-white">HDFC_Savings_Oct23.pdf</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">Bank Statement</td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">Oct 24, 2023</td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">1.2 MB</td>
-                                        <td className="px-6 py-4">
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
-                                                Verified
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button className="text-slate-400 hover:text-[#2262ec] transition-colors"><span className="material-icons text-lg">visibility</span></button>
-                                            <button className="text-slate-400 hover:text-red-500 ml-3 transition-colors"><span className="material-icons text-lg">delete</span></button>
-                                        </td>
-                                    </tr>
-                                    <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center">
-                                                <span className="material-icons text-red-500 mr-3">picture_as_pdf</span>
-                                                <span className="font-medium text-slate-900 dark:text-white">ITR_V_AY_2023.pdf</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">ITR Records</td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">Oct 25, 2023</td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">2.4 MB</td>
-                                        <td className="px-6 py-4">
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
-                                                Processing
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button className="text-slate-400 hover:text-[#2262ec] transition-colors"><span className="material-icons text-lg">visibility</span></button>
-                                            <button className="text-slate-400 hover:text-red-500 ml-3 transition-colors"><span className="material-icons text-lg">delete</span></button>
-                                        </td>
-                                    </tr>
-                                    <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center">
-                                                <span className="material-icons text-[#2262ec] mr-3">image</span>
-                                                <span className="font-medium text-slate-900 dark:text-white">Bank_Salary_Credit.jpg</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">Bank Statement</td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">Oct 26, 2023</td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">850 KB</td>
-                                        <td className="px-6 py-4">
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
-                                                Verified
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button className="text-slate-400 hover:text-[#2262ec] transition-colors"><span className="material-icons text-lg">visibility</span></button>
-                                            <button className="text-slate-400 hover:text-red-500 ml-3 transition-colors"><span className="material-icons text-lg">delete</span></button>
-                                        </td>
-                                    </tr>
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
+                                                Loading documents...
+                                            </td>
+                                        </tr>
+                                    ) : documents.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                                                <span className="material-icons text-3xl text-slate-300 dark:text-slate-600 block mb-2">cloud_off</span>
+                                                No files uploaded yet. Drag and drop your financial files above to get verified.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        documents.map((doc) => {
+                                            const catInfo = CATEGORY_MAP[doc.document_type] || { label: 'Document', icon: 'description' };
+                                            const formattedDate = doc.created_at ? new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : currentDate;
+                                            return (
+                                                <tr key={doc.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center">
+                                                            <span className="material-icons text-[#2262ec] mr-3">{doc.file_name?.endsWith('.pdf') ? 'picture_as_pdf' : doc.file_name?.match(/\.(jpg|jpeg|png)$/i) ? 'image' : 'description'}</span>
+                                                            <span className="font-medium text-slate-900 dark:text-white">{doc.file_name}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
+                                                        {catInfo.label}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
+                                                        {formattedDate}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
+                                                        {doc.file_size}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
+                                                            {doc.status === 'verified' ? 'Verified' : doc.status === 'processing' ? 'Processing' : 'Under Review'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        {doc.file_url ? (
+                                                            <a
+                                                                href={doc.file_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-slate-400 hover:text-[#2262ec] transition-colors inline-block p-1"
+                                                                title="View Document"
+                                                            >
+                                                                <span className="material-icons text-lg">visibility</span>
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-slate-400 p-1 inline-block"><span className="material-icons text-lg">visibility</span></span>
+                                                        )}
+                                                        <button
+                                                            onClick={() => handleDelete(doc.id, doc.file_name)}
+                                                            className="text-slate-400 hover:text-red-500 ml-3 transition-colors p-1"
+                                                            title="Delete Document"
+                                                        >
+                                                            <span className="material-icons text-lg">delete</span>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
                                 </tbody>
                             </table>
-                        </div>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 text-center border-t border-slate-200 dark:border-slate-700">
-                            <button className="text-[#2262ec] hover:text-[#2262ec]/80 font-semibold text-sm transition-colors">View All History</button>
                         </div>
                     </section>
                     
@@ -324,3 +501,4 @@ const DocumentUpload = () => {
 };
 
 export default DocumentUpload;
+

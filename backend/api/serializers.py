@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 
-from .models import BorrowerProfile, LenderProfile, LoanApplication, User
+from .models import BorrowerDocument, BorrowerProfile, LenderProfile, LoanApplication, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -268,13 +268,13 @@ class BorrowerRegistrationSerializer(serializers.Serializer):
         user = User.objects.create_user(role=User.Role.BORROWER, **validated_data)
         BorrowerProfile.objects.create(
             user=user,
-            loan_type="Personal",
+            loan_type="None",
             principal_amount=0,
             outstanding_amount=0,
             status=BorrowerProfile.Status.ON_TRACK,
-            health_score=720,
-            health_label="Good",
-            risk_level=BorrowerProfile.RiskLevel.MEDIUM,
+            health_score=0,
+            health_label="New Profile",
+            risk_level=BorrowerProfile.RiskLevel.LOW,
             risk_color=BorrowerProfile.RiskColor.GREEN,
             repayment_percent=0,
             **profile_data,
@@ -351,3 +351,29 @@ class LoanApplicationSerializer(LoanApplicationSnapshotSerializer):
         required=False,
         allow_null=True,
     )
+
+
+class BorrowerDocumentSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BorrowerDocument
+        fields = [
+            "id",
+            "borrower",
+            "file",
+            "file_url",
+            "document_type",
+            "file_name",
+            "file_size",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "borrower", "file_name", "file_size", "file_url", "created_at", "updated_at"]
+
+    def get_file_url(self, obj):
+        if obj.file:
+            return obj.file.url
+        return None
+

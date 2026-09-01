@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
+import { getCurrentUser, listBorrowers } from '../lib/api';
 
 type TransactionType = 'Income' | 'Expense' | 'Transfer';
 
@@ -127,14 +128,73 @@ const TransactionTrend = ({ points }: { points: MonthlyPoint[] }) => {
 const TransactionsPage = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<TransactionData | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setData(mockTransactionData);
-      setLoading(false);
-    }, 550);
-    return () => window.clearTimeout(timer);
+    const loadTransactions = async () => {
+      const user = getCurrentUser();
+      setCurrentUser(user);
+
+      try {
+        const borrowers = await listBorrowers().catch(() => []);
+        const bProfile = borrowers.find((b: any) => b.user?.id === user?.id || b.user?.username === user?.username);
+
+        if (bProfile && Array.isArray(bProfile.cash_flow) && bProfile.cash_flow.length > 0) {
+          const totalIn = bProfile.cash_flow.reduce((sum: number, c: any) => sum + (c.income || 0), 0);
+          const totalOut = bProfile.cash_flow.reduce((sum: number, c: any) => sum + (c.expenses || 0), 0);
+          setData({
+            summary: {
+              totalInflow: `₹${totalIn.toLocaleString('en-IN')}`,
+              totalOutflow: `₹${totalOut.toLocaleString('en-IN')}`,
+              netCashflow: `₹${(totalIn - totalOut).toLocaleString('en-IN')}`,
+              anomalyCount: 0,
+            },
+            monthlyTrend: bProfile.cash_flow.map((c: any) => ({
+              month: c.month,
+              income: c.income || 0,
+              expense: c.expenses || 0,
+            })),
+            recentTransactions: [],
+            categories: [],
+            anomalies: [],
+          });
+        } else {
+          // Clean empty state for new borrower
+          setData({
+            summary: {
+              totalInflow: '₹0',
+              totalOutflow: '₹0',
+              netCashflow: '₹0',
+              anomalyCount: 0,
+            },
+            monthlyTrend: [],
+            recentTransactions: [],
+            categories: [],
+            anomalies: [],
+          });
+        }
+      } catch {
+        setData({
+          summary: {
+            totalInflow: '₹0',
+            totalOutflow: '₹0',
+            netCashflow: '₹0',
+            anomalyCount: 0,
+          },
+          monthlyTrend: [],
+          recentTransactions: [],
+          categories: [],
+          anomalies: [],
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTransactions();
   }, []);
+
+  const displayName = currentUser ? (`${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username) : 'Borrower';
 
   return (
     <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100 antialiased">
@@ -153,10 +213,12 @@ const TransactionsPage = () => {
             </button>
             <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
               <div className="text-right flex flex-col justify-center">
-                <p className="text-sm font-semibold leading-tight">Jonathan Doe</p>
-                <p className="text-xs text-slate-500 italic leading-tight">Premium Borrower</p>
+                <p className="text-sm font-semibold leading-tight">{displayName}</p>
+                <p className="text-xs text-slate-500 italic leading-tight">Borrower</p>
               </div>
-              <img alt="User profile" className="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXlOr5gEy6Odf5E0XG75fdX9iJGZuS8GogdcGueycEPpns-h7Mi862_Q1EcNCjkK5VzqnGymt5xd6cSYpVzTpPOS0yM7-9MHvDjH9ppp-R8UkxuAgiyGyqtlHMLCTsK7Lv0IgwLUXkeS1GSvVgBcehU4Spgw4SjKOabyOzMfvUjhwdbh9Wr7APEnPZZfZjHYcUUa89J3W1xgtlnMAd6qst9IvI7fmSU5qLRkW4iUeZARbUsAeaFUIHhr7uUQtrW2As9Kv7WPE1OJs" />
+              <div className="w-10 h-10 rounded-full bg-[#2262ec] text-white flex items-center justify-center font-bold">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
             </div>
           </div>
         </header>
@@ -202,7 +264,10 @@ const TransactionsPage = () => {
                     <h3 className="text-lg font-bold">Category spend</h3>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {data.categories.map((cat) => (
+                    {data.categories.length === 0 ? (
+                      <p className="text-sm text-slate-500 py-6 text-center">No category spending recorded yet.</p>
+                    ) : (
+                      data.categories.map((cat) => (
                       <div key={cat.name}>
                         <div className="flex items-center justify-between text-sm mb-2">
                           <span className="font-medium text-slate-700 dark:text-slate-300">{cat.name}</span>
@@ -210,7 +275,7 @@ const TransactionsPage = () => {
                         </div>
                         <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div className="h-full rounded-full bg-[#2262ec]" style={{ width: `${cat.percent}%` }} /></div>
                       </div>
-                    ))}
+                    )))}
                   </CardContent>
                 </Card>
               </div>
@@ -232,7 +297,14 @@ const TransactionsPage = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {data.recentTransactions.map((tx) => (
+                        {data.recentTransactions.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-500">
+                              No transactions recorded yet. Connect a bank account or upload statements to populate.
+                            </td>
+                          </tr>
+                        ) : (
+                          data.recentTransactions.map((tx) => (
                           <tr key={tx.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-colors">
                             <td className="px-6 py-4 text-sm text-slate-500">{tx.date}</td>
                             <td className="px-6 py-4">
@@ -245,7 +317,7 @@ const TransactionsPage = () => {
                             <td className={`px-6 py-4 font-bold ${tx.type === 'Income' ? 'text-green-600 dark:text-green-400' : 'text-slate-900 dark:text-white'}`}>{tx.type === 'Income' ? '+' : '-'}₹{tx.amount.toLocaleString('en-IN')}</td>
                             <td className="px-6 py-4"><span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold border ${statusStyle[tx.status]}`}>{tx.status}</span></td>
                           </tr>
-                        ))}
+                        )))}
                       </tbody>
                     </table>
                   </CardContent>
@@ -257,11 +329,14 @@ const TransactionsPage = () => {
                       <h3 className="text-lg font-bold">Anomaly insights</h3>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-                      {data.anomalies.map((item) => (
+                      {data.anomalies.length === 0 ? (
+                        <p className="text-sm text-slate-500 py-4 text-center">No unusual transaction activity detected.</p>
+                      ) : (
+                        data.anomalies.map((item) => (
                         <div key={item} className="rounded-xl border border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 p-4">
                           {item}
                         </div>
-                      ))}
+                      )))}
                     </CardContent>
                   </Card>
 

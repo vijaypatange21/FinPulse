@@ -1,11 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
-import { getCurrentUser, listBorrowers, predictHealthScore, forecastBalance } from '../lib/api';
+import { getCurrentUser, listBorrowers, listApplications, predictHealthScore, forecastBalance } from '../lib/api';
 
 const BorrowerDashboard = () => {
     const [userProfile, setUserProfile] = React.useState(null);
-    const [mlHealth, setMlHealth] = React.useState({ score: 720, label: 'Good' });
+    const [applications, setApplications] = React.useState([]);
+    const [mlHealth, setMlHealth] = React.useState({ score: 0, label: 'New Profile' });
     const [cashflowRisk, setCashflowRisk] = React.useState(false);
 
     React.useEffect(() => {
@@ -14,35 +15,56 @@ const BorrowerDashboard = () => {
             if (!user) return;
 
             try {
-                const borrowers = await listBorrowers();
-                const bProfile = borrowers.find(b => b.user?.id === user.id || b.user?.username === user.username) || borrowers[0];
+                const [borrowers, apps] = await Promise.all([
+                    listBorrowers().catch(() => []),
+                    listApplications().catch(() => []),
+                ]);
+
+                const bProfile = borrowers.find(b => b.user?.id === user.id || b.user?.username === user.username);
+                setApplications(apps);
+
                 if (bProfile) {
                     setUserProfile(bProfile);
+                    if (bProfile.health_score && bProfile.health_score > 0) {
+                        setMlHealth({ score: bProfile.health_score, label: bProfile.health_label || 'Good' });
+                    } else {
+                        setMlHealth({ score: 0, label: 'New Profile' });
+                    }
+                } else {
+                    setUserProfile({
+                        name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+                        user: user,
+                        isNewUser: true,
+                    });
+                    setMlHealth({ score: 0, label: 'New Profile' });
                 }
 
-                // Call ML Health Score API
-                const hs = await predictHealthScore({
-                    monthly_income: bProfile?.monthly_income || 85000,
-                    total_expense: bProfile?.total_expense || 35000,
-                    savings_rate: 0.35,
-                    emi_income_ratio: 0.18,
-                    cashflow_volatility: 0.08,
-                });
-                const mappedScore = Math.round(hs.health_score * 7.5 + 100);
-                setMlHealth({ score: Math.max(550, Math.min(850, mappedScore)), label: hs.risk_label === 'Low' ? 'Excellent' : 'Good' });
-
-                // Call ML Forecast API
-                const fc = await forecastBalance([45000, 48000, 52000, 50000, 55000]);
-                setCashflowRisk(fc.low_balance_risk);
+                if (bProfile && Array.isArray(bProfile.cash_flow) && bProfile.cash_flow.length >= 3) {
+                    const balances = bProfile.cash_flow.map(c => c.income - c.expenses);
+                    const fc = await forecastBalance(balances).catch(() => ({ low_balance_risk: false }));
+                    setCashflowRisk(fc.low_balance_risk);
+                } else {
+                    setCashflowRisk(false);
+                }
             } catch {
-                // Fallback
+                const currentUser = getCurrentUser();
+                if (currentUser) {
+                    setUserProfile({
+                        name: `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username,
+                        isNewUser: true,
+                    });
+                }
+                setMlHealth({ score: 0, label: 'New Profile' });
             }
         };
 
         loadDashboard();
     }, []);
 
-    const name = userProfile ? (userProfile.display_name || userProfile.name || userProfile.user?.first_name || userProfile.user?.username) : 'Borrower';
+    const currentUser = getCurrentUser();
+    const name = userProfile ? (userProfile.display_name || userProfile.name || userProfile.user?.first_name || userProfile.user?.username) : (currentUser?.first_name || currentUser?.username || 'Borrower');
+
+    const isNewUser = !userProfile || !userProfile.health_score || userProfile.health_score === 0;
 
     return (
         <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-800 dark:text-slate-200 antialiased">
@@ -103,8 +125,8 @@ const BorrowerDashboard = () => {
                 {/* Top Header */}
                 <header className="h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 sticky top-0 z-10">
                     <div>
-                        <h1 className="text-xl font-bold">Hello, Jonathan</h1>
-                        <p className="text-sm text-slate-500">Here's your financial status as of Oct 24, 2023.</p>
+                        <h1 className="text-xl font-bold">Hello, {name.split(' ')[0]}</h1>
+                        <p className="text-sm text-slate-500">Welcome to your FinPulse financial control center.</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <ThemeToggle />
@@ -114,51 +136,72 @@ const BorrowerDashboard = () => {
                         </button>
                         <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
                             <div className="text-right flex flex-col justify-center">
-                                <p className="text-sm font-semibold leading-tight">Jonathan Doe</p>
-                                <p className="text-xs text-slate-500 italic leading-tight">Premium Borrower</p>
+                                <p className="text-sm font-semibold leading-tight">{name}</p>
+                                <p className="text-xs text-slate-500 italic leading-tight">Borrower</p>
                             </div>
-                            <img alt="User profile" className="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXlOr5gEy6Odf5E0XG75fdX9iJGZuS8GogdcGueycEPpns-h7Mi862_Q1EcNCjkK5VzqnGymt5xd6cSYpVzTpPOS0yM7-9MHvDjH9ppp-R8UkxuAgiyGyqtlHMLCTsK7Lv0IgwLUXkeS1GSvVgBcehU4Spgw4SjKOabyOzMfvUjhwdbh9Wr7APEnPZZfZjHYcUUa89J3W1xgtlnMAd6qst9IvI7fmSU5qLRkW4iUeZARbUsAeaFUIHhr7uUQtrW2As9Kv7WPE1OJs" />
+                            <div className="w-10 h-10 rounded-full bg-[#2262ec] text-white flex items-center justify-center font-bold">
+                                {name.charAt(0).toUpperCase()}
+                            </div>
                         </div>
                     </div>
                 </header>
 
-                {/* Dashboard Grid */}
-                <div className="p-8 space-y-8 pb-20">
-                    {/* Hero Section: Health Score & Milestone */}
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 w-full flex-1">
+                    {/* Top Row: Financial Health Score & Next Action */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Health Score Card */}
-                        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
-                            <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-[#2262ec]/5 rounded-full blur-3xl pointer-events-none"></div>
-                            
-                            <div className="relative w-48 h-48 flex items-center justify-center shrink-0">
-                                {/* Circular Progress */}
-                                <svg className="w-full h-full transform -rotate-90">
-                                    <circle className="text-slate-100 dark:text-slate-800" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" strokeWidth="12"></circle>
-                                    <circle className="text-[#2262ec]" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" strokeDasharray="552.92" strokeDashoffset="138.23" strokeWidth="12"></circle>
-                                </svg>
-                                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                                    <span className="text-5xl font-extrabold text-slate-900 dark:text-white">720</span>
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Health Score</span>
+                        {/* Financial Health Score (Gauge Style) */}
+                        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">FinPulse Health Score</h2>
+                                    <p className="text-sm text-slate-500">Multi-dimensional real-time credit wellness evaluation</p>
+                                </div>
+                                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${mlHealth.score >= 700 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : mlHealth.score > 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-blue-100 text-[#2262ec] dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                                    {mlHealth.label}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto py-6 items-center">
+                                <div className="flex flex-col items-center justify-center">
+                                    <div className="relative w-48 h-48 flex items-center justify-center">
+                                        <svg className="w-full h-full transform -rotate-90">
+                                            <circle className="text-slate-100 dark:text-slate-800" cx="96" cy="96" fill="transparent" r="80" stroke="currentColor" strokeWidth="16"></circle>
+                                            <circle className="text-[#2262ec]" cx="96" cy="96" fill="transparent" r="80" stroke="currentColor" strokeDasharray="502.6" strokeDashoffset={isNewUser ? 502.6 : Math.max(0, 502.6 - (mlHealth.score / 900) * 502.6)} strokeWidth="16" strokeLinecap="round"></circle>
+                                        </svg>
+                                        <div className="absolute flex flex-col items-center">
+                                            <span className="text-5xl font-extrabold text-slate-900 dark:text-white">{mlHealth.score}</span>
+                                            <span className="text-xs text-slate-400 font-semibold tracking-wider uppercase mt-1">out of 900</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-4 mt-4 text-xs font-medium text-slate-500">
+                                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span>300</span>
+                                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"></span>650</span>
+                                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span>750</span>
+                                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#2262ec]"></span>900</span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
+                                        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Status Summary</h3>
+                                        <p className="text-xs text-slate-500 leading-relaxed">
+                                            {isNewUser ? 'Submit an application or connect bank statements to compute your initial score.' : `Your profile is evaluated as ${mlHealth.label}. Keep low credit utilization to maintain good standing.`}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs font-medium text-slate-500 pt-2">
+                                        <span>Last calculated: Just now</span>
+                                        <span className="text-[#2262ec] font-semibold cursor-pointer hover:underline">How to improve?</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex-1 space-y-4 z-10">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full uppercase tracking-wide">Good Standing</span>
-                                    <span className="text-green-600 flex items-center text-sm font-semibold">
-                                        <span className="material-icons text-sm mr-1">trending_up</span>
-                                        +15 pts
-                                    </span>
-                                </div>
-                                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Your score is looking great!</h2>
-                                <p className="text-slate-500 leading-relaxed text-sm">You are in the top 15% of borrowers in your region. Maintaining this score will unlock lower interest rates for your next loan application.</p>
-                                <div className="pt-4 flex flex-wrap gap-3">
-                                    <button className="px-5 py-2.5 bg-[#2262ec] text-white font-medium rounded-lg shadow-lg shadow-[#2262ec]/20 hover:bg-[#2262ec]/90 transition-all flex items-center gap-2">
-                                        View Full Report
-                                    </button>
-                                    <button className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
-                                        Improve Score
-                                    </button>
-                                </div>
+
+                            <div className="flex gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                <Link to="/borrower/health-score" className="px-6 py-2.5 bg-[#2262ec] text-white text-sm font-bold rounded-lg hover:bg-[#2262ec]/90 transition-colors shadow-sm">
+                                    View Full Report
+                                </Link>
+                                <Link to="/recommendations" className="px-6 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                                    Improve Score
+                                </Link>
                             </div>
                         </div>
 
@@ -171,18 +214,18 @@ const BorrowerDashboard = () => {
                                 </div>
                                 <div className="mb-6">
                                     <p className="text-xs font-semibold text-slate-400 uppercase mb-2 tracking-wide">Maximum Capacity</p>
-                                    <h4 className="text-3xl font-extrabold text-[#2262ec]">₹15,00,000</h4>
-                                    <p className="text-sm text-slate-500 mt-2">Based on your <span className="font-bold text-slate-700 dark:text-slate-300">720 Health Score</span></p>
+                                    <h4 className="text-3xl font-extrabold text-[#2262ec]">{isNewUser ? '₹0' : '₹15,00,000'}</h4>
+                                    <p className="text-sm text-slate-500 mt-2">Based on your <span className="font-bold text-slate-700 dark:text-slate-300">{mlHealth.score > 0 ? `${mlHealth.score} Health Score` : 'profile status'}</span></p>
                                 </div>
                                 <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Eligibility Breakdown</p>
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-slate-600 dark:text-slate-400">Income Stability</span>
-                                        <span className="font-bold text-green-600">Excellent</span>
+                                        <span className="font-bold text-slate-600 dark:text-slate-400">{isNewUser ? 'N/A' : 'Excellent'}</span>
                                     </div>
                                     <div className="flex items-center justify-between text-sm">
-                                        <span className="text-slate-600 dark:text-slate-400">DTI Ratio (24.2%)</span>
-                                        <span className="font-bold text-green-600">Optimal</span>
+                                        <span className="text-slate-600 dark:text-slate-400">DTI Ratio</span>
+                                        <span className="font-bold text-slate-600 dark:text-slate-400">{isNewUser ? 'N/A' : 'Optimal (24.2%)'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -201,40 +244,40 @@ const BorrowerDashboard = () => {
                                 <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-[#2262ec]">
                                     <span className="material-icons">event_available</span>
                                 </div>
-                                <span className="text-green-500 text-xs font-bold">+2%</span>
+                                <span className="text-slate-400 text-xs font-bold">{isNewUser ? 'N/A' : '+2%'}</span>
                             </div>
                             <p className="text-slate-500 text-sm font-medium mb-1">Income Consistency</p>
-                            <p className="text-2xl font-bold">98.4%</p>
+                            <p className="text-2xl font-bold">{isNewUser ? 'N/A' : '98.4%'}</p>
                         </div>
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center text-indigo-600">
                                     <span className="material-icons">history</span>
                                 </div>
-                                <span className="text-green-500 text-xs font-bold">Steady</span>
+                                <span className="text-slate-400 text-xs font-bold">{isNewUser ? 'N/A' : 'Steady'}</span>
                             </div>
                             <p className="text-slate-500 text-sm font-medium mb-1">Payment History</p>
-                            <p className="text-2xl font-bold">100%</p>
+                            <p className="text-2xl font-bold">{isNewUser ? 'N/A' : (userProfile?.repayment_percent ? `${userProfile.repayment_percent}%` : '100%')}</p>
                         </div>
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center text-emerald-600">
                                     <span className="material-icons">payments</span>
                                 </div>
-                                <span className="text-green-500 text-xs font-bold">+$120</span>
+                                <span className="text-slate-400 text-xs font-bold">{isNewUser ? 'N/A' : '+$0'}</span>
                             </div>
                             <p className="text-slate-500 text-sm font-medium mb-1">Avg. Cash Flow</p>
-                            <p className="text-2xl font-bold">$1,240<span className="text-sm text-slate-400 font-normal">/mo</span></p>
+                            <p className="text-2xl font-bold">{isNewUser ? '₹0' : (userProfile?.monthly_income ? `₹${Number(userProfile.monthly_income).toLocaleString()}` : '₹0')}<span className="text-sm text-slate-400 font-normal">/mo</span></p>
                         </div>
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-lg flex items-center justify-center text-amber-600">
                                     <span className="material-icons">account_balance_wallet</span>
                                 </div>
-                                <span className="text-slate-400 text-xs font-bold">Ratio</span>
+                                <span className="text-slate-400 text-xs font-bold">{isNewUser ? 'N/A' : 'Ratio'}</span>
                             </div>
                             <p className="text-slate-500 text-sm font-medium mb-1">Debt-to-Income</p>
-                            <p className="text-2xl font-bold">24.2%</p>
+                            <p className="text-2xl font-bold">{isNewUser ? 'N/A' : '24.2%'}</p>
                         </div>
                     </div>
 
@@ -259,60 +302,35 @@ const BorrowerDashboard = () => {
                                 </div>
                             </div>
                             
-                            {/* Mock Chart Visualization */}
-                            <div className="relative h-64 w-full flex items-end justify-between gap-4 px-2 mt-auto">
-                                {/* Chart Background Lines */}
-                                <div className="absolute inset-0 flex flex-col justify-between py-2 border-b border-slate-100 dark:border-slate-800 pointer-events-none">
-                                    <div className="border-b border-slate-100 dark:border-slate-800 w-full"></div>
-                                    <div className="border-b border-slate-100 dark:border-slate-800 w-full"></div>
-                                    <div className="border-b border-slate-100 dark:border-slate-800 w-full"></div>
-                                    <div className="border-b border-slate-100 dark:border-slate-800 w-full"></div>
+                            {/* Chart Visualization */}
+                            {isNewUser ? (
+                                <div className="h-64 flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg my-auto">
+                                    <span className="material-icons text-4xl text-slate-300 dark:text-slate-600 mb-2">bar_chart</span>
+                                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Financial trends will appear as transaction history builds.</p>
+                                    <p className="text-xs text-slate-400 mt-1">Upload bank statements or link accounts to see your monthly income vs. expense flow.</p>
                                 </div>
-                                
-                                {/* Months Columns */}
-                                <div className="relative z-10 flex flex-col items-center flex-1 h-full justify-end group">
-                                    <div className="flex items-end gap-1 w-full justify-center transition-transform group-hover:-translate-y-1">
-                                        <div className="w-6 sm:w-8 bg-slate-200 dark:bg-slate-700 rounded-t-sm" style={{ height: '40%' }}></div>
-                                        <div className="w-6 sm:w-8 bg-[#2262ec] rounded-t-sm shadow-sm" style={{ height: '65%' }}></div>
+                            ) : (
+                                <div className="relative h-64 w-full flex items-end justify-between gap-4 px-2 mt-auto">
+                                    {/* Chart Background Lines */}
+                                    <div className="absolute inset-0 flex flex-col justify-between py-2 border-b border-slate-100 dark:border-slate-800 pointer-events-none">
+                                        <div className="border-b border-slate-100 dark:border-slate-800 w-full"></div>
+                                        <div className="border-b border-slate-100 dark:border-slate-800 w-full"></div>
+                                        <div className="border-b border-slate-100 dark:border-slate-800 w-full"></div>
+                                        <div className="border-b border-slate-100 dark:border-slate-800 w-full"></div>
                                     </div>
-                                    <span className="mt-4 text-xs font-medium text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">May</span>
+                                    
+                                    {/* Months Columns */}
+                                    {['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'].map((m) => (
+                                        <div key={m} className="relative z-10 flex flex-col items-center flex-1 h-full justify-end group">
+                                            <div className="flex items-end gap-1 w-full justify-center transition-transform group-hover:-translate-y-1">
+                                                <div className="w-6 sm:w-8 bg-slate-200 dark:bg-slate-700 rounded-t-sm" style={{ height: '40%' }}></div>
+                                                <div className="w-6 sm:w-8 bg-[#2262ec] rounded-t-sm shadow-sm" style={{ height: '70%' }}></div>
+                                            </div>
+                                            <span className="mt-4 text-xs font-medium text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{m}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="relative z-10 flex flex-col items-center flex-1 h-full justify-end group">
-                                    <div className="flex items-end gap-1 w-full justify-center transition-transform group-hover:-translate-y-1">
-                                        <div className="w-6 sm:w-8 bg-slate-200 dark:bg-slate-700 rounded-t-sm" style={{ height: '45%' }}></div>
-                                        <div className="w-6 sm:w-8 bg-[#2262ec] rounded-t-sm shadow-sm" style={{ height: '70%' }}></div>
-                                    </div>
-                                    <span className="mt-4 text-xs font-medium text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Jun</span>
-                                </div>
-                                <div className="relative z-10 flex flex-col items-center flex-1 h-full justify-end group">
-                                    <div className="flex items-end gap-1 w-full justify-center transition-transform group-hover:-translate-y-1">
-                                        <div className="w-6 sm:w-8 bg-slate-200 dark:bg-slate-700 rounded-t-sm" style={{ height: '35%' }}></div>
-                                        <div className="w-6 sm:w-8 bg-[#2262ec] rounded-t-sm shadow-sm" style={{ height: '75%' }}></div>
-                                    </div>
-                                    <span className="mt-4 text-xs font-medium text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Jul</span>
-                                </div>
-                                <div className="relative z-10 flex flex-col items-center flex-1 h-full justify-end group">
-                                    <div className="flex items-end gap-1 w-full justify-center transition-transform group-hover:-translate-y-1">
-                                        <div className="w-6 sm:w-8 bg-slate-200 dark:bg-slate-700 rounded-t-sm" style={{ height: '50%' }}></div>
-                                        <div className="w-6 sm:w-8 bg-[#2262ec] rounded-t-sm shadow-sm" style={{ height: '80%' }}></div>
-                                    </div>
-                                    <span className="mt-4 text-xs font-medium text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Aug</span>
-                                </div>
-                                <div className="relative z-10 flex flex-col items-center flex-1 h-full justify-end group">
-                                    <div className="flex items-end gap-1 w-full justify-center transition-transform group-hover:-translate-y-1">
-                                        <div className="w-6 sm:w-8 bg-slate-200 dark:bg-slate-700 rounded-t-sm" style={{ height: '42%' }}></div>
-                                        <div className="w-6 sm:w-8 bg-[#2262ec] rounded-t-sm shadow-sm" style={{ height: '85%' }}></div>
-                                    </div>
-                                    <span className="mt-4 text-xs font-medium text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Sep</span>
-                                </div>
-                                <div className="relative z-10 flex flex-col items-center flex-1 h-full justify-end group">
-                                    <div className="flex items-end gap-1 w-full justify-center transition-transform group-hover:-translate-y-1">
-                                        <div className="w-6 sm:w-8 bg-slate-200 dark:bg-slate-700 rounded-t-sm" style={{ height: '38%' }}></div>
-                                        <div className="w-6 sm:w-8 bg-[#2262ec] rounded-t-sm shadow-sm" style={{ height: '90%' }}></div>
-                                    </div>
-                                    <span className="mt-4 text-xs font-medium text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Oct</span>
-                                </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Quick Actions Panel */}
@@ -343,7 +361,7 @@ const BorrowerDashboard = () => {
                                     </div>
                                     <div>
                                         <p className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-[#2262ec] transition-colors">Review Offers</p>
-                                        <p className="text-xs text-slate-500 mt-0.5">2 Pending pre-approvals</p>
+                                        <p className="text-xs text-slate-500 mt-0.5">Submit request to view offers</p>
                                     </div>
                                 </button>
                             </div>
@@ -353,7 +371,7 @@ const BorrowerDashboard = () => {
                                     <img alt="Financial advisor" className="w-12 h-12 rounded-full object-cover shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRRCQz_57JhCR9sQsgTzMAwvAd9tAmcHiai8B5Mqj7LygfDuxGUS_NIpIGDqRLebzze9gWwLlmqRJVJdW46KHexxg3OK2Ae8r0IgGUkzlHk9YtVG2F8EEWeML3PAlEv_a0akHa4Ov0EfLA9-AgNDvXMy0fErHDxG5C2hX9CZF0h8Z4E5JBBCrk7rxrCk9V1yeFdjHiYHQXmsr1TBh9FoCMB1Y5YFqiuXOLhEa0hV7RUltGVtMArAuXGN9QmLWpU2XHAYd9hPG7sog" />
                                     <div>
                                         <p className="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">Your Advisor</p>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white mb-1 leading-none">Sarah Williams</p>
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white mb-1 leading-none">Dedicated Advisor</p>
                                         <button className="text-xs text-[#2262ec] font-semibold hover:underline flex items-center gap-1">
                                             <span className="material-icons text-[14px]">call</span> Schedule Call
                                         </button>
@@ -383,28 +401,28 @@ const BorrowerDashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                    <tr className="hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-colors">
-                                        <td className="px-8 py-4 font-bold text-sm text-slate-900 dark:text-white">#FP-9821-X</td>
-                                        <td className="px-8 py-4 text-sm text-slate-600 dark:text-slate-300">Personal Loan</td>
-                                        <td className="px-8 py-4 text-sm font-bold text-slate-900 dark:text-white">$15,000.00</td>
-                                        <td className="px-8 py-4">
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Under Review
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-4 text-sm text-slate-500">2 hours ago</td>
-                                    </tr>
-                                    <tr className="hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-colors">
-                                        <td className="px-8 py-4 font-bold text-sm text-slate-900 dark:text-white">#FP-9760-A</td>
-                                        <td className="px-8 py-4 text-sm text-slate-600 dark:text-slate-300">Auto Refinance</td>
-                                        <td className="px-8 py-4 text-sm font-bold text-slate-900 dark:text-white">$32,500.00</td>
-                                        <td className="px-8 py-4">
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> Approved
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-4 text-sm text-slate-500">Oct 20, 2023</td>
-                                    </tr>
+                                    {applications.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="5" className="px-8 py-8 text-center text-sm text-slate-500">
+                                                No active loan applications found. <Link to="/loan-application" className="text-[#2262ec] font-bold hover:underline">Apply for a Loan</Link>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        applications.map((app) => (
+                                            <tr key={app.id || app.application_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-colors">
+                                                <td className="px-8 py-4 font-bold text-sm text-slate-900 dark:text-white">#{String(app.id || app.application_id).slice(0, 8)}</td>
+                                                <td className="px-8 py-4 text-sm text-slate-600 dark:text-slate-300">{app.loanType || app.loan_type}</td>
+                                                <td className="px-8 py-4 text-sm font-bold text-slate-900 dark:text-white">₹{Number(app.amount || app.requested_amount || 0).toLocaleString()}</td>
+                                                <td className="px-8 py-4">
+                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${app.status === 'approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${app.status === 'approved' ? 'bg-green-500' : 'bg-blue-500'}`}></span>
+                                                        {app.status === 'approved' ? 'Approved' : (app.status === 'rejected' ? 'Rejected' : 'Under Review')}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-4 text-sm text-slate-500">{app.created_at ? new Date(app.created_at).toLocaleDateString() : 'Recently'}</td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>

@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AnomalyDetectionView,
     AsyncTaskStatusView,
+    BorrowerDocumentViewSet,
     BorrowerProfileViewSet,
     BorrowerRegistrationView,
     CashFlowForecastView,
@@ -24,6 +25,7 @@ router = DefaultRouter()
 router.register(r"borrowers", BorrowerProfileViewSet, basename="borrowers")
 router.register(r"lenders", LenderProfileViewSet, basename="lenders")
 router.register(r"applications", LoanApplicationViewSet, basename="applications")
+router.register(r"documents", BorrowerDocumentViewSet, basename="documents")
 
 urlpatterns = [
     path("health/", health_check, name="health-check"),

@@ -2,30 +2,47 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 
-import { recommendWellness } from '../lib/api';
+import { getCurrentUser, listBorrowers, recommendWellness } from '../lib/api';
 
 const Recommendations = () => {
     const [aiRecommendation, setAiRecommendation] = React.useState(null);
+    const [borrowerProfile, setBorrowerProfile] = React.useState(null);
+    const user = getCurrentUser();
+    const displayName = user ? (`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username) : 'Borrower';
+    const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     React.useEffect(() => {
-        const fetchAiWellness = async () => {
+        const fetchProfileAndAi = async () => {
             try {
-                const res = await recommendWellness({
-                    savings_rate: 0.12,
-                    debt_income_ratio: 0.35,
-                    discretionary_spending_ratio: 0.3,
-                    health_score: 745,
-                    risk_class: "Safe",
-                });
-                setAiRecommendation(res);
+                const list = await listBorrowers().catch(() => []);
+                const bProfile = list.find((b) => b.user?.id === user?.id || b.user?.username === user?.username);
+                setBorrowerProfile(bProfile || null);
+
+                if (bProfile && bProfile.health_score > 0) {
+                    const res = await recommendWellness({
+                        savings_rate: 0.2,
+                        debt_income_ratio: 0.3,
+                        discretionary_spending_ratio: 0.25,
+                        health_score: bProfile.health_score,
+                        risk_class: bProfile.risk_level === 'high' ? 'High Risk' : bProfile.risk_level === 'medium' ? 'Caution' : 'Safe',
+                    }).catch(() => null);
+                    setAiRecommendation(res);
+                } else {
+                    setAiRecommendation(null);
+                }
             } catch {
-                // Keep default UI
+                setAiRecommendation(null);
             }
         };
-        fetchAiWellness();
-    }, []);
+        fetchProfileAndAi();
+    }, [user?.id, user?.username]);
+
+    const score = borrowerProfile?.health_score || 0;
+    const isNew = score === 0;
+    const statusLabel = isNew ? 'New Profile' : (score >= 750 ? 'Excellent' : score >= 650 ? 'Good Standing' : 'Fair');
 
     return (
+        <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100 antialiased">
             {/* Sidebar Navigation */}
             <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col fixed h-full z-20">
                 <div className="p-6 flex items-center gap-3">
@@ -83,8 +100,8 @@ const Recommendations = () => {
                 {/* Top Header */}
                 <header className="h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 sticky top-0 z-10 shrink-0">
                     <div>
-                        <h1 className="text-xl font-bold">Hello, Jonathan</h1>
-                        <p className="text-sm text-slate-500">Here's your financial status as of Oct 24, 2023.</p>
+                        <h1 className="text-xl font-bold">Hello, {displayName.split(' ')[0]}</h1>
+                        <p className="text-sm text-slate-500">Wellness insights as of {currentDate}.</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <ThemeToggle />
@@ -94,10 +111,12 @@ const Recommendations = () => {
                         </button>
                         <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
                             <div className="text-right flex flex-col justify-center">
-                                <p className="text-sm font-semibold leading-tight">Jonathan Doe</p>
-                                <p className="text-xs text-slate-500 italic leading-tight">Premium Borrower</p>
+                                <p className="text-sm font-semibold leading-tight">{displayName}</p>
+                                <p className="text-xs text-slate-500 italic leading-tight">Borrower</p>
                             </div>
-                            <img alt="User profile" className="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXlOr5gEy6Odf5E0XG75fdX9iJGZuS8GogdcGueycEPpns-h7Mi862_Q1EcNCjkK5VzqnGymt5xd6cSYpVzTpPOS0yM7-9MHvDjH9ppp-R8UkxuAgiyGyqtlHMLCTsK7Lv0IgwLUXkeS1GSvVgBcehU4Spgw4SjKOabyOzMfvUjhwdbh9Wr7APEnPZZfZjHYcUUa89J3W1xgtlnMAd6qst9IvI7fmSU5qLRkW4iUeZARbUsAeaFUIHhr7uUQtrW2As9Kv7WPE1OJs" />
+                            <div className="w-10 h-10 rounded-full bg-[#2262ec] text-white flex items-center justify-center font-bold">
+                                {displayName.charAt(0).toUpperCase()}
+                            </div>
                         </div>
                     </div>
                 </header>
@@ -112,13 +131,21 @@ const Recommendations = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                         {/* Left Column: Main Content */}
                         <div className="lg:col-span-8">
-                            {aiRecommendation && (
+                            {aiRecommendation ? (
                                 <section className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 shadow-lg text-white mb-8">
                                     <div className="flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-wider text-blue-200">
                                         <span className="material-icons text-sm">auto_awesome</span> Live ML Model Insight
                                     </div>
                                     <h3 className="text-xl font-bold mb-1">Recommended Action: {aiRecommendation.recommendation_code}</h3>
                                     <p className="text-sm text-blue-100 leading-relaxed font-medium">{aiRecommendation.advice}</p>
+                                </section>
+                            ) : (
+                                <section className="bg-gradient-to-r from-slate-700 to-slate-800 rounded-xl p-6 shadow-lg text-white mb-8">
+                                    <div className="flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+                                        <span className="material-icons text-sm">auto_awesome</span> Profile Assessment
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-1">Get Started with FinPulse</h3>
+                                    <p className="text-sm text-slate-200 leading-relaxed font-medium">Apply for financing or link your financial accounts to generate real-time AI wellness recommendations tailored to your profile.</p>
                                 </section>
                             )}
 
@@ -129,25 +156,25 @@ const Recommendations = () => {
                                         <div className="relative w-24 h-24 flex items-center justify-center">
                                             <svg className="w-full h-full transform -rotate-90">
                                                 <circle className="text-slate-100 dark:text-slate-700" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" strokeWidth="8"></circle>
-                                                <circle className="text-[#2262ec]" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" strokeDasharray="251.2" strokeDashoffset="62.8" strokeWidth="8"></circle>
+                                                <circle className="text-[#2262ec]" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" strokeDasharray="251.2" strokeDashoffset={isNew ? 251.2 : Math.max(0, 251.2 - (score / 900) * 251.2)} strokeWidth="8"></circle>
                                             </svg>
-                                            <span className="absolute text-2xl font-bold">745</span>
+                                            <span className="absolute text-2xl font-bold">{score}</span>
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-bold">Good Standing</h3>
-                                            <p className="text-sm text-slate-500">You're 55 points away from <span className="text-[#2262ec] font-semibold">Excellent</span></p>
+                                            <h3 className="text-lg font-bold">{statusLabel}</h3>
+                                            <p className="text-sm text-slate-500">{isNew ? 'Submit an application to calculate your health score' : `Health score based on your active credit record`}</p>
                                         </div>
                                     </div>
                                     
                                     <div className="flex flex-col gap-2 flex-grow max-w-xs">
                                         <div className="flex justify-between text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                            <span>Level Progress</span>
-                                            <span>75%</span>
+                                            <span>Profile Completion</span>
+                                            <span>{isNew ? '20%' : '100%'}</span>
                                         </div>
                                         <div className="h-3 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                            <div className="h-full bg-[#2262ec] rounded-full" style={{ width: '75%' }}></div>
+                                            <div className="h-full bg-[#2262ec] rounded-full" style={{ width: isNew ? '20%' : '100%' }}></div>
                                         </div>
-                                        <p className="text-[10px] text-slate-400 italic">Complete 2 more goals to reach Level 5</p>
+                                        <p className="text-[10px] text-slate-400 italic">{isNew ? 'Upload financial documents to complete your profile' : 'Profile verified and active'}</p>
                                     </div>
                                 </div>
                             </section>
@@ -290,48 +317,26 @@ const Recommendations = () => {
                             <section className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <div className="flex items-center justify-between mb-6">
                                     <h3 className="text-lg font-bold">Active Goals</h3>
-                                    <span className="text-xs bg-[#2262ec]/10 text-[#2262ec] px-2 py-1 rounded font-bold">2 IN PROGRESS</span>
+                                    <span className="text-xs bg-[#2262ec]/10 text-[#2262ec] px-2 py-1 rounded font-bold">{isNew ? '0 ACTIVE' : '1 IN PROGRESS'}</span>
                                 </div>
-                                <div className="space-y-6">
-                                    {/* Active Goal 1 */}
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-end">
-                                            <div>
-                                                <p className="text-sm font-bold">Debt Snowball</p>
-                                                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Goal: Pay off $5,000</p>
+                                {isNew ? (
+                                    <p className="text-sm text-slate-500 py-4 text-center">No active goals. Pick a recommendation on the left to set your first milestone.</p>
+                                ) : (
+                                    <div className="space-y-6">
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-end">
+                                                <div>
+                                                    <p className="text-sm font-bold">Credit Builder</p>
+                                                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Goal: Maintain 100% on-time</p>
+                                                </div>
+                                                <span className="text-xs font-bold text-[#2262ec]">Active</span>
                                             </div>
-                                            <span className="text-xs font-bold text-[#2262ec]">65%</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                            <div className="h-full bg-[#2262ec] rounded-full" style={{ width: '65%' }}></div>
-                                        </div>
-                                        <div className="flex items-center justify-between text-[11px] text-slate-500">
-                                            <span>$3,250 of $5,000</span>
-                                            <span>12 days left</span>
+                                            <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                <div className="h-full bg-[#2262ec] rounded-full" style={{ width: '100%' }}></div>
+                                            </div>
                                         </div>
                                     </div>
-                                    
-                                    {/* Active Goal 2 */}
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-end">
-                                            <div>
-                                                <p className="text-sm font-bold">Credit Mix Booster</p>
-                                                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Goal: Open Credit Builder</p>
-                                            </div>
-                                            <span className="text-xs font-bold text-[#2262ec]">20%</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                            <div className="h-full bg-[#2262ec] rounded-full" style={{ width: '20%' }}></div>
-                                        </div>
-                                        <div className="flex items-center justify-between text-[11px] text-slate-500">
-                                            <span>Verification Stage</span>
-                                            <span>3 days left</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button className="w-full mt-8 py-2 text-[#2262ec] font-semibold text-sm border border-[#2262ec]/30 rounded-lg hover:bg-[#2262ec]/5 transition-colors">
-                                    View All Active Goals
-                                </button>
+                                )}
                             </section>
 
                             {/* Milestone History */}
@@ -340,26 +345,21 @@ const Recommendations = () => {
                                     <span className="material-icons text-8xl">military_tech</span>
                                 </div>
                                 <h3 className="text-lg font-bold mb-4">Recent Wins</h3>
-                                <div className="space-y-4">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 shrink-0">
-                                            <span className="material-icons text-sm">check_circle</span>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold">Utilities On-time</p>
-                                            <p className="text-xs text-slate-500 italic">6 month streak completed! +10 pts</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 shrink-0">
-                                            <span className="material-icons text-sm">check_circle</span>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold">Account Verified</p>
-                                            <p className="text-xs text-slate-500 italic">Security bonus achieved. +5 pts</p>
+                                {isNew ? (
+                                    <p className="text-sm text-slate-500 py-4 text-center">No milestones yet. Complete your profile to earn badges.</p>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 shrink-0">
+                                                <span className="material-icons text-sm">check_circle</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold">Account Verified</p>
+                                                <p className="text-xs text-slate-500 italic">Security bonus achieved. +5 pts</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
                             </section>
 
                             {/* Educational Resource */}

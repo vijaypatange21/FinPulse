@@ -37,15 +37,18 @@ export function clearAuthSession() {
 export async function apiRequest(path, options = {}) {
   const token = getAuthToken();
   const { method = 'GET', body, headers = {}, auth = true } = options;
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+
+  const requestHeaders = {
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+    ...(auth && token ? { Authorization: `Token ${token}` } : {}),
+    ...headers,
+  };
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(auth && token ? { Authorization: `Token ${token}` } : {}),
-      ...headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
+    headers: requestHeaders,
+    body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
   });
 
   const payload = await response.json().catch(() => null);
@@ -162,4 +165,27 @@ export async function recommendWellness(features) {
     auth: false,
   });
 }
+
+export async function listDocuments() {
+  return apiRequest('/documents/', {
+    method: 'GET',
+    auth: true,
+  });
+}
+
+export async function uploadDocument(formData) {
+  return apiRequest('/documents/', {
+    method: 'POST',
+    body: formData,
+    auth: true,
+  });
+}
+
+export async function deleteDocument(id) {
+  return apiRequest(`/documents/${id}/`, {
+    method: 'DELETE',
+    auth: true,
+  });
+}
+
 

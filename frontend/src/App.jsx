@@ -22,12 +22,13 @@ import LoansPage from './pages/LoansPage';
 import TransactionsPage from './pages/TransactionsPage';
 import PortfolioPage from './pages/PortfolioPage';
 import { ThemeProvider } from './components/ThemeContext';
+import GlobalThemeToggle from './components/GlobalThemeToggle';
 
 function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
         {/* Placeholder for Navbar */}
         <main className="flex-grow">
           <Routes>
@@ -59,7 +60,8 @@ function App() {
             <Route path="/borrower/find-lender" element={<FindLender />} />
           </Routes>
         </main>
-        {/* Placeholder for Footer */}
+        {/* Global theme toggle floating button */}
+        <GlobalThemeToggle />
       </div>
     </BrowserRouter>
     </ThemeProvider>

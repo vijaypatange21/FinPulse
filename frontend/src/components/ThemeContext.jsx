@@ -21,9 +21,15 @@ export const ThemeProvider = ({ children }) => {
         if (theme === 'dark') {
             root.classList.add('dark');
             root.classList.remove('light');
+            root.setAttribute('data-theme', 'dark');
+            document.body.style.backgroundColor = '#0f172a';
+            document.body.style.color = '#f8fafc';
         } else {
             root.classList.add('light');
             root.classList.remove('dark');
+            root.setAttribute('data-theme', 'light');
+            document.body.style.backgroundColor = '#f8fafc';
+            document.body.style.color = '#0f172a';
         }
         localStorage.setItem('theme', theme);
     }, [theme]);

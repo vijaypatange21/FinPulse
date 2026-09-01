@@ -51,30 +51,30 @@ const BorrowerRegistration = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
       <Navbar />
       
       <main className="flex-grow flex py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto w-full">
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Borrower Registration</h1>
-            <div className="flex items-center text-sm font-medium text-gray-500">
-              <span className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mr-2">1</span>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Borrower Registration</h1>
+            <div className="flex items-center text-sm font-medium text-slate-500 dark:text-slate-400">
+              <span className="w-8 h-8 rounded-full bg-[#2262ec] text-white flex items-center justify-center mr-2">1</span>
               Personal Details
-              <div className="w-12 h-px bg-gray-300 mx-4"></div>
-              <span className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-2">2</span>
+              <div className="w-12 h-px bg-slate-300 dark:bg-slate-700 mx-4"></div>
+              <span className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center mr-2">2</span>
               Loan Request
             </div>
           </div>
           
           <Card>
             <CardHeader>
-              <h2 className="text-xl font-semibold text-gray-900">Step 1: Personal Information</h2>
-              <p className="text-sm text-gray-500 mt-1">Please provide your basic information to get started.</p>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Step 1: Personal Information</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Please provide your basic information to get started.</p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleNext} className="space-y-6">
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Input label="First Name" placeholder="Jane" required name="first_name" value={form.first_name} onChange={handleChange} />
                   <Input label="Last Name" placeholder="Doe" required name="last_name" value={form.last_name} onChange={handleChange} />
@@ -89,7 +89,7 @@ const BorrowerRegistration = () => {
                 <Input label="Occupation" placeholder="Software Engineer" name="occupation" value={form.occupation} onChange={handleChange} />
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Residential Address</label>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Residential Address</label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <Input placeholder="City" className="col-span-2" required name="city" value={form.city} onChange={handleChange} />
                     <Input placeholder="State" required name="state" value={form.state} onChange={handleChange} />
@@ -97,8 +97,8 @@ const BorrowerRegistration = () => {
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-gray-100 flex justify-between items-center">
-                  <Link to="/role-selection" className="text-gray-500 hover:text-gray-900 font-medium">
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <Link to="/role-selection" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium">
                     Back
                   </Link>
                   <Button type="submit" className="px-8" disabled={isSubmitting}>

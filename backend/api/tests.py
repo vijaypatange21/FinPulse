@@ -54,6 +54,25 @@ class FinPulseAPITests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data.get("status"), "ok")
 
+    def test_borrower_registration(self):
+        response = self.client.post(
+            "/api/v1/auth/register/borrower/",
+            {
+                "username": "new_borrower_123",
+                "email": "new_borrower@test.com",
+                "password": "password123",
+                "first_name": "New",
+                "last_name": "User",
+                "phone_number": "555123456",
+                "city": "Dallas",
+                "state": "TX",
+                "occupation": "Developer",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn("token", response.data)
+
     def test_login(self):
         response = self.client.post(
             "/api/v1/auth/login/",
@@ -125,3 +144,33 @@ class FinPulseAPITests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("default_probability", response.data)
         self.assertIn("risk_class", response.data)
+
+    def test_document_upload_and_delete(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_authenticate(user=self.borrower_user)
+        test_file = SimpleUploadedFile("bank_stmt.pdf", b"dummy file content", content_type="application/pdf")
+        
+        # 1. Upload Document
+        response = self.client.post(
+            "/api/v1/documents/",
+            {"file": test_file, "document_type": "bank_statement"},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["file_name"], "bank_stmt.pdf")
+        self.assertEqual(response.data["document_type"], "bank_statement")
+        doc_id = response.data["id"]
+
+        # 2. List Documents
+        list_resp = self.client.get("/api/v1/documents/")
+        self.assertEqual(list_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(list_resp.data), 1)
+
+        # 3. Delete Document
+        del_resp = self.client.delete(f"/api/v1/documents/{doc_id}/")
+        self.assertEqual(del_resp.status_code, status.HTTP_204_NO_CONTENT)
+
+        # 4. List Documents should be empty
+        list_resp2 = self.client.get("/api/v1/documents/")
+        self.assertEqual(len(list_resp2.data), 0)
+
