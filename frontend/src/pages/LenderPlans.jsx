@@ -63,7 +63,7 @@ const LenderPlans = () => {
                                 <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest">Starter</h3>
                                 <p className="text-slate-900 dark:text-white text-lg font-bold">Small NBFCs</p>
                                 <div className="flex items-baseline gap-1 mt-4">
-                                    <span className="text-slate-900 dark:text-white text-5xl font-black tracking-tight">$499</span>
+                                    <span className="text-slate-900 dark:text-white text-5xl font-black tracking-tight">₹49,999</span>
                                     <span className="text-slate-500 dark:text-slate-400 text-lg font-bold">/mo</span>
                                 </div>
                             </div>
@@ -102,7 +102,7 @@ const LenderPlans = () => {
                                 <h3 className="text-[#2262ec] text-sm font-bold uppercase tracking-widest">Enterprise</h3>
                                 <p className="text-slate-900 dark:text-white text-lg font-bold">Commercial Banks</p>
                                 <div className="flex items-baseline gap-1 mt-4">
-                                    <span className="text-slate-900 dark:text-white text-5xl font-black tracking-tight">$2,499</span>
+                                    <span className="text-slate-900 dark:text-white text-5xl font-black tracking-tight">₹2,49,999</span>
                                     <span className="text-slate-500 dark:text-slate-400 text-lg font-bold">/mo</span>
                                 </div>
                             </div>

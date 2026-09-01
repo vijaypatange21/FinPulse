@@ -98,13 +98,6 @@ const NavSidebar = () => (
       <Link className="flex items-center gap-3 px-4 py-3 bg-[#2262ec]/10 text-[#2262ec] rounded-lg font-medium" to="/borrower/transactions"><span className="material-icons">analytics</span>Transactions</Link>
       <Link className="flex items-center gap-3 px-4 py-3 mt-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors" to="/login"><span className="material-icons">logout</span>Log Out</Link>
     </nav>
-    <div className="p-4 mt-auto">
-      <div className="bg-[#2262ec]/5 rounded-xl p-4 border border-[#2262ec]/10">
-        <p className="text-xs font-semibold text-[#2262ec] uppercase mb-2">Support Available</p>
-        <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">Need help reviewing transactions?</p>
-        <button className="w-full py-2 bg-[#2262ec] text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">Contact Expert</button>
-      </div>
-    </div>
   </aside>
 );
 

@@ -109,13 +109,6 @@ const NavSidebar = () => (
         Log Out
       </Link>
     </nav>
-    <div className="p-4 mt-auto">
-      <div className="bg-[#2262ec]/5 rounded-xl p-4 border border-[#2262ec]/10">
-        <p className="text-xs font-semibold text-[#2262ec] uppercase mb-2">Support Available</p>
-        <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">Need help with your application?</p>
-        <button className="w-full py-2 bg-[#2262ec] text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">Contact Expert</button>
-      </div>
-    </div>
   </aside>
 );
 

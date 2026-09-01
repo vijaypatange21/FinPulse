@@ -180,13 +180,6 @@ const DocumentUpload = () => {
                         Log Out
                     </Link>
                 </nav>
-                <div className="p-4 mt-auto">
-                    <div className="bg-[#2262ec]/5 rounded-xl p-4 border border-[#2262ec]/10">
-                        <p className="text-xs font-semibold text-[#2262ec] uppercase mb-2">Support Available</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">Need help with your application?</p>
-                        <button className="w-full py-2 bg-[#2262ec] text-white text-sm font-medium rounded-lg hover:bg-[#2262ec]/90 transition-colors">Contact Expert</button>
-                    </div>
-                </div>
             </aside>
 
             {/* Main Content Area */}
@@ -239,13 +232,6 @@ const DocumentUpload = () => {
                             <div>
                                 <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Document Upload Center</h1>
                                 <p className="mt-2 text-slate-600 dark:text-slate-400">Complete your loan application by uploading the required financial records.</p>
-                            </div>
-                            <div className="flex items-center bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm shrink-0">
-                                <span className="material-icons text-[#2262ec] mr-3">verified_user</span>
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Security Status</p>
-                                    <p className="text-sm font-medium text-slate-900 dark:text-white">256-bit AES Encrypted</p>
-                                </div>
                             </div>
                         </div>
                     </header>
@@ -489,36 +475,6 @@ const DocumentUpload = () => {
                             </table>
                         </div>
                     </section>
-                    
-                    {/* Security Note */}
-                    <footer className="mt-12 flex flex-col xl:flex-row items-center justify-between bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-700 gap-6">
-                        <div className="flex items-center">
-                            <div className="bg-[#2262ec]/10 p-3 rounded-full mr-4 shrink-0">
-                                <span className="material-icons text-[#2262ec]">security</span>
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-slate-900 dark:text-white">Bank-Grade Security</h4>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-lg">All uploaded documents are encrypted with 256-bit AES protocol and stored in secure cloud environments.</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center space-x-6 shrink-0">
-                            <div className="text-center">
-                                <p className="text-xs font-semibold uppercase text-slate-400 mb-1">Compliance</p>
-                                <div className="flex space-x-2">
-                                    <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-500">GDPR</span>
-                                    <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-500">ISO 27001</span>
-                                </div>
-                            </div>
-                            <div className="h-10 w-px bg-slate-200 dark:bg-slate-700"></div>
-                            <div className="text-center">
-                                <p className="text-xs font-semibold uppercase text-slate-400 mb-1">Verified By</p>
-                                <div className="flex items-center">
-                                    <img alt="Security Partner" className="w-6 h-6 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDE7GxbeDCwesP2PavUhZVEpJi4qQcSHleikVpttmXBfEmGx9z0jc0jnLciyqM7nbIBXdfEI-qTEVIVHsnH75aOHsKYNmr0o7lnqLCn2IKN3-NryrNm0q6PMbvKRkY-KAn4fGMulpuujl7AcZ4WYAoWql0OHH10BAmkSN2b4cATD94ctziHz0uFgrN1E5ENGN3hkc9img-_fXAx6xmCVSdYu3ynOfo7ELidA7IoNqhcYpTX0EOjRCf4qcvfqDbCR_BFQlXnUS1qsAI"/>
-                                    <span className="ml-2 text-sm font-bold text-slate-900 dark:text-white">SecureVault</span>
-                                </div>
-                            </div>
-                        </div>
-                    </footer>
                 </div>
             </main>
 

@@ -155,7 +155,12 @@ class LoanApplicationViewSet(viewsets.ModelViewSet):
         return LoanApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
+        if request.user.is_authenticated and hasattr(request.user, "borrower_profile"):
+            if not data.get("borrower"):
+                data["borrower"] = str(request.user.borrower_profile.borrower_id)
+
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         application = serializer.save()
 
@@ -166,10 +171,11 @@ class LoanApplicationViewSet(viewsets.ModelViewSet):
 
         task_id = safe_delay(process_loan_application_task, str(application.application_id))
 
-        data = self.get_serializer(application).data
-        data["background_task_id"] = task_id
-        headers = self.get_success_headers(data)
-        return Response(data, status=status.HTTP_201_CREATED, headers=headers)
+        res_data = self.get_serializer(application).data
+        res_data["background_task_id"] = task_id
+        headers = self.get_success_headers(res_data)
+        return Response(res_data, status=status.HTTP_201_CREATED, headers=headers)
+
 
     def perform_update(self, serializer):
         application = serializer.save()

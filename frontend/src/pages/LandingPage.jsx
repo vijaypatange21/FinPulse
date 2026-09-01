@@ -311,7 +311,7 @@ const LandingPage = () => {
                       <span className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-400 text-white flex items-center justify-center font-bold text-sm">1</span>
                       <div>
                         <h5 className="font-bold mb-1">Secure Connection</h5>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Grant temporary access to financial statements with 256-bit encryption.</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Securely upload and share financial records with partner institutions.</p>
                       </div>
                     </div>
                     <div className="flex gap-4 opacity-75">

@@ -133,13 +133,6 @@ const BorrowerDashboard = () => {
                         Log Out
                     </Link>
                 </nav>
-                <div className="p-4 mt-auto">
-                    <div className="bg-[#2262ec]/5 rounded-xl p-4 border border-[#2262ec]/10">
-                        <p className="text-xs font-semibold text-[#2262ec] uppercase mb-2">Support Available</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">Need help with your application?</p>
-                        <button className="w-full py-2 bg-[#2262ec] text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">Contact Expert</button>
-                    </div>
-                </div>
             </aside>
 
             {/* Main Content Area */}
@@ -286,7 +279,7 @@ const BorrowerDashboard = () => {
                                 <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center text-emerald-600">
                                     <span className="material-icons">payments</span>
                                 </div>
-                                <span className="text-slate-400 text-xs font-bold">{isNewUser ? 'N/A' : '+$0'}</span>
+                                <span className="text-slate-400 text-xs font-bold">{isNewUser ? 'N/A' : '+₹0'}</span>
                             </div>
                             <p className="text-slate-500 text-sm font-medium mb-1">Avg. Cash Flow</p>
                             <p className="text-2xl font-bold">{isNewUser ? '₹0' : `₹${avgMonthlyIncome.toLocaleString('en-IN')}`}<span className="text-sm text-slate-400 font-normal">/mo</span></p>
@@ -390,19 +383,6 @@ const BorrowerDashboard = () => {
                                         <p className="text-xs text-slate-500 mt-0.5">Submit request to view offers</p>
                                     </div>
                                 </button>
-                            </div>
-                            
-                            <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
-                                <div className="flex items-center gap-4">
-                                    <img alt="Financial advisor" className="w-12 h-12 rounded-full object-cover shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRRCQz_57JhCR9sQsgTzMAwvAd9tAmcHiai8B5Mqj7LygfDuxGUS_NIpIGDqRLebzze9gWwLlmqRJVJdW46KHexxg3OK2Ae8r0IgGUkzlHk9YtVG2F8EEWeML3PAlEv_a0akHa4Ov0EfLA9-AgNDvXMy0fErHDxG5C2hX9CZF0h8Z4E5JBBCrk7rxrCk9V1yeFdjHiYHQXmsr1TBh9FoCMB1Y5YFqiuXOLhEa0hV7RUltGVtMArAuXGN9QmLWpU2XHAYd9hPG7sog" />
-                                    <div>
-                                        <p className="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">Your Advisor</p>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white mb-1 leading-none">Dedicated Advisor</p>
-                                        <button className="text-xs text-[#2262ec] font-semibold hover:underline flex items-center gap-1">
-                                            <span className="material-icons text-[14px]">call</span> Schedule Call
-                                        </button>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>

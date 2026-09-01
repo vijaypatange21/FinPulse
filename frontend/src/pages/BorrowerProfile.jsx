@@ -198,7 +198,7 @@ const BorrowerProfile = () => {
                         <div className="p-2 bg-blue-50 text-blue-600 rounded"><AlertTriangle className="w-5 h-5"/></div>
                         <div>
                           <p className="font-medium text-gray-900 text-sm">State ID Verification</p>
-                          <p className="text-xs text-gray-500">Verified by Jumio • Oct 24</p>
+                          <p className="text-xs text-gray-500">Verified • Identity Check Complete</p>
                         </div>
                       </div>
                       <Button variant="ghost" className="text-indigo-600 text-sm px-2">View</Button>
@@ -208,7 +208,7 @@ const BorrowerProfile = () => {
                         <div className="p-2 bg-white text-green-600 rounded shadow-sm"><CheckCircle className="w-5 h-5"/></div>
                         <div>
                           <p className="font-medium text-gray-900 text-sm">Pay Stubs (Last 60d)</p>
-                          <p className="text-xs text-green-700">Auto-extracted via Plaid</p>
+                          <p className="text-xs text-green-700">Verified Statement Record</p>
                         </div>
                       </div>
                     </div>

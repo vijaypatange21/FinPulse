@@ -151,13 +151,21 @@ class LenderSnapshotSerializer(serializers.ModelSerializer):
     id = serializers.CharField(source="lender_id", read_only=True)
     name = serializers.CharField(source="display_name", read_only=True)
     type = serializers.CharField(source="institution_type", read_only=True)
-    loanRange = serializers.CharField(source="loan_range", read_only=True)
-    interestRate = serializers.CharField(source="interest_rate", read_only=True)
+    loanRange = serializers.SerializerMethodField()
+    interestRate = serializers.SerializerMethodField()
     approvalRate = serializers.CharField(source="approval_rate", read_only=True)
     speed = serializers.CharField(read_only=True)
     rating = serializers.DecimalField(max_digits=3, decimal_places=1, read_only=True)
     reviews = serializers.IntegerField(read_only=True)
     avatarUrl = serializers.CharField(source="avatar_url", read_only=True)
+
+    def get_loanRange(self, obj):
+        val = obj.loan_range or "₹1L - ₹50L"
+        return val.replace("$", "₹")
+
+    def get_interestRate(self, obj):
+        val = obj.interest_rate or "Starting 9.5% p.a."
+        return val.replace("$", "₹")
 
     class Meta:
         model = LenderProfile
