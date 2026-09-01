@@ -1,16 +1,23 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
+import { getCurrentUser } from '../lib/api';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', to: '/lender/dashboard' },
   { key: 'borrowers', label: 'Borrowers', icon: 'people', to: '/lender/borrowers' },
   { key: 'applications', label: 'Applications', icon: 'assignment', to: '/lender/applications' },
   { key: 'portfolio', label: 'Portfolio', icon: 'account_balance_wallet', to: '/lender/portfolio' },
-  { key: 'alerts', label: 'Alerts', icon: 'notifications_active', to: '/lender/alerts/1', badge: '8' },
+  { key: 'alerts', label: 'Alerts', icon: 'notifications_active', to: '/lender/alerts/1' },
 ];
 
 const LenderLayout = ({ activeSection = 'dashboard', children }) => {
+  const user = getCurrentUser();
+  const displayName = user ? (`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username) : 'Lender Partner';
+  const roleName = user?.institution_name || 'Lending Partner';
+
+  const currentMonthYear = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100 antialiased">
       <style>{`.scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
@@ -20,7 +27,7 @@ const LenderLayout = ({ activeSection = 'dashboard', children }) => {
           <div className="w-8 h-8 bg-[#2262ec] rounded flex items-center justify-center">
             <span className="material-icons text-white text-lg">insights</span>
           </div>
-          <h1 className="font-bold text-xl tracking-tight">FinPulse</h1>
+          <h1 className="font-bold text-xl tracking-tight text-[#2262ec]">FinPulse</h1>
         </div>
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
@@ -33,7 +40,6 @@ const LenderLayout = ({ activeSection = 'dashboard', children }) => {
               >
                 <span className="material-icons text-xl">{item.icon}</span>
                 {item.label}
-                {item.badge && <span className="ml-auto bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{item.badge}</span>}
               </Link>
             );
           })}
@@ -42,11 +48,13 @@ const LenderLayout = ({ activeSection = 'dashboard', children }) => {
           </Link>
         </nav>
         <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
-            <img alt="User Avatar" className="w-8 h-8 rounded-full bg-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFz0ysoN8eA5liFvu64OJorLLRswnJPlKvS-kBdWfcPZ9snbQFPDVpmEKTnxUEu2o9v1ZUGg32zgU9SE2CKozPyW3bAXqaqOM4jUP_s_O59Bx0qQawxsyD2DqJhhVYU3z9vtzhY30rOvU8fthinBsOZkaQtm9j1_1snQ75YLICZoceVWiOprQ0s3_KFl6OZZRJ5BrmsiNSDfjjiB_Nai9JiuYOIowdKLZ2SZdQoY9z9Q75lwvDSo8VXTEPGkiQqY8VNSRssr7GV5Q" />
+          <div className="flex items-center gap-3 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800">
+            <div className="w-9 h-9 rounded-full bg-[#2262ec] text-white flex items-center justify-center font-bold text-sm shrink-0">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
             <div className="overflow-hidden">
-              <p className="text-xs font-semibold truncate">Animesh Sharma</p>
-              <p className="text-[10px] text-slate-500 truncate">Senior Risk Officer</p>
+              <p className="text-xs font-semibold truncate">{displayName}</p>
+              <p className="text-[10px] text-slate-500 truncate">{roleName}</p>
             </div>
           </div>
         </div>
@@ -63,16 +71,12 @@ const LenderLayout = ({ activeSection = 'dashboard', children }) => {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded border border-slate-200 dark:border-slate-700">
               <span className="material-icons text-sm text-slate-500">calendar_today</span>
-              <span className="text-xs font-medium">Oct 1, 2023 - Oct 31, 2023</span>
-              <span className="material-icons text-xs text-slate-500">expand_more</span>
+              <span className="text-xs font-medium">{currentMonthYear}</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 text-[#2262ec] dark:text-blue-400 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800/30 text-xs font-bold">
+              <span className="material-icons text-sm">auto_awesome</span> AI Underwriting Active
             </div>
             <ThemeToggle />
-            <button className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded">
-              <span className="material-icons text-xl">filter_list</span>
-            </button>
-            <button className="bg-[#2262ec] text-white px-4 py-2 rounded text-sm font-medium hover:bg-[#2262ec]/90 transition-colors flex items-center gap-2">
-              <span className="material-icons text-sm">add</span> New Loan
-            </button>
           </div>
         </header>
         <div className="flex-1 overflow-y-auto p-8 bg-[#f6f6f8] dark:bg-[#101622]">
@@ -84,3 +88,4 @@ const LenderLayout = ({ activeSection = 'dashboard', children }) => {
 };
 
 export default LenderLayout;
+

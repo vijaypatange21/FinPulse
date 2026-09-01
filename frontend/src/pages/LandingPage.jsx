@@ -53,7 +53,6 @@ const LandingPage = () => {
             <a className="hover:text-[#2262ec] transition-colors" href="#">Solutions</a>
             <a className="hover:text-[#2262ec] transition-colors" href="#">Platform</a>
             <a className="hover:text-[#2262ec] transition-colors" href="#">Resources</a>
-            <a className="hover:text-[#2262ec] transition-colors" href="#">Pricing</a>
           </nav>
           <div className="flex items-center gap-4">
             <ThemeToggle />

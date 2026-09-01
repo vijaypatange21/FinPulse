@@ -30,7 +30,7 @@ const BorrowerRegistration = () => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleNext = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
@@ -42,7 +42,7 @@ const BorrowerRegistration = () => {
       };
       const data = await registerBorrower(payload);
       saveAuthSession(data.token, data.user);
-      navigate('/loan-application');
+      navigate('/borrower/dashboard');
     } catch (err) {
       setError(err.message || 'Registration failed.');
     } finally {
@@ -56,24 +56,20 @@ const BorrowerRegistration = () => {
       
       <main className="flex-grow flex py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto w-full">
-          <div className="flex items-center justify-between mb-8">
+          <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Borrower Registration</h1>
-            <div className="flex items-center text-sm font-medium text-slate-500 dark:text-slate-400">
-              <span className="w-8 h-8 rounded-full bg-[#2262ec] text-white flex items-center justify-center mr-2">1</span>
-              Personal Details
-              <div className="w-12 h-px bg-slate-300 dark:bg-slate-700 mx-4"></div>
-              <span className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center mr-2">2</span>
-              Loan Request
-            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              Create your account to assess your credit health score and apply for pre-qualified loans.
+            </p>
           </div>
           
-          <Card>
+          <Card className="border-slate-200 dark:border-slate-800">
             <CardHeader>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Step 1: Personal Information</h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Personal Information</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Please provide your basic information to get started.</p>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleNext} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Input label="First Name" placeholder="Jane" required name="first_name" value={form.first_name} onChange={handleChange} />
@@ -101,8 +97,8 @@ const BorrowerRegistration = () => {
                   <Link to="/role-selection" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium">
                     Back
                   </Link>
-                  <Button type="submit" className="px-8" disabled={isSubmitting}>
-                    {isSubmitting ? 'Creating Account...' : 'Continue to Step 2'}
+                  <Button type="submit" className="px-8 bg-[#2262ec] hover:bg-[#2262ec]/90 text-white" disabled={isSubmitting}>
+                    {isSubmitting ? 'Creating Account...' : 'Create Borrower Account'}
                   </Button>
                 </div>
               </form>
@@ -115,3 +111,4 @@ const BorrowerRegistration = () => {
 };
 
 export default BorrowerRegistration;
+

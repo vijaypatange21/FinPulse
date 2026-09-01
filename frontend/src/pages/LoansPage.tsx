@@ -166,6 +166,7 @@ const NavSidebar = () => (
 const LoansPage = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<LoansData | null>(null);
+  const [applications, setApplications] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
@@ -175,14 +176,20 @@ const LoansPage = () => {
 
       try {
         const apps = await listApplications().catch(() => []);
-        const approvedLoans = apps.filter((a: any) => a.status === 'approved');
+        const appList = Array.isArray(apps) ? apps : (apps?.results || []);
+        setApplications(appList);
+
+        const approvedLoans = appList.filter((a: any) => a.status === 'approved');
+        const pendingApps = appList.filter((a: any) => a.status !== 'approved');
+
+        const totalApprovedAmt = approvedLoans.reduce((sum: number, l: any) => sum + Number(l.amount || l.requested_amount || 0), 0);
+        const totalPendingAmt = pendingApps.reduce((sum: number, l: any) => sum + Number(l.amount || l.requested_amount || 0), 0);
 
         if (approvedLoans.length > 0) {
-          const totalAmt = approvedLoans.reduce((sum: number, l: any) => sum + Number(l.amount || l.requested_amount || 0), 0);
           setData({
             summary: {
               activeLoans: approvedLoans.length,
-              totalOutstanding: `₹${totalAmt.toLocaleString('en-IN')}`,
+              totalOutstanding: `₹${totalApprovedAmt.toLocaleString('en-IN')}`,
               nextPayment: 'No upcoming payment',
               onTimeRate: '100%',
             },
@@ -205,12 +212,12 @@ const LoansPage = () => {
             averageEmi: '₹0',
           });
         } else {
-          // Clean empty state for new borrower
+          // If borrower has pending/under review applications vs completely empty
           setData({
             summary: {
-              activeLoans: 0,
-              totalOutstanding: '₹0',
-              nextPayment: 'N/A',
+              activeLoans: pendingApps.length > 0 ? `${pendingApps.length} in Review` as any : 0,
+              totalOutstanding: totalPendingAmt > 0 ? `₹${totalPendingAmt.toLocaleString('en-IN')}` : '₹0',
+              nextPayment: pendingApps.length > 0 ? 'Pending Sanction' : 'N/A',
               onTimeRate: 'N/A',
             },
             loans: [],
@@ -336,10 +343,16 @@ const LoansPage = () => {
                         <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-[#2262ec] rounded-full flex items-center justify-center mx-auto mb-4">
                           <span className="material-icons text-3xl">account_balance</span>
                         </div>
-                        <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No Active Loans</h4>
-                        <p className="text-sm text-slate-500 max-w-md mx-auto mb-6">You currently have no active borrowing facilities. Submit an application to get started.</p>
+                        <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                          {applications.length > 0 ? 'Application Under Evaluation' : 'No Active Loans'}
+                        </h4>
+                        <p className="text-sm text-slate-500 max-w-md mx-auto mb-6">
+                          {applications.length > 0
+                            ? `You have ${applications.length} loan application${applications.length > 1 ? 's' : ''} currently undergoing underwriting. Once sanctioned by a partner lender, your loan terms and EMI schedule will activate here.`
+                            : 'You currently have no active borrowing facilities. Submit an application to get started.'}
+                        </p>
                         <Link to="/loan-application" className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#2262ec] text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
-                          <span className="material-icons text-sm">add</span> Apply for Loan
+                          <span className="material-icons text-sm">add</span> {applications.length > 0 ? 'Apply for Another Loan' : 'Apply for Loan'}
                         </Link>
                       </div>
                     ) : (
@@ -441,6 +454,74 @@ const LoansPage = () => {
                   </Card>
                 </div>
               </div>
+
+              {/* Submitted Applications Section */}
+              {applications.length > 0 && (
+                <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                  <CardHeader className="border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">Submitted Applications</h3>
+                      <p className="text-sm text-slate-500 mt-1">Real-time status of your borrowing requests undergoing lender underwriting</p>
+                    </div>
+                    <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-[#2262ec] text-xs font-bold rounded-full">
+                      {applications.length} Request{applications.length > 1 ? 's' : ''}
+                    </span>
+                  </CardHeader>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left whitespace-nowrap">
+                      <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                        <tr>
+                          <th className="px-6 py-4">Application ID</th>
+                          <th className="px-6 py-4">Loan Purpose</th>
+                          <th className="px-6 py-4">Requested Amount</th>
+                          <th className="px-6 py-4">Tenure</th>
+                          <th className="px-6 py-4">Preferred Lender</th>
+                          <th className="px-6 py-4">Status</th>
+                          <th className="px-6 py-4">Date Submitted</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                        {applications.map((app) => (
+                          <tr key={app.id || app.application_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-colors">
+                            <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">
+                              #{String(app.id || app.application_id).slice(0, 8)}
+                            </td>
+                            <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                              {app.loanType || app.loan_type || 'Personal Loan'}
+                            </td>
+                            <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">
+                              ₹{Number(app.amount || app.requested_amount || 0).toLocaleString('en-IN')}
+                            </td>
+                            <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
+                              {app.tenure || app.requested_tenure_months || 12} Months
+                            </td>
+                            <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
+                              {app.preferred_lender?.institution_name || app.preferred_lender?.name || 'Auto-Match'}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                                app.status === 'approved'
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                  : app.status === 'rejected'
+                                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  app.status === 'approved' ? 'bg-green-500' : app.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500 animate-pulse'
+                                }`}></span>
+                                {app.status === 'approved' ? 'Approved' : (app.status === 'rejected' ? 'Rejected' : 'Under Review')}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-slate-500 text-xs">
+                              {app.appliedDate || app.created_at ? new Date(app.appliedDate || app.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <Card className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">

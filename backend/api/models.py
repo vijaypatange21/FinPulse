@@ -293,8 +293,9 @@ class BorrowerDocument(TimeStampedModel):
         ("other", "Other Document"),
     ]
     STATUS_CHOICES = [
-        ("verified", "Verified"),
         ("processing", "Processing"),
+        ("under_review", "Under Review"),
+        ("verified", "Verified"),
         ("flagged", "Flagged"),
     ]
 
@@ -303,7 +304,7 @@ class BorrowerDocument(TimeStampedModel):
     document_type = models.CharField(max_length=30, choices=DOCUMENT_TYPES, default="bank_statement")
     file_name = models.CharField(max_length=255)
     file_size = models.CharField(max_length=50, default="Unknown")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="verified")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="processing")
 
     class Meta:
         db_table = "borrower_documents"

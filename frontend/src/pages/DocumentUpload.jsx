@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
-import { getCurrentUser, listDocuments, uploadDocument, deleteDocument } from '../lib/api';
+import { getCurrentUser, listDocuments, uploadDocument, deleteDocument, getMediaUrl } from '../lib/api';
 
 const CATEGORY_MAP = {
     bank_statement: { label: 'Bank Statement', color: 'blue', icon: 'account_balance', desc: 'Latest 6 months of your primary savings account.' },
@@ -17,6 +17,7 @@ const DocumentUpload = () => {
     const [selectedCategory, setSelectedCategory] = useState('bank_statement');
     const [dragActive, setDragActive] = useState(false);
     const [notification, setNotification] = useState(null);
+    const [previewDoc, setPreviewDoc] = useState(null);
     const fileInputRef = useRef(null);
 
     const user = getCurrentUser();
@@ -429,25 +430,35 @@ const DocumentUpload = () => {
                                                         {doc.file_size}
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
-                                                            {doc.status === 'verified' ? 'Verified' : doc.status === 'processing' ? 'Processing' : 'Under Review'}
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                            doc.status === 'verified'
+                                                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                                                : doc.status === 'processing'
+                                                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                                                                : doc.status === 'flagged'
+                                                                ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                                                        }`}>
+                                                            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                                                                doc.status === 'verified'
+                                                                    ? 'bg-green-500'
+                                                                    : doc.status === 'processing'
+                                                                    ? 'bg-amber-500'
+                                                                    : doc.status === 'flagged'
+                                                                    ? 'bg-red-500'
+                                                                    : 'bg-blue-500'
+                                                            }`}></span>
+                                                            {doc.status === 'verified' ? 'Verified' : doc.status === 'processing' ? 'Processing' : doc.status === 'flagged' ? 'Flagged' : 'Under Review'}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
-                                                        {doc.file_url ? (
-                                                            <a
-                                                                href={doc.file_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-slate-400 hover:text-[#2262ec] transition-colors inline-block p-1"
-                                                                title="View Document"
-                                                            >
-                                                                <span className="material-icons text-lg">visibility</span>
-                                                            </a>
-                                                        ) : (
-                                                            <span className="text-slate-400 p-1 inline-block"><span className="material-icons text-lg">visibility</span></span>
-                                                        )}
+                                                        <button
+                                                            onClick={() => setPreviewDoc(doc)}
+                                                            className="text-slate-400 hover:text-[#2262ec] transition-colors inline-block p-1"
+                                                            title="View Document"
+                                                        >
+                                                            <span className="material-icons text-lg">visibility</span>
+                                                        </button>
                                                         <button
                                                             onClick={() => handleDelete(doc.id, doc.file_name)}
                                                             className="text-slate-400 hover:text-red-500 ml-3 transition-colors p-1"
@@ -496,6 +507,80 @@ const DocumentUpload = () => {
                     </footer>
                 </div>
             </main>
+
+            {/* Document Preview Modal */}
+            {previewDoc && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setPreviewDoc(null)}>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800" onClick={(e) => e.stopPropagation()}>
+                        {/* Modal Header */}
+                        <div className="p-4 px-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+                            <div className="flex items-center gap-3">
+                                <span className="material-icons text-[#2262ec]">
+                                    {previewDoc.file_name?.endsWith('.pdf') ? 'picture_as_pdf' : previewDoc.file_name?.match(/\.(jpg|jpeg|png)$/i) ? 'image' : 'description'}
+                                </span>
+                                <div>
+                                    <h3 className="font-bold text-slate-900 dark:text-white text-base">{previewDoc.file_name}</h3>
+                                    <p className="text-xs text-slate-500">
+                                        {CATEGORY_MAP[previewDoc.document_type]?.label || 'Document'} • {previewDoc.file_size} • {previewDoc.status}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {previewDoc.file_url && (
+                                    <a
+                                        href={getMediaUrl(previewDoc.file_url)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-3 py-1.5 bg-[#2262ec] text-white text-xs font-semibold rounded-lg hover:bg-[#2262ec]/90 transition-colors flex items-center gap-1.5"
+                                    >
+                                        <span className="material-icons text-sm">open_in_new</span>
+                                        Open Fullscreen
+                                    </a>
+                                )}
+                                <button
+                                    onClick={() => setPreviewDoc(null)}
+                                    className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                                >
+                                    <span className="material-icons text-xl">close</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="flex-1 p-6 overflow-y-auto flex items-center justify-center bg-slate-100 dark:bg-slate-950/50 min-h-[400px]">
+                            {previewDoc.file_name?.endsWith('.pdf') ? (
+                                <iframe
+                                    src={getMediaUrl(previewDoc.file_url || previewDoc.file)}
+                                    title={previewDoc.file_name}
+                                    className="w-full h-[65vh] rounded-lg border border-slate-200 dark:border-slate-800 bg-white"
+                                />
+                            ) : previewDoc.file_name?.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
+                                <img
+                                    src={getMediaUrl(previewDoc.file_url || previewDoc.file)}
+                                    alt={previewDoc.file_name}
+                                    className="max-h-[65vh] max-w-full object-contain rounded-lg shadow-md"
+                                />
+                            ) : (
+                                <div className="text-center p-8">
+                                    <span className="material-icons text-5xl text-slate-400 mb-3 block">insert_drive_file</span>
+                                    <h4 className="font-bold text-slate-900 dark:text-white mb-2">{previewDoc.file_name}</h4>
+                                    <p className="text-sm text-slate-500 mb-6">Preview is not available for this file type.</p>
+                                    <a
+                                        href={getMediaUrl(previewDoc.file_url || previewDoc.file)}
+                                        download={previewDoc.file_name}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-6 py-2.5 bg-[#2262ec] text-white text-sm font-semibold rounded-lg hover:bg-[#2262ec]/90 transition-colors inline-flex items-center gap-2"
+                                    >
+                                        <span className="material-icons text-sm">download</span>
+                                        Download File
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

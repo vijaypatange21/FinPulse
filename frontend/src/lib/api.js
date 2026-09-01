@@ -188,4 +188,13 @@ export async function deleteDocument(id) {
   });
 }
 
+export function getMediaUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
+    return url;
+  }
+  return url.startsWith('/') ? url : `/${url}`;
+}
+
+
 

@@ -159,6 +159,7 @@ class FinPulseAPITests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["file_name"], "bank_stmt.pdf")
         self.assertEqual(response.data["document_type"], "bank_statement")
+        self.assertEqual(response.data["status"], "processing")
         doc_id = response.data["id"]
 
         # 2. List Documents

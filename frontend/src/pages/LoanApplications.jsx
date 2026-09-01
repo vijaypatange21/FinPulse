@@ -115,28 +115,33 @@ const LoanApplications = () => {
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
                             <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Total Pending</p>
                             <div className="flex items-end justify-between">
-                                <h3 className="text-3xl font-bold">{applications.length}</h3>
-                                <span className="text-xs font-semibold px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full dark:bg-yellow-900/30 dark:text-yellow-500">Action Required</span>
+                                <h3 className="text-3xl font-bold">{applications.filter(a => a.status === 'Under Review' || a.status === 'New').length}</h3>
+                                {applications.filter(a => a.status === 'Under Review' || a.status === 'New').length > 0 && (
+                                    <span className="text-xs font-semibold px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full dark:bg-yellow-900/30 dark:text-yellow-500">Action Required</span>
+                                )}
                             </div>
                         </div>
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
                             <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Average Health Score</p>
                             <div className="flex items-end justify-between">
-                                <h3 className="text-3xl font-bold">{applications.length ? Math.round(applications.reduce((sum, a) => sum + a.aiScore, 0) / applications.length) : 0}</h3>
-                                <div className="flex text-green-600 dark:text-green-400 items-center text-sm font-medium">
-                                    <span className="material-symbols-outlined text-base mr-1">trending_up</span>
-                                    +12 pts
-                                </div>
+                                <h3 className="text-3xl font-bold">
+                                    {applications.length ? Math.round(applications.reduce((sum, a) => sum + (a.aiScore || 700), 0) / applications.length) : 'N/A'}
+                                </h3>
+                                {applications.length > 0 && (
+                                    <span className="text-xs font-semibold text-slate-400">Out of 850</span>
+                                )}
                             </div>
                         </div>
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
-                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Avg. Processing Time</p>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Avg. Underwriting Time</p>
                             <div className="flex items-end justify-between">
-                                <h3 className="text-3xl font-bold">3.2 Days</h3>
-                                <div className="flex text-blue-600 dark:text-blue-400 items-center text-sm font-medium">
-                                    <span className="material-symbols-outlined text-base mr-1">schedule</span>
-                                    Target: 3.0
-                                </div>
+                                <h3 className="text-3xl font-bold">{applications.length ? 'Instant' : 'N/A'}</h3>
+                                {applications.length > 0 && (
+                                    <div className="flex text-emerald-600 dark:text-emerald-400 items-center text-xs font-medium">
+                                        <span className="material-symbols-outlined text-base mr-0.5">bolt</span>
+                                        Real-time AI
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

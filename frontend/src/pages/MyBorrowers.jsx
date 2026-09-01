@@ -22,14 +22,16 @@ const MyBorrowers = () => {
     const loadBorrowers = async () => {
       try {
         const data = await listBorrowers();
+        const bList = Array.isArray(data) ? data : (data?.results || []);
         setBorrowers(
-          data.map((item) => ({
+          bList.map((item) => ({
             id: item.id || item.borrower_id,
             name: item.name || 'Borrower',
             location: item.location || 'N/A',
             productType: item.productType || item.occupation || 'General',
-            principal: formatMoney(item.principal),
-            outstanding: formatMoney(item.outstanding),
+            rawPrincipal: Number(item.principal || item.principal_amount || 0),
+            principal: formatMoney(item.principal || item.principal_amount),
+            outstanding: formatMoney(item.outstanding || item.outstanding_amount),
             nextEmi: item.nextEmi || item.nextEmiDate || 'TBD',
             status: item.status || 'On Track',
             riskScore: item.healthScore || item.riskScore || 650,
@@ -45,9 +47,14 @@ const MyBorrowers = () => {
     loadBorrowers();
   }, []);
 
+  const totalDisbursed = borrowers.reduce((sum, b) => sum + b.rawPrincipal, 0);
+  const onTrackCount = borrowers.filter((b) => b.status === 'On Track' || b.status === 'Good').length;
+  const healthPercent = borrowers.length > 0 ? Math.round((onTrackCount / borrowers.length) * 100) : null;
+  const overdueCount = borrowers.filter((b) => b.status === 'Overdue' || b.status === 'Late').length;
+
   const filteredBorrowers = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return borrowers.filter((b) => b.name.toLowerCase().includes(q) || b.id.toLowerCase().includes(q));
+    return borrowers.filter((b) => b.name.toLowerCase().includes(q) || String(b.id).toLowerCase().includes(q));
   }, [borrowers, searchQuery]);
 
   return (
@@ -63,19 +70,19 @@ const MyBorrowers = () => {
           <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Disbursed</p>
             <div className="flex items-end justify-between mt-2">
-              <h3 className="text-2xl font-bold">₹45.2 Cr</h3>
+              <h3 className="text-2xl font-bold">{formatMoney(totalDisbursed)}</h3>
             </div>
           </div>
           <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Portfolio Health</p>
             <div className="flex items-end justify-between mt-2">
-              <h3 className="text-2xl font-bold">94.2%</h3>
+              <h3 className="text-2xl font-bold">{healthPercent !== null ? `${healthPercent}%` : 'N/A'}</h3>
             </div>
           </div>
           <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Overdue Count</p>
             <div className="flex items-end justify-between mt-2">
-              <h3 className="text-2xl font-bold">{borrowers.filter((b) => b.status === 'Overdue').length}</h3>
+              <h3 className="text-2xl font-bold">{overdueCount}</h3>
             </div>
           </div>
         </div>

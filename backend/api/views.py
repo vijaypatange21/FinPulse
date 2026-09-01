@@ -267,7 +267,7 @@ class BorrowerDocumentViewSet(viewsets.ModelViewSet):
             borrower=profile,
             file_name=file_name,
             file_size=file_size,
-            status="verified",
+            status="processing",
         )
 
 

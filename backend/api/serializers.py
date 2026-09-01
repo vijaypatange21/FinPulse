@@ -373,7 +373,10 @@ class BorrowerDocumentSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "borrower", "file_name", "file_size", "file_url", "created_at", "updated_at"]
 
     def get_file_url(self, obj):
-        if obj.file:
-            return obj.file.url
-        return None
+        if not obj.file:
+            return None
+        request = self.context.get("request")
+        if request is not None:
+            return request.build_absolute_uri(obj.file.url)
+        return obj.file.url
 
