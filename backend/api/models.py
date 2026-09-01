@@ -294,8 +294,10 @@ class BorrowerDocument(TimeStampedModel):
     ]
     STATUS_CHOICES = [
         ("processing", "Processing"),
+        ("pending_review", "Pending Review"),
         ("under_review", "Under Review"),
         ("verified", "Verified"),
+        ("rejected", "Rejected"),
         ("flagged", "Flagged"),
     ]
 
@@ -306,7 +308,9 @@ class BorrowerDocument(TimeStampedModel):
     file_size = models.CharField(max_length=50, default="Unknown")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="processing")
     parsed_data = models.JSONField(default=dict, blank=True)
-
+    verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="verified_documents")
+    rejection_reason = models.TextField(blank=True, default="")
+    verification_notes = models.TextField(blank=True, default="")
 
     class Meta:
         db_table = "borrower_documents"

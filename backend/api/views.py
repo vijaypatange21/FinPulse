@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 
 from .ml.service import MLModelService
 from .models import BorrowerDocument, BorrowerProfile, LenderProfile, LoanApplication, User
-from .parsers.bank_statement import parse_and_process_bank_statement
+from .parsers.bank_statement import apply_verified_document_metrics, parse_and_process_bank_statement
 from .tasks import (
     build_lender_overview_task,
     parse_bank_statement_task,
@@ -298,9 +298,13 @@ class BorrowerDocumentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return BorrowerDocument.objects.none()
+
+        if user.is_staff or user.role in [User.Role.ADMIN, User.Role.LENDER]:
+            return BorrowerDocument.objects.all().select_related("borrower__user", "verified_by")
+
         try:
             profile = user.borrower_profile
-            return BorrowerDocument.objects.filter(borrower=profile)
+            return BorrowerDocument.objects.filter(borrower=profile).select_related("borrower__user", "verified_by")
         except (BorrowerProfile.DoesNotExist, AttributeError):
             return BorrowerDocument.objects.none()
 
@@ -349,6 +353,46 @@ class BorrowerDocumentViewSet(viewsets.ModelViewSet):
         except Exception:
             pass
         return Response({"status": "processing", "message": "Parsing triggered with simulated delay."})
+
+    @action(detail=True, methods=["post"])
+    def verify(self, request, pk=None):
+        user = request.user
+        if not (user.is_staff or user.role in [User.Role.ADMIN, User.Role.LENDER]):
+            return Response(
+                {"error": "Forbidden: Only site administrators or verified lenders can approve documents."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        doc = self.get_object()
+        notes = request.data.get("notes", "")
+        new_score = apply_verified_document_metrics(doc, verified_by_user=request.user, notes=notes)
+        serializer = self.get_serializer(doc)
+        return Response({
+            "message": "Document successfully approved and verified.",
+            "document": serializer.data,
+            "borrower_health_score": new_score,
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"])
+    def reject(self, request, pk=None):
+        user = request.user
+        if not (user.is_staff or user.role in [User.Role.ADMIN, User.Role.LENDER]):
+            return Response(
+                {"error": "Forbidden: Only site administrators or verified lenders can reject documents."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        doc = self.get_object()
+        reason = request.data.get("reason", "Document does not satisfy verification or legibility criteria.")
+        notes = request.data.get("notes", "")
+        doc.status = "rejected"
+        doc.rejection_reason = reason
+        doc.verification_notes = notes
+        doc.verified_by = request.user
+        doc.save(update_fields=["status", "rejection_reason", "verification_notes", "verified_by", "updated_at"])
+        serializer = self.get_serializer(doc)
+        return Response({
+            "message": "Document marked as rejected.",
+            "document": serializer.data,
+        }, status=status.HTTP_200_OK)
 
 
 

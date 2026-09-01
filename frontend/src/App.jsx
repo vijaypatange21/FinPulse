@@ -21,6 +21,8 @@ import HealthScorePage from './pages/HealthScorePage';
 import LoansPage from './pages/LoansPage';
 import TransactionsPage from './pages/TransactionsPage';
 import PortfolioPage from './pages/PortfolioPage';
+import AdminDocumentVerification from './pages/AdminDocumentVerification';
+import ProtectedRoute from './components/ProtectedRoute';
 import { ThemeProvider } from './components/ThemeContext';
 import GlobalThemeToggle from './components/GlobalThemeToggle';
 
@@ -36,29 +38,33 @@ function App() {
             <Route path="/role-selection" element={<RoleSelectionPage />} />
             <Route path="/login" element={<LoginPage />} />
             
-            {/* Borrower Routes */}
+            {/* Public Registration Routes */}
             <Route path="/register/borrower" element={<BorrowerRegistration />} />
-            <Route path="/loan-application" element={<LoanApplication />} />
-            <Route path="/borrower/dashboard" element={<BorrowerDashboard />} />
-            <Route path="/borrower/upload" element={<DocumentUpload />} />
-            <Route path="/borrower/health-score" element={<HealthScorePage />} />
-            <Route path="/borrower/loans" element={<LoansPage />} />
-            <Route path="/borrower/transactions" element={<TransactionsPage />} />
-            <Route path="/recommendations" element={<Recommendations />} />
-            
-            {/* Lender Routes */}
             <Route path="/register/lender" element={<LenderRegistration />} />
-            <Route path="/lender/plans" element={<LenderPlans />} />
-            <Route path="/lender/dashboard" element={<LenderDashboard />} />
-            <Route path="/lender/portfolio" element={<PortfolioPage />} />
-            <Route path="/lender/borrowers" element={<MyBorrowers />} />
-            <Route path="/lender/borrowers/:id" element={<BorrowerMonitoring />} />
-            <Route path="/lender/applications" element={<LoanApplications />} />
-            <Route path="/lender/applications/:id" element={<ApplicationDetail />} />
-            <Route path="/lender/alerts" element={<AlertDetail />} />
-            <Route path="/lender/alerts/:id" element={<AlertDetail />} />
-            <Route path="/borrower/profile/:id" element={<BorrowerProfile />} />
-            <Route path="/borrower/find-lender" element={<FindLender />} />
+            
+            {/* Protected Borrower Routes */}
+            <Route path="/loan-application" element={<ProtectedRoute allowedRoles={['borrower']}><LoanApplication /></ProtectedRoute>} />
+            <Route path="/borrower/dashboard" element={<ProtectedRoute allowedRoles={['borrower']}><BorrowerDashboard /></ProtectedRoute>} />
+            <Route path="/borrower/upload" element={<ProtectedRoute allowedRoles={['borrower']}><DocumentUpload /></ProtectedRoute>} />
+            <Route path="/borrower/health-score" element={<ProtectedRoute allowedRoles={['borrower']}><HealthScorePage /></ProtectedRoute>} />
+            <Route path="/borrower/loans" element={<ProtectedRoute allowedRoles={['borrower']}><LoansPage /></ProtectedRoute>} />
+            <Route path="/borrower/transactions" element={<ProtectedRoute allowedRoles={['borrower']}><TransactionsPage /></ProtectedRoute>} />
+            <Route path="/borrower/find-lender" element={<ProtectedRoute allowedRoles={['borrower']}><FindLender /></ProtectedRoute>} />
+            <Route path="/recommendations" element={<ProtectedRoute allowedRoles={['borrower']}><Recommendations /></ProtectedRoute>} />
+            
+            {/* Protected Lender / Admin Routes */}
+            <Route path="/lender/plans" element={<ProtectedRoute allowedRoles={['lender', 'admin']}><LenderPlans /></ProtectedRoute>} />
+            <Route path="/lender/dashboard" element={<ProtectedRoute allowedRoles={['lender', 'admin']}><LenderDashboard /></ProtectedRoute>} />
+            <Route path="/lender/portfolio" element={<ProtectedRoute allowedRoles={['lender', 'admin']}><PortfolioPage /></ProtectedRoute>} />
+            <Route path="/lender/borrowers" element={<ProtectedRoute allowedRoles={['lender', 'admin']}><MyBorrowers /></ProtectedRoute>} />
+            <Route path="/lender/borrowers/:id" element={<ProtectedRoute allowedRoles={['lender', 'admin']}><BorrowerMonitoring /></ProtectedRoute>} />
+            <Route path="/lender/applications" element={<ProtectedRoute allowedRoles={['lender', 'admin']}><LoanApplications /></ProtectedRoute>} />
+            <Route path="/lender/applications/:id" element={<ProtectedRoute allowedRoles={['lender', 'admin']}><ApplicationDetail /></ProtectedRoute>} />
+            <Route path="/lender/documents" element={<ProtectedRoute allowedRoles={['lender', 'admin']}><AdminDocumentVerification /></ProtectedRoute>} />
+            <Route path="/admin/documents" element={<ProtectedRoute allowedRoles={['lender', 'admin']}><AdminDocumentVerification /></ProtectedRoute>} />
+            <Route path="/lender/alerts" element={<ProtectedRoute allowedRoles={['lender', 'admin']}><AlertDetail /></ProtectedRoute>} />
+            <Route path="/lender/alerts/:id" element={<ProtectedRoute allowedRoles={['lender', 'admin']}><AlertDetail /></ProtectedRoute>} />
+            <Route path="/borrower/profile/:id" element={<ProtectedRoute allowedRoles={['lender', 'admin']}><BorrowerProfile /></ProtectedRoute>} />
           </Routes>
         </main>
         {/* Global theme toggle floating button */}

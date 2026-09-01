@@ -177,3 +177,33 @@ class FinPulseAPITests(TestCase):
         list_resp2 = self.client.get("/api/v1/documents/")
         self.assertEqual(len(list_resp2.data), 0)
 
+    def test_document_verification_rbac(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from api.models import BorrowerDocument
+
+        test_file = SimpleUploadedFile("statement.pdf", b"test statement bytes", content_type="application/pdf")
+        doc = BorrowerDocument.objects.create(
+            borrower=self.borrower_profile,
+            file=test_file,
+            file_name="statement.pdf",
+            status="pending_review",
+        )
+
+        # 1. Borrower user cannot verify document (403 Forbidden)
+        self.client.force_authenticate(user=self.borrower_user)
+        resp_borrower = self.client.post(f"/api/v1/documents/{doc.id}/verify/", {"notes": "Self verification attempt"})
+        self.assertEqual(resp_borrower.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 2. Borrower user cannot reject document (403 Forbidden)
+        resp_borrower_reject = self.client.post(f"/api/v1/documents/{doc.id}/reject/", {"reason": "Self rejection attempt"})
+        self.assertEqual(resp_borrower_reject.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 3. Lender user CAN verify document (200 OK)
+        self.client.force_authenticate(user=self.lender_user)
+        resp_lender = self.client.post(f"/api/v1/documents/{doc.id}/verify/", {"notes": "Approved by lender underwriter"})
+        self.assertEqual(resp_lender.status_code, status.HTTP_200_OK)
+        doc.refresh_from_db()
+        self.assertEqual(doc.status, "verified")
+        self.assertEqual(doc.verified_by, self.lender_user)
+
+

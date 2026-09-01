@@ -385,12 +385,19 @@ class LoanApplicationSerializer(LoanApplicationSnapshotSerializer):
 
 class BorrowerDocumentSerializer(serializers.ModelSerializer):
     file_url = serializers.SerializerMethodField()
+    borrowerName = serializers.CharField(source="borrower.display_name", read_only=True)
+    borrowerId = serializers.CharField(source="borrower.borrower_id", read_only=True)
+    borrowerAvatar = serializers.CharField(source="borrower.avatar_url", read_only=True)
+    verified_by = UserReferenceSerializer(read_only=True)
 
     class Meta:
         model = BorrowerDocument
         fields = [
             "id",
             "borrower",
+            "borrowerId",
+            "borrowerName",
+            "borrowerAvatar",
             "file",
             "file_url",
             "document_type",
@@ -398,11 +405,13 @@ class BorrowerDocumentSerializer(serializers.ModelSerializer):
             "file_size",
             "status",
             "parsed_data",
+            "verified_by",
+            "rejection_reason",
+            "verification_notes",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "borrower", "file_name", "file_size", "file_url", "parsed_data", "created_at", "updated_at"]
-
+        read_only_fields = ["id", "borrower", "borrowerId", "borrowerName", "borrowerAvatar", "file_name", "file_size", "file_url", "parsed_data", "verified_by", "rejection_reason", "verification_notes", "created_at", "updated_at"]
 
     def get_file_url(self, obj):
         if not obj.file:
@@ -411,4 +420,5 @@ class BorrowerDocumentSerializer(serializers.ModelSerializer):
         if request is not None:
             return request.build_absolute_uri(obj.file.url)
         return obj.file.url
+
 

@@ -215,24 +215,15 @@ SAMPLE_HDFC_STATEMENT = {
 }
 
 
-def parse_and_process_bank_statement(document_id, simulated_delay_seconds=2.0):
+def apply_verified_document_metrics(document, verified_by_user=None, notes=""):
     """
-    Parses a bank statement document, extracts financial indicators and transactions,
-    and updates borrower analytics, banking metrics, and ML health score.
+    Applies the parsed document metrics to the borrower's profile, populates
+    BankTransactionFact, BankSummaryDim, cash flow, and recalculates the ML health score.
     """
-    # 1. Simulate asynchronous OCR & parsing time
-    if simulated_delay_seconds > 0:
-        time.sleep(simulated_delay_seconds)
-
-    try:
-        document = BorrowerDocument.objects.select_related("borrower__user").get(id=document_id)
-    except BorrowerDocument.DoesNotExist:
-        return None
-
     borrower = document.borrower
-    parsed_payload = SAMPLE_HDFC_STATEMENT["statement"]
+    parsed_payload = document.parsed_data or SAMPLE_HDFC_STATEMENT["statement"]
 
-    # 2. Ingest Individual Transactions into BankTransactionFact
+    # 1. Ingest Individual Transactions into BankTransactionFact
     BankTransactionFact.objects.filter(borrower=borrower).delete()
     for item in parsed_payload.get("transactions", []):
         d_val = float(item.get("debit", 0.0))
@@ -254,7 +245,7 @@ def parse_and_process_bank_statement(document_id, simulated_delay_seconds=2.0):
             balance_after=float(item.get("balance", 0.0)),
         )
 
-    # 3. Update Bank Summary Dimension (dim_bank_summary)
+    # 2. Update Bank Summary Dimension (dim_bank_summary)
     totals = parsed_payload.get("totals", {})
     total_debits = float(totals.get("total_debits", 20887.75))
     total_credits = float(totals.get("total_credits", 64250.00))
@@ -273,7 +264,7 @@ def parse_and_process_bank_statement(document_id, simulated_delay_seconds=2.0):
     bank_summary.financial_stress_index = 7.5
     bank_summary.save()
 
-    # 4. Update Borrower Profile Cash Flow & Demographics
+    # 3. Update Borrower Profile Cash Flow & Demographics
     acc_holder = parsed_payload.get("account_holder", {})
     if not borrower.phone_number and acc_holder.get("phone"):
         borrower.phone_number = acc_holder.get("phone")
@@ -288,12 +279,12 @@ def parse_and_process_bank_statement(document_id, simulated_delay_seconds=2.0):
     ]
 
     borrower.timeline = [
-        {"date": "2024-05-31", "amount": f"₹{int(total_credits):,}", "status": "Verified", "type": "HDFC Inflow", "note": "Bank statement parsed & verified"},
+        {"date": "2024-05-31", "amount": f"₹{int(total_credits):,}", "status": "Verified", "type": "HDFC Inflow", "note": "Bank statement approved & verified by officer"},
         {"date": "2024-05-25", "amount": "₹5,000", "status": "Paid", "type": "RD Investment", "note": "Recurring Deposit auto-debit"},
         {"date": "2024-05-03", "amount": "₹50,000", "status": "Paid", "type": "Salary Credit", "note": "Monthly primary salary credit"},
     ]
 
-    # 5. Run ML Model Prediction on Verified Statement Metrics
+    # 4. Run ML Model Prediction on Verified Statement Metrics
     ml_service = MLModelService()
     health_payload = {
         "features": {
@@ -315,26 +306,56 @@ def parse_and_process_bank_statement(document_id, simulated_delay_seconds=2.0):
     borrower.risk_color = BorrowerProfile.RiskColor.GREEN
     borrower.save()
 
-    # 6. Re-evaluate any active Loan Applications
+    # 5. Re-evaluate any active Loan Applications
     for app in LoanApplication.objects.filter(borrower=borrower):
         try:
             evaluate_and_score_application(app)
         except Exception:
             pass
 
-    # 7. Finalize Document as Verified with Parsed Data
+    # 6. Finalize Document as Verified
     document.status = "verified"
+    if verified_by_user:
+        document.verified_by = verified_by_user
+    if notes:
+        document.verification_notes = notes
+    document.save(update_fields=["status", "verified_by", "verification_notes", "updated_at"])
+
+    return evaluated_score
+
+
+def parse_and_process_bank_statement(document_id, simulated_delay_seconds=2.0):
+    """
+    Parses a bank statement document, extracts financial indicators and transactions,
+    and places the document into 'pending_review' status awaiting human-in-the-loop verification.
+    """
+    # 1. Simulate asynchronous OCR & parsing time
+    if simulated_delay_seconds > 0:
+        time.sleep(simulated_delay_seconds)
+
+    try:
+        document = BorrowerDocument.objects.select_related("borrower__user").get(id=document_id)
+    except BorrowerDocument.DoesNotExist:
+        return None
+
+    parsed_payload = SAMPLE_HDFC_STATEMENT["statement"]
+    totals = parsed_payload.get("totals", {})
+    total_debits = float(totals.get("total_debits", 20887.75))
+    total_credits = float(totals.get("total_credits", 64250.00))
+
+    # Save parsed data and update status to pending_review
+    document.status = "pending_review"
     document.parsed_data = parsed_payload
     document.save(update_fields=["status", "parsed_data", "updated_at"])
 
     return {
         "document_id": str(document.id),
-        "status": "verified",
+        "status": "pending_review",
         "bank_name": parsed_payload.get("bank_name"),
         "account_number": parsed_payload.get("account", {}).get("account_number"),
         "total_credits": total_credits,
         "total_debits": total_debits,
         "closing_balance": parsed_payload.get("closing_balance"),
         "transactions_count": len(parsed_payload.get("transactions", [])),
-        "borrower_health_score": evaluated_score,
     }
+

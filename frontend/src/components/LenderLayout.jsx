@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import { getCurrentUser } from '../lib/api';
 
@@ -7,13 +7,18 @@ const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', to: '/lender/dashboard' },
   { key: 'borrowers', label: 'Borrowers', icon: 'people', to: '/lender/borrowers' },
   { key: 'applications', label: 'Applications', icon: 'assignment', to: '/lender/applications' },
+  { key: 'documents', label: 'Document Queue', icon: 'verified', to: '/lender/documents' },
   { key: 'portfolio', label: 'Portfolio', icon: 'account_balance_wallet', to: '/lender/portfolio' },
   { key: 'alerts', label: 'Alerts', icon: 'notifications_active', to: '/lender/alerts' },
 ];
 
-
 const LenderLayout = ({ activeSection = 'dashboard', children }) => {
   const user = getCurrentUser();
+
+  if (user && user.role === 'borrower') {
+    return <Navigate to="/borrower/dashboard" replace />;
+  }
+
   const displayName = user ? (`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username) : 'Lender Partner';
   const roleName = user?.institution_name || 'Lending Partner';
 

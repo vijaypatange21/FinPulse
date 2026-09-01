@@ -430,26 +430,42 @@ const DocumentUpload = () => {
                                                         {doc.file_size}
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                            doc.status === 'verified'
-                                                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                                                : doc.status === 'processing'
-                                                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
-                                                                : doc.status === 'flagged'
-                                                                ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                                                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                                                        }`}>
-                                                            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium w-fit ${
                                                                 doc.status === 'verified'
-                                                                    ? 'bg-green-500'
+                                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                                                                     : doc.status === 'processing'
-                                                                    ? 'bg-amber-500'
+                                                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                                                                    : doc.status === 'rejected' || doc.status === 'flagged'
+                                                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                                                            }`}>
+                                                                <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                                                                    doc.status === 'verified'
+                                                                        ? 'bg-green-500'
+                                                                        : doc.status === 'processing'
+                                                                        ? 'bg-blue-500 animate-pulse'
+                                                                        : doc.status === 'rejected' || doc.status === 'flagged'
+                                                                        ? 'bg-red-500'
+                                                                        : 'bg-amber-500'
+                                                                }`}></span>
+                                                                {doc.status === 'verified'
+                                                                    ? 'Verified'
+                                                                    : doc.status === 'processing'
+                                                                    ? 'Processing'
+                                                                    : doc.status === 'rejected'
+                                                                    ? 'Rejected'
                                                                     : doc.status === 'flagged'
-                                                                    ? 'bg-red-500'
-                                                                    : 'bg-blue-500'
-                                                            }`}></span>
-                                                            {doc.status === 'verified' ? 'Verified' : doc.status === 'processing' ? 'Processing' : doc.status === 'flagged' ? 'Flagged' : 'Under Review'}
-                                                        </span>
+                                                                    ? 'Flagged'
+                                                                    : 'Pending Review'}
+                                                            </span>
+                                                            {doc.status === 'rejected' && doc.rejection_reason && (
+                                                                <span className="text-[11px] text-red-500 font-medium">Reason: {doc.rejection_reason}</span>
+                                                            )}
+                                                            {doc.status === 'pending_review' && (
+                                                                <span className="text-[10px] text-slate-400">Parsed • Awaiting verifier sign-off</span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <button

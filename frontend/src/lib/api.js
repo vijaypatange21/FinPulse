@@ -188,6 +188,22 @@ export async function deleteDocument(id) {
   });
 }
 
+export async function verifyDocument(id, notes = '') {
+  return apiRequest(`/documents/${id}/verify/`, {
+    method: 'POST',
+    body: { notes },
+    auth: true,
+  });
+}
+
+export async function rejectDocument(id, reason = '', notes = '') {
+  return apiRequest(`/documents/${id}/reject/`, {
+    method: 'POST',
+    body: { reason, notes },
+    auth: true,
+  });
+}
+
 export function getMediaUrl(url) {
   if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
@@ -195,6 +211,7 @@ export function getMediaUrl(url) {
   }
   return url.startsWith('/') ? url : `/${url}`;
 }
+
 
 
 
