@@ -20,8 +20,8 @@ This backend adds a production-style API layer for the FinPulse frontend prototy
   - dim_loan_summary
   - dim_derived_signals
   - master_ml_training_table
-- 5 ML endpoints with dummy model fallback logic
-- 5 dummy PKL placeholders in api/dummy_models
+- 5 ML endpoints with condition-based ML predictor logic
+- 5 PKL model artifacts in api/saved_models
 - Celery + Redis async queue for high-concurrency background processing
 
 ## Quick start
@@ -151,9 +151,9 @@ POST /api/v1/recommend/wellness/
   }
 }
 
-## Notes on dummy PKL files
+## Notes on model PKL files
 
-The 5 files in api/dummy_models are intentional placeholders. If a file cannot be unpickled, the backend automatically falls back to internal deterministic dummy models. This lets the APIs work now while your real trained models are still pending.
+The 5 model files in api/saved_models contain serialized condition-based predictor instances (`HealthScoreModel`, `DefaultRiskModel`, `AnomalyDetectionModel`, `CashFlowForecastModel`, `WellnessRecommendationModel`). If a PKL file is missing or corrupted, the backend automatically falls back to internal predictor models in `api/ml/predictors.py`.
 
 ## Celery behavior in workflows
 

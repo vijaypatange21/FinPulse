@@ -1,24 +1,24 @@
 import pickle
 from pathlib import Path
 
-from .dummy_models import (
-    DummyAnomalyDetectionModel,
-    DummyCashFlowForecastModel,
-    DummyDefaultRiskModel,
-    DummyHealthScoreModel,
-    DummyWellnessRecommendationModel,
+from .predictors import (
+    AnomalyDetectionModel,
+    CashFlowForecastModel,
+    DefaultRiskModel,
+    HealthScoreModel,
+    WellnessRecommendationModel,
 )
 
 
 class MLModelService:
     def __init__(self):
-        model_dir = Path(__file__).resolve().parent.parent / "dummy_models"
+        model_dir = Path(__file__).resolve().parent.parent / "saved_models"
         self._models = {
-            "health_score": self._safe_load(model_dir / "health_score_model.pkl", DummyHealthScoreModel()),
-            "default_risk": self._safe_load(model_dir / "default_risk_model.pkl", DummyDefaultRiskModel()),
-            "anomaly": self._safe_load(model_dir / "anomaly_detection_model.pkl", DummyAnomalyDetectionModel()),
-            "forecast": self._safe_load(model_dir / "cashflow_forecast_model.pkl", DummyCashFlowForecastModel()),
-            "wellness": self._safe_load(model_dir / "wellness_recommendation_model.pkl", DummyWellnessRecommendationModel()),
+            "health_score": self._safe_load(model_dir / "health_score_model.pkl", HealthScoreModel()),
+            "default_risk": self._safe_load(model_dir / "default_risk_model.pkl", DefaultRiskModel()),
+            "anomaly": self._safe_load(model_dir / "anomaly_detection_model.pkl", AnomalyDetectionModel()),
+            "forecast": self._safe_load(model_dir / "cashflow_forecast_model.pkl", CashFlowForecastModel()),
+            "wellness": self._safe_load(model_dir / "wellness_recommendation_model.pkl", WellnessRecommendationModel()),
         }
 
     @staticmethod

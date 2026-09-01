@@ -1,0 +1,604 @@
+FinPulse
+ML Platform
+Project Workflow &
+Dependency Guide
+End-to-End ML Architecture · Build Phases · Tech Stack
+Version 1.0 │ March 2026 │ Confidential
+FinPulse AI — Financial Intelligence PlatformFINPULSE
+Project Workflow & Dependency Guide
+Page 2
+Table of Contents
+1. Project Overview & Vision3
+2. System Architecture Summary4
+3. Technology Stack & Dependencies
+5–6
+4. Phase 1 — Infrastructure & Data Layer Setup7
+5. Phase 2 — ML Feature Engineering Pipeline8
+6. Phase 3 — Model Development & Training9
+7. Phase 4 — Model Serving & API Layer10
+8. Phase 5 — Application & Frontend Build11
+9. Phase 6 — MLOps, Monitoring & CI/CD12
+10. End-to-End Data Flow13
+11. Risk Register & Mitigation14
+12. Timeline & Milestone Summary15
+App.. Quick-Reference Checklist
+Confidential — Internal Use Only
+16–
+18
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 3
+01 — PROJECT OVERVIEW & VISION
+Project Overview & Vision
+FinPulse is an AI-powered financial intelligence platform designed to help lenders and borrowers make smarter
+decisions using real-time ML-driven insights. The platform ingests raw banking and transaction data, processes it
+through a multi-stage feature pipeline, scores users across five predictive models, and surfaces results via dedicated
+dashboards and REST APIs.
+Core Objectives
+• Provide a real-time Financial Health Score (0–100) for every borrower.
+• Predict Loan Default Risk with probabilistic output (Safe / Watch / High Risk).
+• Detect Transaction Anomalies and potential fraud in real time.
+• Forecast Cash-Flow over 7–30 day horizons to surface EMI failure risk.
+• Generate personalised Wellness Recommendations to improve financial health.
+• Serve all insights via secure REST APIs and role-based dashboards.
+Stakeholders & Users
+StakeholderRolePrimary Interface
+Lenders / BanksConsume risk scores for credit decisioningLender Risk Dashboard
+Borrowers / UsersView health score & recommendationsBorrower Dashboard
+Data EngineersManage ingestion & feature pipelinesInternal tooling / Airflow
+ML EngineersTrain, evaluate & deploy modelsMLflow / Model Registry
+DevOps / PlatformInfrastructure, CI/CD, monitoringCloud console / Grafana
+Design Principles
+PrincipleDescription
+ModularityEach ML model is an independent microservice; upgrades to one do not affect others.
+Feature ConsistencyA dual offline/online feature store ensures training and inference use identical feature definitions.
+ExplainabilityGradient-boosted models and rule-based recommendation engines prioritise human-readable outputs.
+ScalabilityContainerised services behind load-balanced Prediction APIs scale horizontally on demand.
+ObservabilityEvery model endpoint is wrapped with latency tracking and accuracy-drift monitoring.
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 4
+02 — SYSTEM ARCHITECTURE SUMMARY
+System Architecture Summary
+FinPulse follows a layered ML pipeline: Data Sources → Data Processing → Feature Store → ML Models →
+Model Serving → Application → Frontend. External services enrich raw data, and a dedicated database layer
+persists predictions and user data.
+Architecture Layers
+LayerComponentsPurpose
+External ServicesCredit Bureaus, Identity Verification, Banking APIsEnrich borrower data with bureau scores
+and verified identity signals.
+Data SourcesBank Transactions, User Profile, Loan Info,
+Spending Categories, Balance HistoryRaw financial data ingested via the Data
+Ingestion API.
+Data ProcessingData Ingestion API → Cleaning & Preprocessing →
+Feature Engineering → AggregationETL pipeline that cleanses,
+standardises, and aggregates raw
+records into model-ready features.
+Feature StoreFinancial Features, Transaction Behaviour, User
+MetricsDual offline (batch / Spark) and online
+(real-time) stores ensuring
+training-inference consistency.
+ML ModelsHealth Score, Loan Default Risk, Anomaly
+Detection, Cash-Flow Forecast, Wellness
+RecommendationFive independent supervised,
+unsupervised, and time-series models.
+Model ServingPrediction APIs, ML Microservice, Model Registry,
+MonitoringContainerised inference endpoints with
+a central registry and drift monitoring.
+Application LayerDjango API, Authentication, Financial ReportsSecure backend handling auth, business
+logic, and reporting.
+Database LayerPostgreSQL — Transaction Data, Model Predictions,
+User DataPersistent storage for all transactional
+records and model outputs.
+FrontendLender Risk Dashboard, Borrower Dashboard, Risk
+Alerts, Health Score VizRole-based UIs for lenders and
+borrowers surfacing model outputs.
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 5
+Model Dependency Chain
+The five ML models form a dependency chain: raw transactions feed the Health Score and Anomaly models; the
+Health Score feeds Default Risk; risk outputs and spending trends feed the Wellness engine. Cash-Flow Forecasting
+operates independently but its low-balance flag feeds into Wellness.
+ModelDepends OnAlgorithmOutput
+Financial Health ScoreBank transactions, profile dataXGBoost RegressionScore 0–100 + risk label
+Loan Default RiskHealth Score, missed EMIs,
+income varianceXGBoost ClassifierProbability + Safe / Watch /
+High
+Transaction AnomalyTxn amount, time, merchant,
+balanceIsolation ForestAnomaly score + boolean
+flag
+Cash-Flow ForecastBalance time-series, salary
+cycles, EMI datesARIMA / LSTM7 / 30-day balance +
+low-balance flag
+Wellness
+RecommendationSavings rate, debt ratio, risk
+level, spendingDecision Tree / Rule
+EngineActionable advice categories
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 6
+03 — TECHNOLOGY STACK & DEPENDENCIES
+Technology Stack & Dependencies
+Every major library, framework, and service used in FinPulse is listed below, grouped by layer, with version targets
+and the rationale for selection.
+Data Ingestion & Processing
+Package / ToolVersionPurpose
+Apache Airflow2.8+Pipeline / DAG orchestration for nightly ETL jobs
+Apache Kafka3.6+Real-time transaction event streaming
+Apache Spark (PySpark)3.5+Distributed batch feature computation
+Pandas2.1+In-memory data manipulation and prototyping
+SQLAlchemy2.0+ORM for PostgreSQL access within Python services
+Package / ToolVersionPurpose
+Feast0.38+Open-source feature store (offline + online)
+Redis7.2+In-memory online feature store backend
+PostgreSQL15+Offline feature store and primary transactional DB
+Parquet / S3—Columnar offline storage for historical features
+Package / ToolVersionPurpose
+XGBoost2.0+Health Score regression and Default Risk classification
+LightGBM4.1+Faster boosting alternative; used for A/B comparisons
+scikit-learn1.4+Preprocessing, baseline models, Isolation Forest
+statsmodels / pmdarima0.14+ARIMA cash-flow forecasting
+PyTorch / LSTM2.1+Advanced sequence model for cash-flow (v2)
+SHAP0.44+Model explainability for credit decisions
+Package / ToolVersionPurpose
+MLflow2.10+Experiment tracking, model registry, artifact store
+Prefect2.16+Lightweight pipeline orchestration (alternative to Airflow)
+DVC3.0+Data version control for training datasets
+Evidently AI0.4+Data drift and model performance monitoring
+Feature Store
+ML Modelling
+MLOps & Registry
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 7
+Model Serving & API
+Package / ToolVersionPurpose
+FastAPI0.110+High-performance async REST API for ML microservices
+Django + DRF5.0+Application-layer API with auth and reports
+Docker25+Container runtime for each model microservice
+Kubernetes (K8s)1.29+Container orchestration and autoscaling
+NGINX1.25+Reverse proxy and load balancer
+Celery + Redis5.3+Async task queue for batch prediction jobs
+Package / ToolVersionPurpose
+Prometheus2.50+Metrics collection from all services
+Grafana10.2+Dashboards for latency, throughput, drift alerts
+OpenTelemetry1.23+Distributed tracing across microservices
+Sentry—Error tracking and alerting
+Package / ToolVersionPurpose
+React 18 + TypeScript18 / 5.4Component-based UI for both dashboards
+Recharts / D3.js2.10+Data visualisation (health score, risk charts)
+React Query (TanStack)5+Server-state management and API caching
+Tailwind CSS3.4+Utility-first styling
+Package / ToolVersionPurpose
+AWS / GCP—Cloud hosting (EC2/GKE, S3/GCS, RDS)
+Terraform1.7+Infrastructure-as-code provisioning
+GitHub Actions—CI/CD pipelines for test, build, deploy
+pytest + Great Expectations—Unit tests and data quality assertions
+Observability
+Frontend
+Infrastructure & DevOps
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 8
+04 — PHASE 1: INFRASTRUCTURE & DATA LAYER SETUP
+Phase 1 — Infrastructure & Data Layer Setup
+Duration: Weeks 1–3 │ Team: DevOps, Data Engineering, Backend
+Phase 1 establishes the foundational infrastructure that all subsequent phases depend on. No ML work begins until
+data ingestion is stable and the database schema is validated.
+TaskOwnerDependencyOutput
+Provision cloud environment (VPC, IAM,
+S3/GCS buckets)DevOpsCloud account approvedCloud infra ready
+Spin up PostgreSQL RDS instance with schema
+migrationsBackendCloud infraDB schema v1 live
+Set up Apache Kafka cluster for transaction
+streamingData Eng.Cloud infraKafka topics live
+Build Data Ingestion API (Banking APIs +
+Credit Bureaus)BackendDB schema, KafkaIngestion API v1
+Implement ETL: Cleaning & Preprocessing
+pipelineData Eng.Ingestion APIClean data in DB
+Configure Airflow DAGs for nightly batch ETLData Eng.ETL pipelineAutomated ETL runs
+Set up Feast feature store (offline: Parquet/S3,
+online: Redis)Data Eng.ETL pipelineFeature store
+scaffold
+Deploy monitoring: Prometheus + Grafana
+base stackDevOpsCloud infraObservability live
+Key Dependencies & Risks
+⚠️ Banking API access: Third-party Banking API credentials must be obtained before the Ingestion API can be
+built. Allow 1–2 weeks for approval.
+⚠️ Credit Bureau integration: Bureau data enrichment requires signed data-sharing agreements. Start legal
+review in Week 1.
+⚠️ Schema finalisation: The PostgreSQL schema must be agreed upon before Feast feature definitions are
+written.
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 9
+05 — PHASE 2: ML FEATURE ENGINEERING PIPELINE
+Phase 2 — ML Feature Engineering Pipeline
+Duration: Weeks 3–6 │ Team: Data Engineering, ML Engineering
+Phase 2 transforms clean, ingested data into model-ready features. The feature store becomes the single source of
+truth for both offline training and real-time inference, preventing training-serving skew.
+Feature Groups & Computation
+Feature GroupSource TablesComputationStore Type
+Financial Featurestransactions, accountsMonthly income/expense totals, savings rate,
+EMI/Income ratio, cashflow volatilityOffline +
+Online
+Transaction BehaviourtransactionsSpend-by-category ratios, frequency distribution,
+recency patternsOffline +
+Online
+User Metricsuser_profiles, loansCredit history length, active loan count,
+debt-to-income ratio, missed EMI countOffline +
+Online
+Balance Time-Seriesaccounts (daily
+snapshots)Rolling 7 / 30 / 90-day balance, balance trend
+slope, min-balance flagsOffline (batch)
+Pipeline Architecture
+Batch jobs run nightly via Airflow, computing features over the preceding 24-hour window and materialising them to
+the offline Parquet store. A streaming Kafka consumer continuously updates the online Redis store with the latest
+account balance and recent transaction signals to support sub-second real-time scoring.
+Phase 2 Tasks
+TaskOwnerDependencyOutput
+Define Feast feature views & entities for all
+feature groupsData Eng.Feature store scaffoldFeature definitions
+committed
+Write PySpark aggregation jobs (income,
+expense, EMI, volatility)Data Eng.Clean data in DBOffline feature
+tables
+Build streaming consumer: Kafka → Redis
+online store updateData Eng.Kafka topics, RedisReal-time feature
+updates
+Implement Great Expectations data quality
+checks on featuresData Eng.Feature tablesQuality validation
+suite
+Materialise first historical feature snapshot for
+model trainingData Eng.All feature jobsTraining dataset v1
+Document feature definitions in data
+catalogueData Eng.Feature views definedFeature catalogue
+published
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 10
+06 — PHASE 3: MODEL DEVELOPMENT & TRAINING
+Phase 3 — Model Development & Training
+Duration: Weeks 5–10 │ Team: ML Engineering
+Phase 3 covers the full ML lifecycle for all five models: data assembly, experimentation, hyperparameter tuning,
+evaluation, and registration in MLflow. Models are promoted to staging only after meeting agreed KPI thresholds.
+Financial Health Score
+AlgorithmXGBoost Regressor (baseline: Linear Regression)
+InputsMonthly income/expense, savings rate, EMI/Income ratio, cashflow volatility, credit history length
+KPIsRMSE < 5, R² > 0.85
+NotesTrain on 12+ months of historical data. Use 5-fold cross-validation. Apply SHAP for feature importance.
+Loan Default Risk
+AlgorithmXGBoost Classifier (baseline: Logistic Regression)
+InputsHealth Score, missed EMI count, income variance, expense spikes, active loan count
+KPIsAUC-ROC > 0.90, KS statistic > 0.40
+NotesHandle class imbalance with SMOTE. Calibrate probabilities using Platt scaling.
+Transaction Anomaly Detection
+AlgorithmIsolation Forest (alternative: One-Class SVM)
+InputsTransaction amount, time-of-day, merchant category, post-transaction balance, frequency patterns
+KPIsPrecision > 0.85 @ 5% FPR on labelled holdout
+NotesUnsupervised — no ground-truth labels required for training. Validate on a manually labelled fraud set.
+Cash-Flow Forecasting
+AlgorithmARIMA (production), LSTM (v2)
+InputsDaily balance time-series, salary deposit dates, recurring expense dates, EMI payment schedule
+KPIsMAPE < 8% over 7-day horizon, < 15% over 30-day
+NotesUse pmdarima for auto-ARIMA. LSTM requires GPU; train offline and export to ONNX for serving.
+Wellness Recommendation
+AlgorithmDecision Tree / Rule Engine (max depth ≤ 5)
+InputsSavings rate, category spend ratios, debt-income ratio, Health Score, risk class
+KPIsCoverage > 95% of user states; explanation clarity audit
+NotesKeep depth shallow for full explainability. Validate rules with financial advisors before deployment.
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 11
+07 — PHASE 4: MODEL SERVING & API LAYER
+Phase 4 — Model Serving & API Layer
+Duration: Weeks 9–13 │ Team: ML Engineering, Backend, DevOps
+Each trained model is packaged as an independent FastAPI microservice, containerised with Docker, and deployed
+to Kubernetes. The Model Registry (MLflow) gates promotions from staging to production. All endpoints are
+versioned and documented via OpenAPI.
+API Endpoint Contracts
+EndpointMetho
+dKey Request FieldsResponse Fields
+/predict/health_scorePOSTuser_id, monthly_income, total_expense,
+savings_rate, emi_income_ratio,
+cashflow_volatilityhealth_score (float),
+risk_label (str)
+/predict/default_riskPOSTuser_id, health_score, missed_emi,
+income_variance, active_loansdefault_probability (float),
+risk_class (str)
+/detect/anomalyPOSTuser_id, transaction: {amount, time,
+merchant_category}anomaly_score (float),
+is_anomalous (bool)
+/forecast/balancePOSTuser_id, date, balance_history (list of floats)forecast_7d, forecast_30d
+(floats), low_balance_risk
+(bool)
+/recommend/wellnessPOSTuser_id, savings_rate, debt_income_ratio,
+risk_classadvice (str),
+recommendation_code (str)
+Serving Infrastructure
+ComponentTechnologyRole
+ML Microservices (×5)FastAPI + Uvicorn in DockerOne container per model; independent scaling and versioning
+Prediction API GatewayNGINX / KongRoutes requests, rate-limits, and load-balances across model
+pods
+Model RegistryMLflow Tracking ServerVersion-controls model artefacts; gates staging → production
+promotions
+MonitoringEvidently AI + PrometheusData drift detection, latency percentiles, accuracy decay alerts
+Async Batch ScoringCelery + Redis queueNightly bulk scoring of all borrowers; results cached in
+PostgreSQL
+Service MeshKubernetes + HPAAuto-scales pods under load; health-checks restart failed
+containers
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 12
+08 — PHASE 5: APPLICATION & FRONTEND BUILD
+Phase 5 — Application & Frontend Build
+Duration: Weeks 10–15 │ Team: Backend, Frontend
+Django Application Layer
+The Django + Django REST Framework application sits between the ML microservices and the frontend. It handles
+authentication (JWT), authorisation (RBAC for lenders vs borrowers), aggregates model outputs into composite
+reports, and writes final predictions to PostgreSQL.
+Django ModuleResponsibilityKey Libraries
+users/Registration, JWT auth, RBAC roles (lender /
+borrower / admin)djangorestframework-simplejwt, dj-rest-auth
+scores/Fetch Health Score & Default Risk from ML
+services; cache in DBhttpx, celery
+transactions/Stream transaction events; trigger anomaly
+detection in real timekafka-python, django-channels (WebSocket)
+forecasts/Serve cash-flow predictions; expose 7 / 30-day
+endpointshttpx, pandas
+recommendations
+/Fetch wellness advice; log user interactionshttpx
+reports/Generate downloadable PDF / CSV financial
+reportsreportlab, pandas
+admin/Internal Django admin for model management
+and user operationsDjango admin (built-in)
+Frontend Architecture
+The React 18 + TypeScript SPA is split into two role-gated sub-applications: the Lender Risk Dashboard and the
+Borrower Dashboard, each accessible via JWT-protected routes.
+Screen / ComponentDashboardAPI EndpointVisualisation
+Health Score VizBorrower/scores/health_score/Radial gauge (D3.js)
+Risk Alert FeedBorrower + Lender/transactions/anomalies/Real-time list (WebSocket)
+Cash-Flow ChartBorrower/forecasts/balance/Area chart (Recharts)
+Wellness RecommendationsBorrower/recommendations/Card list with action CTAs
+Borrower Risk TableLender/scores/default_risk/Sortable data grid
+Portfolio Health OverviewLender/reports/portfolio/Bar + heatmap (Recharts)
+Financial Reports DownloadLender + Borrower/reports/PDF / CSV export button
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 13
+09 — PHASE 6: MLOPS, MONITORING & CI/CD
+Phase 6 — MLOps, Monitoring & CI/CD
+Duration: Weeks 12–16 (ongoing) │ Team: ML Engineering, DevOps
+CI/CD Pipeline
+StageTriggerStepsGate
+PR ValidationPull request openedLint, unit tests (pytest), data quality checksAll tests green
+Build & PushMerge to mainDocker build, push to container registry, tag with
+git SHAImage scan clean
+Staging DeployImage pushHelm upgrade to staging K8s namespace; smoke
+testsSmoke tests pass
+Model EvaluationWeekly scheduleRe-run evaluation on latest data; compare to
+baseline KPIsKPIs met
+Production DeployManual approvalBlue/green deploy; traffic shift 10% → 50% → 100%Error rate < 0.1%
+RollbackAutomated (on alert)Helm rollback to previous release; alert on-call
+engineer< 5 min TTR
+Monitoring & Alerting Strategy
+MetricToolAlert ThresholdAction
+API latency (p99)Prometheus +
+Grafana> 500 msScale up pod replicas
+Model accuracy driftEvidently AIAUC drops > 5% vs baselineTrigger retraining DAG
+Feature distribution shiftEvidently AIPSI > 0.25 on key featuresInvestigate data pipeline
+Anomaly false-positive
+rateCustom metric> 10% FPR on sampled
+transactionsReview Isolation Forest
+threshold
+Error rate (5xx)Prometheus> 0.5% of requestsPage on-call engineer
+Cash-flow forecast MAPEMLflow> 15% on 7-day horizonRetrain ARIMA / switch to
+LSTM
+Retraining Schedule
+ModelFrequencyTriggerValidation Before
+Promote
+Financial Health ScoreMonthlyScheduled + drift alertRMSE < 5, R² > 0.85
+Loan Default RiskMonthlyScheduled + drift alertAUC > 0.90
+Transaction AnomalyQuarterlyDrift alert (PSI > 0.25)Precision > 0.85
+Cash-Flow ForecastWeeklyScheduled (rolling window)MAPE < 8% (7-day)
+Wellness RecommendationQuarterlyRule review by domain expertsCoverage > 95%
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 14
+10 — END-TO-END DATA FLOW
+End-to-End Data Flow
+Data moves from external sources through every layer of FinPulse to the user-facing dashboards. Two parallel paths
+exist: a real-time scoring path (< 200 ms) and a nightly batch path.
+① External Services
+② Data Sources
+③ Data Processing
+④ Feature Store
+⑤ ML Models
+⑥ Model Serving
+⑦ Application Layer
+⑧ Database Layer
+⑨ Frontend
+Enrich
+data →
+Credit Bureaus · Identity Verification · Banking APIs
+Bank Transactions · User Profile Data · Loan Information
+Ingest
+→
+Spending Categories · Account Balance History
+Data Ingestion API → Cleaning & Preprocessing → Feature Engineering →
+Aggregation
+Offline Store (Parquet/S3) ← Spark batch jobs
+Featur
+es →
+Fetch
+→
+Online Store (Redis) ← Kafka stream consumer
+Health Score | Default Risk | Anomaly Detection
+Predict
+→
+Cash-Flow Forecast | Wellness Recommendation
+Prediction APIs (FastAPI) · ML Microservice
+Serve
+→
+Model Registry (MLflow) · Monitoring (Evidently)
+Django REST API · JWT Auth · Financial Reports
+Displa
+y→
+Celery async tasks · PostgreSQL persistence
+PostgreSQL — Transaction Data · Model Predictions · User Data
+Lender Risk Dashboard · Borrower Dashboard
+Risk Alerts · Health Score Visualisation · Cash-Flow Chart
+Real-Time vs Batch Scoring Paths
+PathTriggerLatency TargetModels Involved
+Real-time scoringUser opens dashboard / new transaction
+arrives< 200 msHealth Score, Default Risk,
+Anomaly
+Streaming anomalyKafka transaction event< 500 msAnomaly Detection
+Nightly batchAirflow DAG at 02:00 UTCComplete by 06:00 UTCAll 5 models (bulk scoring)
+Weekly forecastAirflow DAG (Monday)Complete by 04:00 UTCCash-Flow Forecast
+On-demand reportUser requests PDF export< 10 sAggregated from DB cache
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 15
+11 — RISK REGISTER & MITIGATION
+Risk Register & Mitigation
+Risks identified across all project phases. Each is rated by Likelihood (L) and Impact (I) on a 1–3 scale. Score = L × I.
+High scores require immediate mitigation.
+Risk
+Phas
+L
+I
+e
+Scor
+Mitigation Strategy
+e
+Banking API delays / access denied1236Begin API credential applications in Week 0; build a mock API
+for parallel development.
+Training-serving skew (feature
+inconsistency)2–3236Use Feast for both training and serving; enforce Great
+Expectations data quality checks.
+Insufficient labelled fraud data3326Use unsupervised Isolation Forest; supplement with synthetic
+data generation.
+Model accuracy below KPI thresholds3236Early baseline models; A/B test XGBoost vs LightGBM;
+iterative feature engineering.
+High inference latency (> 500 ms)4224Profile bottlenecks; cache frequent predictions; autoscale
+Kubernetes pods.
+Data privacy / GDPR compliance
+breach1–5133PII masking at ingestion; encrypt at rest and in transit;
+conduct DPIA in Phase 1.
+Frontend performance on large
+datasets5224Paginated API responses; virtual scrolling; React Query
+caching.
+Model drift in production6236Evidently AI monitoring; automated retraining triggers;
+weekly KPI reviews.
+CI/CD pipeline failures blocking deploy6122Blue/green deployments; automated rollback on error-rate
+spike.
+Credit bureau data quality issues1–2224Data quality assertions at ingestion; fallback to internal data if
+bureau feed fails.
+Score 6 (High)Requires immediate mitigation plan and weekly tracking by project lead.
+Score 4 (Medium)Mitigation plan in place; monitor fortnightly.
+Score ≤ 3 (Low)Acceptable residual risk; log and review monthly.
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 16
+12 — TIMELINE & MILESTONE SUMMARY
+Timeline & Milestone Summary
+FinPulse spans approximately 16 weeks from kickoff to production launch. Phases overlap to maintain momentum.
+The critical path runs through Phases 1–4.
+We
+PhaseMilestone / DeliverableOwner
+1Phase 1Cloud infra provisioned; Kafka cluster liveDevOps
+2Phase 1PostgreSQL schema v1; Data Ingestion API v1Backend
+3Phase 1Nightly ETL DAG running; monitoring stack liveData Eng.
+4Phase 2Feast feature store scaffold; feature views committedData Eng.
+5Phase 2Offline PySpark feature jobs runningData Eng.
+6Phase 2Training dataset v1 materialised; GE checks passingData Eng.
+7Phase 3Health Score model v1 trained; KPIs validatedML Eng.
+8Phase 3Default Risk model trained; Anomaly model baselinedML Eng.
+9Phase 3Cash-Flow ARIMA trained; Wellness rules definedML Eng.
+10Phase 3-4All models registered in MLflow; staging deployML Eng. + DevOps
+11Phase 4All 5 FastAPI microservices live on staging KubernetesML Eng. + DevOps
+12Phase 4-5Django API v1 (auth, scores, transactions) completeBackend
+13Phase 5React dashboards (Lender + Borrower) in betaFrontend
+14Phase 5-6Full integration test; CI/CD pipeline greenAll
+15Phase 6Load testing; security audit; DPIA sign-offDevOps + Legal
+16LaunchProduction launch; monitoring + on-call runbook liveAll
+ek
+Team Structure
+RoleCountPrimary PhasesKey Responsibilities
+DevOps / Platform Engineer1–21, 4, 6Cloud infra, Kubernetes, CI/CD, monitoring
+Data Engineer21, 2ETL, Kafka, Spark, Feast feature store
+ML Engineer2–32, 3, 4, 6Model training, serving, MLOps, retraining pipelines
+Backend Engineer21, 4, 5Django API, authentication, async tasks, DB management
+Frontend Engineer1–25React dashboards, D3.js charts, UX
+Product / QA1AllRequirements, testing, stakeholder communications
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 17
+APPENDIX — QUICK-REFERENCE BUILD CHECKLIST
+Quick-Reference Build Checklist
+Use this checklist to track readiness before each phase begins. All items in a phase must be confirmed before
+proceeding to the next.
+PHASE 1 — INFRASTRUCTURE
+☐ Cloud accounts and billing set up with cost alerts configured
+☐ VPC, subnets, IAM roles, and S3/GCS buckets provisioned via Terraform
+☐ PostgreSQL RDS instance running with connection pool configured
+☐ Apache Kafka cluster live with transaction and user-event topics created
+☐ Data Ingestion API connecting to all Banking APIs and Credit Bureau feeds
+☐ Airflow running with at least one healthy nightly ETL DAG
+☐ Prometheus + Grafana base monitoring stack operational
+PHASE 2 — FEATURE ENGINEERING
+☐ Feast feature store configured with offline (Parquet/S3) and online (Redis) backends
+☐ All five feature groups defined and committed to feature repository
+☐ PySpark aggregation jobs producing income, expense, EMI, and volatility features
+☐ Kafka consumer updating Redis online store with sub-second latency
+☐ Great Expectations data quality suite with ≥ 20 assertions passing
+☐ Training dataset v1 materialised and documented in data catalogue
+PHASE 3 — MODEL TRAINING
+☐ Health Score model: RMSE < 5, R² > 0.85 on holdout set
+☐ Default Risk model: AUC-ROC > 0.90, KS > 0.40 on holdout set
+☐ Anomaly Detection model: Precision > 0.85 at 5% FPR
+☐ Cash-Flow Forecast: MAPE < 8% (7-day), < 15% (30-day)
+☐ Wellness Recommendation: coverage > 95% of user states
+☐ All models registered in MLflow with metadata and artefacts
+☐ SHAP explanations generated for all credit-facing models
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026FINPULSE
+Project Workflow & Dependency Guide
+Page 18
+PHASE 4 — MODEL SERVING
+☐ All 5 FastAPI microservices containerised and pushed to registry
+☐ Kubernetes deployments with Horizontal Pod Autoscaler configured for each service
+☐ All API endpoints returning correct JSON with p99 latency < 200 ms
+☐ Model Registry promotion gates enforced (staging → production)
+☐ Evidently AI drift monitoring active for all deployed models
+PHASE 5 — APPLICATION & FRONTEND
+☐ Django API: auth, scores, transactions, forecasts, recommendations, reports modules live
+☐ JWT authentication and RBAC (lender / borrower) enforced on all endpoints
+☐ Lender Risk Dashboard: portfolio view, risk table, anomaly feed operational
+☐ Borrower Dashboard: health score gauge, cash-flow chart, wellness cards live
+☐ PDF / CSV report export functional and tested
+PHASE 6 — MLOPS & LAUNCH
+☐ GitHub Actions CI/CD pipeline green end-to-end
+☐ Blue/green deployment tested with successful traffic switch
+☐ Load test: 1,000 concurrent users, < 500 ms p99 on all endpoints
+☐ Security audit and DPIA completed with sign-off obtained
+☐ On-call runbook documented and engineering team trained
+☐ Production monitoring dashboards live with alert routing configured
+Confidential — Internal Use Only
+FinPulse AI Platform — March 2026
