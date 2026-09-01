@@ -31,7 +31,7 @@ class HealthScoreModel:
         debt_penalty = min(max(emi_income_ratio, 0.0) * 35.0, 30.0)
         volatility_penalty = min(max(cashflow_volatility, 0.0) * 25.0, 20.0)
         expense_ratio = (total_expense / monthly_income) if monthly_income > 0 else 0.8
-        expense_penalty = 15.0 if expense_ratio > 0.8 else (10.0 if expense_ratio > 0.6 else 0.0)
+        expense_penalty = 15.0 if expense_ratio > 0.85 else (8.0 if expense_ratio > 0.7 else 0.0)
 
         score = base_score + income_bonus + savings_bonus + history_bonus - debt_penalty - volatility_penalty - expense_penalty
         score = max(0.0, min(100.0, score))
@@ -65,26 +65,26 @@ class DefaultRiskModel:
         emi_income_ratio = float(features.get("emi_income_ratio", 0.25))
 
         # Condition-based probability calculation
-        base_probability = (100.0 - health_score) / 130.0
+        base_probability = (100.0 - health_score) / 140.0
 
         # Conditional penalties
         if missed_emi >= 2:
-            base_probability += 0.35
+            base_probability += 0.30
         elif missed_emi == 1:
-            base_probability += 0.15
+            base_probability += 0.12
 
         if income_variance > 0.35:
-            base_probability += 0.15
+            base_probability += 0.12
         elif income_variance > 0.2:
-            base_probability += 0.08
+            base_probability += 0.06
 
         if active_loans >= 4:
-            base_probability += 0.12
+            base_probability += 0.10
         elif active_loans >= 2:
-            base_probability += 0.05
+            base_probability += 0.04
 
         if emi_income_ratio > 0.5:
-            base_probability += 0.15
+            base_probability += 0.12
 
         probability = max(0.01, min(0.99, base_probability))
 
@@ -157,8 +157,8 @@ class CashFlowForecastModel:
         else:
             trend_slope = 0.0
 
-        forecast_7d = max(0.0, last_balance + (trend_slope * 7))
-        forecast_30d = max(0.0, last_balance + (trend_slope * 30))
+        forecast_7d = last_balance + (trend_slope * 7)
+        forecast_30d = last_balance + (trend_slope * 30)
 
         # Condition-based risk assessment
         peak_balance = max(history)
