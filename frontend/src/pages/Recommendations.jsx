@@ -1,447 +1,280 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import ThemeToggle from '../components/ThemeToggle';
-
+import {
+  Sparkles,
+  Zap,
+  TrendingUp,
+  ShieldAlert,
+  ArrowRight,
+  CheckCircle2,
+  BookmarkCheck,
+  Play,
+  RotateCcw,
+  Utensils,
+  PiggyBank,
+  Layers,
+  Repeat,
+  ShoppingBag,
+  CreditCard,
+  ChevronRight,
+  Check,
+} from 'lucide-react';
+import BorrowerLayout from '../components/BorrowerLayout';
 import { getCurrentUser, listBorrowers, recommendWellness } from '../lib/api';
 
+const iconMap = {
+  restaurant: Utensils,
+  savings: PiggyBank,
+  merge_type: Layers,
+  auto_graph: Repeat,
+  shopping_bag: ShoppingBag,
+  credit_score: CreditCard,
+};
+
+const recommendationsList = [
+  {
+    id: 'reduce_dining',
+    category: 'quick_wins',
+    icon: 'restaurant',
+    points: '+25 Points',
+    title: 'Trim Discretionary Dining',
+    difficulty: 'Low',
+    why: 'Lowering non-essential monthly food debits directly optimizes your surplus-to-income ratio for upcoming loans.',
+  },
+  {
+    id: 'emergency_fund',
+    category: 'high_impact',
+    icon: 'savings',
+    points: '+40 Points',
+    title: 'Maintain 3-Month Emergency Reserve',
+    difficulty: 'Medium',
+    why: 'A liquid contingency buffer prevents sudden EMI defaults during temporary income variance or emergency expenses.',
+  },
+  {
+    id: 'consolidate_debt',
+    category: 'high_impact',
+    icon: 'merge_type',
+    points: '+30 Points',
+    title: 'Consolidate High-Interest Balances',
+    difficulty: 'Medium',
+    why: 'Amalgamating fragmented high-rate debt into a single primary facility lowers cashflow friction.',
+  },
+  {
+    id: 'auto_pay',
+    category: 'quick_wins',
+    icon: 'auto_graph',
+    points: '+50 Points',
+    title: 'Enable Bank Standing Instructions (e-NACH)',
+    difficulty: 'Easy',
+    why: 'Automated debits eliminate accidental grace periods and secure a 100% on-time settlement score.',
+  },
+  {
+    id: 'credit_builder',
+    category: 'habits',
+    icon: 'credit_score',
+    points: '+35 Points',
+    title: 'Limit Credit Utilization Under 30%',
+    difficulty: 'Easy',
+    why: 'Maintaining revolving utilization below 30% of authorized limits is prioritized by machine learning risk models.',
+  },
+];
+
 const Recommendations = () => {
-    const [aiRecommendation, setAiRecommendation] = React.useState(null);
-    const [borrowerProfile, setBorrowerProfile] = React.useState(null);
-    const user = getCurrentUser();
-    const displayName = user ? (`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username) : 'Borrower';
-    const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const [aiRecommendation, setAiRecommendation] = useState(null);
+  const [borrowerProfile, setBorrowerProfile] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [startedGoals, setStartedGoals] = useState(['credit_builder']);
+  const [toastMessage, setToastMessage] = useState(null);
 
-    React.useEffect(() => {
-        const fetchProfileAndAi = async () => {
-            try {
-                const list = await listBorrowers().catch(() => []);
-                const bProfile = list.find((b) => b.user?.id === user?.id || b.user?.username === user?.username);
-                setBorrowerProfile(bProfile || null);
+  const user = getCurrentUser();
 
-                if (bProfile && bProfile.health_score > 0) {
-                    const res = await recommendWellness({
-                        savings_rate: 0.2,
-                        debt_income_ratio: 0.3,
-                        discretionary_spending_ratio: 0.25,
-                        health_score: bProfile.health_score,
-                        risk_class: bProfile.risk_level === 'high' ? 'High Risk' : bProfile.risk_level === 'medium' ? 'Caution' : 'Safe',
-                    }).catch(() => null);
-                    setAiRecommendation(res);
-                } else {
-                    setAiRecommendation(null);
-                }
-            } catch {
-                setAiRecommendation(null);
-            }
-        };
-        fetchProfileAndAi();
-    }, [user?.id, user?.username]);
+  useEffect(() => {
+    const fetchProfileAndAi = async () => {
+      try {
+        const list = await listBorrowers().catch(() => []);
+        const bProfile = list.find((b) => b.user?.id === user?.id || b.user?.username === user?.username);
+        setBorrowerProfile(bProfile || null);
 
-    const [activeFilter, setActiveFilter] = React.useState('all');
-    const [startedGoals, setStartedGoals] = React.useState(['credit_builder']);
-    const [toastMessage, setToastMessage] = React.useState(null);
-
-    const showToast = (msg) => {
-        setToastMessage(msg);
-        setTimeout(() => setToastMessage(null), 3500);
-    };
-
-    const toggleGoal = (goalId, goalTitle) => {
-        if (startedGoals.includes(goalId)) {
-            setStartedGoals(prev => prev.filter(g => g !== goalId));
-            showToast(`Goal paused: ${goalTitle}`);
+        if (bProfile && bProfile.health_score > 0) {
+          const res = await recommendWellness({
+            savings_rate: 0.2,
+            debt_income_ratio: 0.3,
+            discretionary_spending_ratio: 0.25,
+            health_score: bProfile.health_score,
+            risk_class: bProfile.risk_level === 'high' ? 'High Risk' : bProfile.risk_level === 'medium' ? 'Caution' : 'Safe',
+          }).catch(() => null);
+          setAiRecommendation(res);
         } else {
-            setStartedGoals(prev => [...prev, goalId]);
-            showToast(`Goal activated! Track your progress under Active Goals.`);
+          setAiRecommendation(null);
         }
+      } catch {
+        setAiRecommendation(null);
+      }
     };
+    fetchProfileAndAi();
+  }, [user?.id, user?.username]);
 
-    const recommendationsList = [
-        {
-            id: 'reduce_dining',
-            category: 'quick_wins',
-            icon: 'restaurant',
-            iconColor: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600',
-            points: '+25 Points',
-            title: 'Reduce Dining Expenses',
-            difficulty: 'Low',
-            stars: 2,
-            why: 'Lowering your monthly non-essential spending improves your debt-to-income ratio, making you a safer candidate for future loans.',
-        },
-        {
-            id: 'emergency_fund',
-            category: 'high_impact',
-            icon: 'savings',
-            iconColor: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600',
-            points: '+40 Points',
-            title: 'Build Emergency Fund',
-            difficulty: 'Medium',
-            stars: 4,
-            why: 'An emergency fund provides a safety net that prevents you from taking on high-interest debt during unexpected financial shocks.',
-        },
-        {
-            id: 'consolidate_debt',
-            category: 'high_impact',
-            icon: 'merge_type',
-            iconColor: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600',
-            points: '+30 Points',
-            title: 'Consolidate Debt',
-            difficulty: 'Medium',
-            stars: 3,
-            why: 'Simplifying multiple high-interest payments into one lower-interest loan reduces financial stress and improves payment reliability.',
-        },
-        {
-            id: 'auto_pay',
-            category: 'quick_wins',
-            icon: 'auto_graph',
-            iconColor: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600',
-            points: '+50 Points',
-            title: 'Setup Auto-Pay',
-            difficulty: 'Very Easy',
-            stars: 1,
-            why: 'Consistent on-time payments are the #1 factor for credit scores. Auto-pay ensures you never miss a deadline again.',
-        },
-        {
-            id: 'credit_limit_utilization',
-            category: 'long_term',
-            icon: 'credit_card',
-            iconColor: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600',
-            points: '+35 Points',
-            title: 'Maintain <30% Card Utilization',
-            difficulty: 'Medium',
-            stars: 3,
-            why: 'Keeping credit utilization below 30% demonstrates responsible credit management and signals high repayment safety to lenders.',
-        },
-        {
-            id: 'diversify_credit',
-            category: 'long_term',
-            icon: 'account_tree',
-            iconColor: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600',
-            points: '+20 Points',
-            title: 'Diversify Credit Mix',
-            difficulty: 'Hard',
-            stars: 4,
-            why: 'A balanced portfolio of secured and unsecured credit histories boosts long-term financial resilience scores.',
-        }
-    ];
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
-    const filteredRecommendations = recommendationsList.filter(rec => {
-        if (activeFilter === 'all') return true;
-        return rec.category === activeFilter;
-    });
+  const toggleGoal = (goalId, goalTitle) => {
+    if (startedGoals.includes(goalId)) {
+      setStartedGoals((prev) => prev.filter((g) => g !== goalId));
+      showToast(`Goal paused: ${goalTitle}`);
+    } else {
+      setStartedGoals((prev) => [...prev, goalId]);
+      showToast(`Goal activated! Track progress under Active Focus.`);
+    }
+  };
 
-    const score = borrowerProfile?.health_score || 0;
-    const isNew = score === 0;
-    const statusLabel = isNew ? 'New Profile' : (score >= 750 ? 'Excellent' : score >= 650 ? 'Good Standing' : 'Fair');
+  const filteredRecs = recommendationsList.filter((item) => {
+    if (activeFilter === 'all') return true;
+    return item.category === activeFilter;
+  });
 
-    return (
-        <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100 antialiased">
-            {/* Sidebar Navigation */}
-            <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col fixed h-full z-20">
-                <div className="p-6 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#2262ec] rounded-lg flex items-center justify-center">
-                        <span className="material-icons text-white">insights</span>
-                    </div>
-                    <span className="text-xl font-bold tracking-tight text-[#2262ec]">FinPulse</span>
-                </div>
-                <nav className="flex-1 px-4 mt-4 space-y-1 overflow-y-auto">
-                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/borrower/dashboard">
-                        <span className="material-icons">dashboard</span>
-                        Dashboard
-                    </Link>
-                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/borrower/health-score">
-                        <span className="material-icons">favorite</span>
-                        My Health Score
-                    </Link>
-                    <Link className="flex items-center gap-3 px-4 py-3 bg-[#2262ec]/10 text-[#2262ec] rounded-lg font-medium" to="/recommendations">
-                        <span className="material-icons">auto_awesome</span>
-                        Recommendations
-                    </Link>
-                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/borrower/upload">
-                        <span className="material-icons">description</span>
-                        Documents
-                    </Link>
-                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/borrower/find-lender">
-                        <span className="material-icons">search</span>
-                        Find Lenders
-                    </Link>
-                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/borrower/loans">
-                        <span className="material-icons">account_balance</span>
-                        Loans
-                    </Link>
-                    <Link className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" to="/borrower/transactions">
-                        <span className="material-icons">analytics</span>
-                        Transactions
-                    </Link>
-                    {/* Log Out action */}
-                    <Link className="flex items-center gap-3 px-4 py-3 mt-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors" to="/login">
-                        <span className="material-icons">logout</span>
-                        Log Out
-                    </Link>
-                </nav>
-            </aside>
-
-            {/* Main Content Area */}
-            <main className="ml-64 flex-1 flex flex-col min-h-screen overflow-x-hidden">
-                {/* Top Header */}
-                <header className="h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 sticky top-0 z-10 shrink-0">
-                    <div>
-                        <h1 className="text-xl font-bold">Hello, {displayName.split(' ')[0]}</h1>
-                        <p className="text-sm text-slate-500">Wellness insights as of {currentDate}.</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <ThemeToggle />
-                        <button className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                            <span className="material-icons text-[20px]">notifications</span>
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                        </button>
-                        <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
-                            <div className="text-right flex flex-col justify-center">
-                                <p className="text-sm font-semibold leading-tight">{displayName}</p>
-                                <p className="text-xs text-slate-500 italic leading-tight">Borrower</p>
-                            </div>
-                            <div className="w-10 h-10 rounded-full bg-[#2262ec] text-white flex items-center justify-center font-bold">
-                                {displayName.charAt(0).toUpperCase()}
-                            </div>
-                        </div>
-                    </div>
-                </header>
-
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
-                    {/* Header Section */}
-                    <header className="mb-8">
-                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Personalized Recommendations</h1>
-                        <p className="text-slate-500 dark:text-slate-400 mt-2">Tailored steps and actionable goals to boost your FinPulse score and borrower profile.</p>
-                    </header>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                        {/* Left Column: Main Content */}
-                        <div className="lg:col-span-8">
-                            {aiRecommendation ? (
-                                <section className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 shadow-lg text-white mb-8">
-                                    <div className="flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-wider text-blue-200">
-                                        <span className="material-icons text-sm">auto_awesome</span> Live ML Model Insight
-                                    </div>
-                                    <h3 className="text-xl font-bold mb-1">Recommended Action: {aiRecommendation.recommendation_code}</h3>
-                                    <p className="text-sm text-blue-100 leading-relaxed font-medium">{aiRecommendation.advice}</p>
-                                </section>
-                            ) : (
-                                <section className="bg-gradient-to-r from-slate-700 to-slate-800 rounded-xl p-6 shadow-lg text-white mb-8">
-                                    <div className="flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-wider text-slate-300">
-                                        <span className="material-icons text-sm">auto_awesome</span> Profile Assessment
-                                    </div>
-                                    <h3 className="text-xl font-bold mb-1">Get Started with FinPulse</h3>
-                                    <p className="text-sm text-slate-200 leading-relaxed font-medium">Apply for financing or link your financial accounts to generate real-time AI wellness recommendations tailored to your profile.</p>
-                                </section>
-                            )}
-
-                            {/* Financial Health Summary */}
-                            <section className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-[#2262ec]/10 mb-8">
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                    <div className="flex items-center gap-4">
-                                        <div className="relative w-24 h-24 flex items-center justify-center">
-                                            <svg className="w-full h-full transform -rotate-90">
-                                                <circle className="text-slate-100 dark:text-slate-700" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" strokeWidth="8"></circle>
-                                                <circle className="text-[#2262ec]" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" strokeDasharray="251.2" strokeDashoffset={isNew ? 251.2 : Math.max(0, 251.2 - (score / 900) * 251.2)} strokeWidth="8"></circle>
-                                            </svg>
-                                            <span className="absolute text-2xl font-bold">{score}</span>
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-bold">{statusLabel}</h3>
-                                            <p className="text-sm text-slate-500">{isNew ? 'Submit an application to calculate your health score' : `Health score based on your active credit record`}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex flex-col gap-2 flex-grow max-w-xs">
-                                        <div className="flex justify-between text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                            <span>Profile Completion</span>
-                                            <span>{isNew ? '20%' : '100%'}</span>
-                                        </div>
-                                        <div className="h-3 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                            <div className="h-full bg-[#2262ec] rounded-full" style={{ width: isNew ? '20%' : '100%' }}></div>
-                                        </div>
-                                        <p className="text-[10px] text-slate-400 italic">{isNew ? 'Upload financial documents to complete your profile' : 'Profile verified and active'}</p>
-                                    </div>
-                                </div>
-                            </section>
-
-                            {/* Toast Notification */}
-                            {toastMessage && (
-                                <div className="mb-6 p-4 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold flex items-center justify-between shadow-xl animate-fade-in">
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-icons text-emerald-400 text-base">check_circle</span>
-                                        <span>{toastMessage}</span>
-                                    </div>
-                                    <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-white">✕</button>
-                                </div>
-                            )}
-
-                            {/* Filters */}
-                            <div className="flex flex-wrap items-center gap-3 mb-6">
-                                {[
-                                    { id: 'all', label: 'All Recommendations' },
-                                    { id: 'high_impact', label: '🔥 High Impact' },
-                                    { id: 'quick_wins', label: '⚡ Quick Wins' },
-                                    { id: 'long_term', label: '📅 Long Term' },
-                                ].map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveFilter(tab.id)}
-                                        className={`px-5 py-2 rounded-full font-medium text-sm transition-all ${
-                                            activeFilter === tab.id
-                                                ? 'bg-[#2262ec] text-white shadow-md shadow-[#2262ec]/20'
-                                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#2262ec]'
-                                        }`}
-                                    >
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Recommendation Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-                                {filteredRecommendations.map((rec) => {
-                                    const isStarted = startedGoals.includes(rec.id);
-                                    return (
-                                        <div
-                                            key={rec.id}
-                                            className={`bg-white dark:bg-slate-800 rounded-xl border transition-all ${
-                                                isStarted
-                                                    ? 'border-emerald-500 shadow-md shadow-emerald-500/10'
-                                                    : 'border-slate-200 dark:border-slate-700 hover:shadow-xl hover:border-[#2262ec]/30'
-                                            }`}
-                                        >
-                                            <div className="p-6">
-                                                <div className="flex justify-between items-start mb-4">
-                                                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${rec.iconColor}`}>
-                                                        <span className="material-icons">{rec.icon}</span>
-                                                    </div>
-                                                    <div className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-xs font-bold">
-                                                        {rec.points}
-                                                    </div>
-                                                </div>
-                                                <h4 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">{rec.title}</h4>
-                                                <div className="flex items-center gap-1 mb-4 text-yellow-500">
-                                                    {[...Array(5)].map((_, i) => (
-                                                        <span
-                                                            key={i}
-                                                            className={`material-icons text-sm ${
-                                                                i < rec.stars ? 'text-yellow-500' : 'text-slate-200 dark:text-slate-600'
-                                                            }`}
-                                                        >
-                                                            star
-                                                        </span>
-                                                    ))}
-                                                    <span className="text-xs text-slate-400 ml-2 font-normal">Difficulty: {rec.difficulty}</span>
-                                                </div>
-                                                <div className="bg-[#f6f6f8] dark:bg-slate-900/50 p-4 rounded-lg mb-6">
-                                                    <p className="text-xs font-bold text-[#2262ec] uppercase tracking-wider mb-1">Why this helps</p>
-                                                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{rec.why}</p>
-                                                </div>
-                                                <button
-                                                    onClick={() => toggleGoal(rec.id, rec.title)}
-                                                    className={`w-full py-3 rounded-lg font-bold transition-colors flex items-center justify-center gap-2 ${
-                                                        isStarted
-                                                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100'
-                                                            : 'bg-[#2262ec] text-white hover:bg-[#2262ec]/90'
-                                                    }`}
-                                                >
-                                                    {isStarted ? (
-                                                        <>
-                                                            <span className="material-icons text-sm">check_circle</span>
-                                                            Goal In Progress (Click to Pause)
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            Start This Goal <span className="material-icons text-sm">arrow_forward</span>
-                                                        </>
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        
-                        {/* Right Column: Sidebar */}
-                        <aside className="lg:col-span-4 space-y-8">
-                            {/* Active Goals Tracker */}
-                            <section className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-lg font-bold">Active Goals</h3>
-                                    <span className="text-xs bg-[#2262ec]/10 text-[#2262ec] px-2 py-1 rounded font-bold">
-                                        {startedGoals.length} IN PROGRESS
-                                    </span>
-                                </div>
-                                {startedGoals.length === 0 ? (
-                                    <p className="text-sm text-slate-500 py-4 text-center">No active goals. Pick a recommendation on the left to set your first milestone.</p>
-                                ) : (
-                                    <div className="space-y-4">
-                                        {startedGoals.map((gId) => {
-                                            const match = recommendationsList.find(r => r.id === gId);
-                                            const label = match ? match.title : 'Credit Builder';
-                                            return (
-                                                <div key={gId} className="space-y-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
-                                                    <div className="flex justify-between items-end">
-                                                        <div>
-                                                            <p className="text-sm font-bold text-slate-900 dark:text-white">{label}</p>
-                                                            <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wider">In Progress • Active Goal</p>
-                                                        </div>
-                                                        <span className="text-xs font-bold text-[#2262ec]">Active</span>
-                                                    </div>
-                                                    <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                                        <div className="h-full bg-emerald-500 rounded-full animate-pulse" style={{ width: '75%' }}></div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </section>
-
-                            {/* Milestone History */}
-                            <section className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
-                                <div className="absolute -right-4 -top-4 text-[#2262ec]/5">
-                                    <span className="material-icons text-8xl">military_tech</span>
-                                </div>
-                                <h3 className="text-lg font-bold mb-4">Recent Wins</h3>
-                                {isNew ? (
-                                    <p className="text-sm text-slate-500 py-4 text-center">No milestones yet. Complete your profile to earn badges.</p>
-                                ) : (
-                                    <div className="space-y-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 shrink-0">
-                                                <span className="material-icons text-sm">check_circle</span>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold">Account Verified</p>
-                                                <p className="text-xs text-slate-500 italic">Security bonus achieved. +5 pts</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </section>
-
-                            {/* Educational Resource */}
-                            <div className="bg-[#2262ec] rounded-xl p-6 text-white shadow-lg shadow-[#2262ec]/30 relative overflow-hidden">
-                                <div className="relative z-10">
-                                    <h4 className="font-bold text-lg mb-2">Learn the Basics</h4>
-                                    <p className="text-blue-100 text-sm mb-4 leading-relaxed text-white/80">Understand how your score is calculated and what lenders are really looking for.</p>
-                                    <a className="inline-flex items-center gap-2 text-sm font-bold bg-white text-[#2262ec] px-4 py-2 rounded-lg hover:bg-slate-100 transition-colors" href="#">
-                                        Read Article <span className="material-icons text-sm">open_in_new</span>
-                                    </a>
-                                </div>
-                                <div className="absolute -bottom-8 -right-8 text-white/10">
-                                    <span className="material-icons text-[120px]">school</span>
-                                </div>
-                            </div>
-                        </aside>
-                    </div>
-                </div>
-            </main>
+  return (
+    <BorrowerLayout activeSection="recommendations" title="AI Financial Wellness">
+      {/* Toast */}
+      {toastMessage && (
+        <div className="fixed top-24 right-8 z-50 px-5 py-3 rounded-full text-xs font-semibold bg-[var(--accent)] text-[var(--text-on-accent)] shadow-[0_12px_32px_rgba(0,0,0,0.35)] flex items-center gap-2 animate-fade-in">
+          <CheckCircle2 size={16} />
+          <span>{toastMessage}</span>
         </div>
-    );
+      )}
+
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Breadcrumb */}
+        <nav aria-label="Breadcrumb" className="flex text-xs text-[var(--text-secondary)]">
+          <ol className="flex items-center space-x-2">
+            <li>
+              <Link className="hover:text-[var(--accent)] transition-colors" to="/borrower/dashboard">
+                Dashboard
+              </Link>
+            </li>
+            <li className="flex items-center space-x-1">
+              <ChevronRight size={13} />
+              <span className="font-medium text-[var(--text-primary)]">Wellness & Insights</span>
+            </li>
+          </ol>
+        </nav>
+
+        {/* Header */}
+        <div>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
+            Personalized Financial Recommendations
+          </h1>
+          <p className="mt-1 text-xs text-[var(--text-secondary)]">
+            Actionable strategies generated by the Wellness Rule Engine to maximize credit capacity.
+          </p>
+        </div>
+
+        {/* Signature Contrast Island Hero (§3.4 & §4 Contrast Card) */}
+        <div className="rounded-[24px] p-7 sm:p-8 bg-[var(--bg-inverse-panel)] text-[var(--text-on-inverse)] shadow-[0_12px_32px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+          <div className="space-y-2 max-w-2xl relative z-10">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-[var(--text-on-inverse)]/15 uppercase tracking-wider">
+              <Sparkles size={13} />
+              <span>Live ML Wellness Synthesis</span>
+            </div>
+            <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight">
+              {aiRecommendation?.advice ||
+                'Your financial cashflow profile is on track. Maintain continuous savings habits to unlock prime interest bands.'}
+            </h2>
+            <p className="text-xs opacity-75">
+              Code: <strong className="uppercase">{aiRecommendation?.recommendation_code || 'ON_TRACK'}</strong> • Based on verified debt-to-income and cash variance.
+            </p>
+          </div>
+
+          <Link
+            to="/borrower/health-score"
+            className="btn-accent px-6 py-3 text-xs inline-flex items-center justify-center gap-2 shrink-0 self-start md:self-auto relative z-10"
+          >
+            Review Factors <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        {/* Filter Pill Tabs (§4 Segmented Control) */}
+        <div className="flex flex-wrap items-center gap-2">
+          {[
+            { key: 'all', label: 'All Recommendations' },
+            { key: 'high_impact', label: 'High Impact' },
+            { key: 'quick_wins', label: 'Quick Wins' },
+            { key: 'habits', label: 'Credit Habits' },
+          ].map((tab) => {
+            const isActive = activeFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveFilter(tab.key)}
+                className={`px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[var(--accent)] text-[var(--text-on-accent)] font-semibold shadow-[0_0_12px_var(--accent-glow)]'
+                    : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Recommendations Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredRecs.map((item) => {
+            const isStarted = startedGoals.includes(item.id);
+            const Icon = iconMap[item.icon] || Sparkles;
+
+            return (
+              <div key={item.id} className="card-surface p-6 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-2xl bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center">
+                      <Icon size={19} />
+                    </div>
+                    <span className="text-xs font-bold text-[var(--accent)] tabular-nums">
+                      {item.points}
+                    </span>
+                  </div>
+
+                  <h3 className="font-display font-semibold text-base text-[var(--text-primary)] mb-1">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    {item.why}
+                  </p>
+                </div>
+
+                <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between">
+                  <span className="text-[11px] text-[var(--text-secondary)]">
+                    Difficulty: <strong className="text-[var(--text-primary)]">{item.difficulty}</strong>
+                  </span>
+                  <button
+                    onClick={() => toggleGoal(item.id, item.title)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
+                      isStarted
+                        ? 'bg-[var(--status-positive)]/15 text-[var(--status-positive)] border border-[var(--status-positive)]/30'
+                        : 'btn-secondary'
+                    }`}
+                  >
+                    {isStarted ? (
+                      <>
+                        <Check size={13} /> Active Goal
+                      </>
+                    ) : (
+                      <>
+                        <Play size={12} /> Start Goal
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </BorrowerLayout>
+  );
 };
 
 export default Recommendations;

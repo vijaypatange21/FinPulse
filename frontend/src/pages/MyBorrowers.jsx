@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import LenderLayout from '../components/LenderLayout';
 import { listBorrowers } from '../lib/api';
+import Card, { ContrastCard } from '../components/ui/Card';
+import StatusBadge from '../components/ui/StatusBadge';
 
 const formatMoney = (value) => {
   const numericValue = Number(value || 0);
@@ -59,105 +61,161 @@ const MyBorrowers = () => {
 
   return (
     <LenderLayout activeSection="borrowers">
-      <div className="p-8 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Borrowers</p>
-            <div className="flex items-end justify-between mt-2">
-              <h3 className="text-2xl font-bold">{borrowers.length}</h3>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Disbursed</p>
-            <div className="flex items-end justify-between mt-2">
-              <h3 className="text-2xl font-bold">{formatMoney(totalDisbursed)}</h3>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Portfolio Health</p>
-            <div className="flex items-end justify-between mt-2">
-              <h3 className="text-2xl font-bold">{healthPercent !== null ? `${healthPercent}%` : 'N/A'}</h3>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Overdue Count</p>
-            <div className="flex items-end justify-between mt-2">
-              <h3 className="text-2xl font-bold">{overdueCount}</h3>
-            </div>
+      <div className="max-w-7xl mx-auto space-y-8 pb-12">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+          <div>
+            <span className="text-xs font-semibold tracking-wider uppercase text-[var(--accent)]">
+              Portfolio Portfolio Registry
+            </span>
+            <h1 className="font-clash text-3xl md:text-4xl font-semibold tracking-tight text-[var(--text-primary)] mt-1">
+              Active Borrowers
+            </h1>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Live roster of verified borrowers with active and historical credit facilities
+            </p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-            <div className="relative max-w-sm">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-              <input
-                className="pl-10 pr-4 py-2 bg-[#f6f6f8] dark:bg-slate-800 border-none rounded-lg text-sm w-full focus:ring-2 focus:ring-primary/50"
-                placeholder="Search by name or borrower ID..."
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+        {/* Bento Stat Grid: 3 Quiet + 1 Contrast Island */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <ContrastCard className="p-5 flex flex-col justify-between min-h-[120px]">
+            <span className="text-xs font-medium uppercase tracking-wider opacity-75">Total Disbursed</span>
+            <div className="mt-2">
+              <span className="font-clash text-3xl font-semibold tracking-tight tabular-nums">
+                {formatMoney(totalDisbursed)}
+              </span>
+              <p className="text-[11px] opacity-75 mt-0.5 font-medium">Across active accounts</p>
             </div>
-          </div>
+          </ContrastCard>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">
-                  <th className="px-6 py-4">Borrower Name</th>
-                  <th className="px-6 py-4">Borrower ID</th>
-                  <th className="px-6 py-4">Profile Type</th>
-                  <th className="px-6 py-4">Principal Amount</th>
-                  <th className="px-6 py-4">Outstanding</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-center">Actions</th>
+          <Card className="p-5 flex flex-col justify-between min-h-[120px]">
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Total Borrowers</span>
+            <div className="mt-2">
+              <span className="font-clash text-3xl font-semibold tracking-tight tabular-nums text-[var(--text-primary)]">
+                {borrowers.length}
+              </span>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Under institutional monitoring</p>
+            </div>
+          </Card>
+
+          <Card className="p-5 flex flex-col justify-between min-h-[120px]">
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Portfolio Health</span>
+            <div className="mt-2">
+              <span className="font-clash text-3xl font-semibold tracking-tight tabular-nums text-[var(--status-success)]">
+                {healthPercent !== null ? `${healthPercent}%` : 'N/A'}
+              </span>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">On-track repayments</p>
+            </div>
+          </Card>
+
+          <Card className="p-5 flex flex-col justify-between min-h-[120px]">
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Overdue Flags</span>
+            <div className="mt-2">
+              <span className="font-clash text-3xl font-semibold tracking-tight tabular-nums text-[var(--status-error)]">
+                {overdueCount}
+              </span>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Delayed EMI installments</p>
+            </div>
+          </Card>
+        </div>
+
+        {/* Search Bar */}
+        <Card className="p-4">
+          <div className="relative max-w-md">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-base">
+              search
+            </span>
+            <input
+              className="pl-9 pr-4 py-2 bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-[var(--radius-pill)] text-xs w-full focus:outline-none focus:border-[var(--accent)] text-[var(--text-primary)] placeholder-[var(--text-muted)]"
+              placeholder="Search by name or borrower ID..."
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </Card>
+
+        {/* Table */}
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto min-h-[360px]">
+            <table className="w-full text-left border-collapse whitespace-nowrap">
+              <thead className="bg-[var(--bg-canvas)]/40 text-[11px] font-semibold text-[var(--text-secondary)] tracking-wider border-b border-[var(--border-subtle)]">
+                <tr>
+                  <th className="px-6 py-3.5">Borrower Name</th>
+                  <th className="px-6 py-3.5">Borrower ID</th>
+                  <th className="px-6 py-3.5">Profile Type</th>
+                  <th className="px-6 py-3.5 text-right">Principal</th>
+                  <th className="px-6 py-3.5 text-right">Outstanding</th>
+                  <th className="px-6 py-3.5">Status</th>
+                  <th className="px-6 py-3.5 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+              <tbody className="divide-y divide-[var(--border-subtle)] text-sm">
                 {isLoading && (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center text-slate-400">Loading borrowers...</td>
+                    <td colSpan="7" className="px-6 py-12 text-center text-xs text-[var(--text-muted)]">
+                      Loading borrowers...
+                    </td>
                   </tr>
                 )}
                 {!isLoading && error && (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center text-red-500">{error}</td>
+                    <td colSpan="7" className="px-6 py-12 text-center text-xs text-[var(--status-error)]">
+                      {error}
+                    </td>
                   </tr>
                 )}
                 {!isLoading && !error && filteredBorrowers.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center text-slate-400">No borrowers found.</td>
+                    <td colSpan="7" className="px-6 py-12 text-center text-xs text-[var(--text-muted)]">
+                      No borrowers found.
+                    </td>
                   </tr>
                 )}
                 {!isLoading && !error && filteredBorrowers.map((borrower) => (
-                  <tr key={borrower.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-semibold">{borrower.name}</p>
-                      <p className="text-xs text-slate-500">{borrower.location}</p>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-mono text-slate-500">{borrower.id}</td>
-                    <td className="px-6 py-4 text-sm">{borrower.productType}</td>
-                    <td className="px-6 py-4 text-sm font-semibold">{borrower.principal}</td>
-                    <td className="px-6 py-4 text-sm font-semibold">{borrower.outstanding}</td>
-                    <td className="px-6 py-4 text-sm">{borrower.status}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-center gap-2">
-                        <Link to={`/lender/borrowers/${borrower.id}`} className="p-1.5 text-primary hover:bg-primary/10 rounded transition-colors cursor-pointer" title="View Profile">
-                          <span className="material-symbols-outlined text-xl">visibility</span>
-                        </Link>
+                  <tr key={borrower.id} className="h-14 hover:bg-[var(--bg-surface-hover)] transition-colors">
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center font-bold text-xs shrink-0">
+                          {borrower.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-xs text-[var(--text-primary)]">{borrower.name}</p>
+                          <p className="text-[11px] text-[var(--text-secondary)]">{borrower.location}</p>
+                        </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-3.5 font-mono text-xs font-semibold text-[var(--text-secondary)]">
+                      #{String(borrower.id).slice(0, 8)}
+                    </td>
+                    <td className="px-6 py-3.5 text-xs text-[var(--text-primary)]">{borrower.productType}</td>
+                    <td className="px-6 py-3.5 text-right text-xs font-semibold tabular-nums text-[var(--text-primary)]">
+                      {borrower.principal}
+                    </td>
+                    <td className="px-6 py-3.5 text-right text-xs font-semibold tabular-nums text-[var(--accent)]">
+                      {borrower.outstanding}
+                    </td>
+                    <td className="px-6 py-3.5">
+                      <StatusBadge
+                        status={borrower.status === 'On Track' || borrower.status === 'Good' ? 'approved' : 'rejected'}
+                        label={borrower.status}
+                      />
+                    </td>
+                    <td className="px-6 py-3.5 text-right">
+                      <Link
+                        to={`/lender/borrowers/${borrower.id}`}
+                        className="px-3 py-1.5 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] hover:border-[var(--accent)] text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all inline-flex items-center gap-1"
+                      >
+                        Profile <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                      </Link>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-            <p className="text-sm text-slate-500">Showing {filteredBorrowers.length} of {borrowers.length} borrowers</p>
-          </div>
-        </div>
+        </Card>
       </div>
     </LenderLayout>
   );

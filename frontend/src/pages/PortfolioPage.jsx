@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import LenderLayout from '../components/LenderLayout';
 import { listApplications, listBorrowers } from '../lib/api';
+import Card, { ContrastCard } from '../components/ui/Card';
+import StatusBadge from '../components/ui/StatusBadge';
 
 const formatMoney = (value) => {
   const numericValue = Number(value || 0);
@@ -11,19 +13,13 @@ const formatMoney = (value) => {
   }).format(Number.isFinite(numericValue) ? numericValue : 0);
 };
 
-const riskBadge = {
-  Low: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  Medium: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  High: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-};
-
 const CATEGORY_COLORS = {
-  'Personal Loan': '#2262ec',
+  'Personal Loan': 'var(--accent)',
   'Home Loan': '#14b8a6',
   'Business Loan': '#f59e0b',
   'Vehicle Loan': '#8b5cf6',
   'Education Loan': '#ef4444',
-  'Other': '#64748b',
+  'Other': 'var(--border-strong)',
 };
 
 const PortfolioPage = () => {
@@ -70,7 +66,7 @@ const PortfolioPage = () => {
     return Object.entries(counts).map(([label, count]) => ({
       label,
       value: Math.round((count / total) * 100),
-      color: CATEGORY_COLORS[label] || '#2262ec',
+      color: CATEGORY_COLORS[label] || 'var(--accent)',
     }));
   }, [applications]);
 
@@ -109,84 +105,112 @@ const PortfolioPage = () => {
 
   return (
     <LenderLayout activeSection="portfolio">
-      <div className="max-w-7xl mx-auto w-full space-y-6">
+      <div className="max-w-7xl mx-auto w-full space-y-8 pb-12">
         {toastMsg && (
-          <div className="p-4 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold flex items-center justify-between shadow-xl animate-fade-in">
+          <div className="p-4 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-semibold flex items-center justify-between shadow-xl animate-fade-in">
             <div className="flex items-center gap-2">
-              <span className="material-icons text-emerald-400 text-base">check_circle</span>
+              <span className="material-symbols-outlined text-[var(--status-success)] text-base">check_circle</span>
               <span>{toastMsg}</span>
             </div>
-            <button onClick={() => setToastMsg('')} className="text-slate-400 hover:text-white">✕</button>
+            <button onClick={() => setToastMsg('')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">✕</button>
           </div>
         )}
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-black tracking-tight">Portfolio</h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">Overview of exposure, yield, risk mix, and loan maturity trends.</p>
+            <span className="text-xs font-semibold tracking-wider uppercase text-[var(--accent)]">
+              Capital Exposure & Yield
+            </span>
+            <h1 className="font-clash text-3xl md:text-4xl font-semibold tracking-tight text-[var(--text-primary)] mt-1">
+              Portfolio Analytics
+            </h1>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Overview of capital deployment, weighted yield, risk diversification, and maturity distribution
+            </p>
           </div>
           <button
             onClick={handleExportPortfolio}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2262ec] hover:bg-[#2262ec]/90 text-white text-xs font-bold rounded-xl shadow-md transition-all self-start sm:self-auto"
+            className="px-4 py-2 bg-[var(--accent)] text-[var(--text-on-accent)] text-xs font-semibold rounded-[var(--radius-pill)] shadow-[var(--shadow-accent-glow)] transition-all hover:opacity-90 inline-flex items-center gap-1.5 self-start sm:self-auto"
           >
-            <span className="material-icons text-sm">download</span>
-            Export Report
+            <span className="material-symbols-outlined text-sm">download</span>
+            Export CSV
           </button>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 animate-pulse">
-            <div className="h-28 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
-            <div className="h-28 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
-            <div className="h-28 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
-            <div className="h-28 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 animate-pulse">
+            <div className="h-28 rounded-[var(--radius-lg)] bg-[var(--bg-surface)] border border-[var(--border-subtle)]" />
+            <div className="h-28 rounded-[var(--radius-lg)] bg-[var(--bg-surface)] border border-[var(--border-subtle)]" />
+            <div className="h-28 rounded-[var(--radius-lg)] bg-[var(--bg-surface)] border border-[var(--border-subtle)]" />
+            <div className="h-28 rounded-[var(--radius-lg)] bg-[var(--bg-surface)] border border-[var(--border-subtle)]" />
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Exposure</p>
-                <h3 className="text-3xl font-bold mt-3">{formatMoney(totalExposure)}</h3>
-                <p className="text-xs text-slate-500 mt-2">{approvedLoans.length} active facilities</p>
-              </div>
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Active Borrowers</p>
-                <h3 className="text-3xl font-bold mt-3">{borrowers.length}</h3>
-                <p className="text-xs text-slate-500 mt-2">Across all loan portfolios</p>
-              </div>
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Indicative APR</p>
-                <h3 className="text-3xl font-bold mt-3">{approvedLoans.length > 0 ? '10.5%' : 'N/A'}</h3>
-                <p className="text-xs text-slate-500 mt-2">Weighted average yield</p>
-              </div>
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Overdue Rate</p>
-                <h3 className="text-3xl font-bold mt-3 text-slate-900 dark:text-white">{overdueRate}</h3>
-                <p className="text-xs text-slate-500 mt-2">{overdueBorrowers.length} overdue accounts</p>
-              </div>
+            {/* Bento Stat Grid: 3 Quiet + 1 Contrast Island */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+              <ContrastCard className="p-6 flex flex-col justify-between min-h-[140px]">
+                <span className="text-xs font-medium uppercase tracking-wider opacity-75">Total Exposure</span>
+                <div className="mt-3">
+                  <span className="font-clash text-3xl font-semibold tracking-tight tabular-nums">
+                    {formatMoney(totalExposure)}
+                  </span>
+                  <p className="text-xs opacity-75 mt-1 font-medium">{approvedLoans.length} active facilities</p>
+                </div>
+              </ContrastCard>
+
+              <Card className="p-6 flex flex-col justify-between min-h-[140px]">
+                <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Active Borrowers</span>
+                <div className="mt-3">
+                  <span className="font-clash text-3xl font-semibold tracking-tight tabular-nums text-[var(--text-primary)]">
+                    {borrowers.length}
+                  </span>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">Across all facilities</p>
+                </div>
+              </Card>
+
+              <Card className="p-6 flex flex-col justify-between min-h-[140px]">
+                <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Indicative APR</span>
+                <div className="mt-3">
+                  <span className="font-clash text-3xl font-semibold tracking-tight tabular-nums text-[var(--accent)]">
+                    {approvedLoans.length > 0 ? '10.5%' : 'N/A'}
+                  </span>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">Weighted average yield</p>
+                </div>
+              </Card>
+
+              <Card className="p-6 flex flex-col justify-between min-h-[140px]">
+                <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Overdue Rate</span>
+                <div className="mt-3">
+                  <span className="font-clash text-3xl font-semibold tracking-tight tabular-nums text-[var(--text-primary)]">
+                    {overdueRate}
+                  </span>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">{overdueBorrowers.length} overdue accounts</p>
+                </div>
+              </Card>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-              <div className="xl:col-span-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col">
-                <div className="flex items-center justify-between mb-6">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+              {/* Product Allocation Chart */}
+              <Card className="xl:col-span-5 p-6 flex flex-col">
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4 mb-4">
                   <div>
-                    <h3 className="text-lg font-bold">Portfolio allocation</h3>
-                    <p className="text-sm text-slate-500 mt-1">Exposure split by product type</p>
+                    <h3 className="font-clash font-semibold text-base text-[var(--text-primary)]">Portfolio Allocation</h3>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">Exposure split by product type</p>
                   </div>
-                  <span className="material-icons text-[#2262ec]">pie_chart</span>
+                  <span className="material-symbols-outlined text-[var(--accent)]">pie_chart</span>
                 </div>
 
                 {allocation.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center py-10 text-center">
-                    <span className="material-icons text-4xl text-slate-400 mb-2">pie_chart_outline</span>
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No Allocation Data</p>
-                    <p className="text-xs text-slate-400 mt-1">Portfolio allocation will activate when loan requests are submitted.</p>
+                    <span className="material-symbols-outlined text-4xl text-[var(--text-muted)] mb-2">pie_chart</span>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">No Allocation Data</p>
+                    <p className="text-xs text-[var(--text-secondary)] mt-1">Allocation activates as borrowers apply.</p>
                   </div>
                 ) : (
-                  <div className="flex flex-col lg:flex-row items-center gap-8 flex-1">
-                    <div className="relative w-48 h-48 shrink-0">
+                  <div className="flex flex-col lg:flex-row items-center gap-8 flex-1 justify-center">
+                    <div className="relative w-44 h-44 shrink-0">
                       <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                        <circle cx={center} cy={center} r={radius} fill="none" stroke="currentColor" strokeWidth="18" className="text-slate-100 dark:text-slate-800" />
+                        <circle cx={center} cy={center} r={radius} fill="none" stroke="currentColor" strokeWidth="16" className="text-[var(--border-subtle)]" />
                         {allocation.map((item) => {
                           const dash = (item.value / 100) * circumference;
                           const strokeDasharray = `${dash} ${circumference - dash}`;
@@ -200,7 +224,7 @@ const PortfolioPage = () => {
                               r={radius}
                               fill="none"
                               stroke={item.color}
-                              strokeWidth="18"
+                              strokeWidth="16"
                               strokeDasharray={strokeDasharray}
                               strokeDashoffset={strokeDashoffset}
                               strokeLinecap="round"
@@ -209,83 +233,87 @@ const PortfolioPage = () => {
                         })}
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                        <span className="text-lg font-bold text-slate-900 dark:text-white">{applications.length}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Requests</span>
+                        <span className="font-clash text-2xl font-bold tabular-nums text-[var(--text-primary)]">{applications.length}</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Requests</span>
                       </div>
                     </div>
-                    <div className="w-full space-y-3">
+                    <div className="w-full space-y-2.5">
                       {allocation.map((item) => (
-                        <div key={item.label} className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{item.label}</span>
+                        <div key={item.label} className="flex items-center justify-between gap-4 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                            <span className="text-[var(--text-secondary)]">{item.label}</span>
                           </div>
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">{item.value}%</span>
+                          <span className="font-semibold tabular-nums text-[var(--text-primary)]">{item.value}%</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-              </div>
+              </Card>
 
+              {/* Key Indicators & Top Borrowers */}
               <div className="xl:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col">
-                  <div className="flex items-center justify-between mb-5">
+                <Card className="p-6 flex flex-col">
+                  <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4 mb-4">
                     <div>
-                      <h3 className="text-lg font-bold">Key metrics</h3>
-                      <p className="text-sm text-slate-500 mt-1">Performance and underwriting indicators</p>
+                      <h3 className="font-clash font-semibold text-base text-[var(--text-primary)]">Key Indicators</h3>
+                      <p className="text-xs text-[var(--text-secondary)] mt-0.5">Performance & risk benchmarks</p>
                     </div>
-                    <span className="material-icons text-[#2262ec]">insights</span>
+                    <span className="material-symbols-outlined text-[var(--accent)]">insights</span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
-                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 p-4">
-                      <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold">Underwriting Speed</p>
-                      <p className="mt-2 text-2xl font-bold text-emerald-600">Real-Time</p>
+                  <div className="grid grid-cols-2 gap-3 flex-1">
+                    <div className="rounded-[var(--radius-md)] bg-[var(--bg-canvas)] border border-[var(--border-subtle)] p-3.5">
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)] font-semibold">Underwriting</p>
+                      <p className="mt-1 font-clash text-xl font-bold text-[var(--status-success)]">Real-Time</p>
                     </div>
-                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 p-4">
-                      <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold">Active Pipeline</p>
-                      <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{applications.length}</p>
+                    <div className="rounded-[var(--radius-md)] bg-[var(--bg-canvas)] border border-[var(--border-subtle)] p-3.5">
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)] font-semibold">Pipeline</p>
+                      <p className="mt-1 font-clash text-xl font-bold text-[var(--text-primary)] tabular-nums">{applications.length}</p>
                     </div>
-                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 p-4">
-                      <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold">Disbursed Loans</p>
-                      <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{approvedLoans.length}</p>
+                    <div className="rounded-[var(--radius-md)] bg-[var(--bg-canvas)] border border-[var(--border-subtle)] p-3.5">
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)] font-semibold">Disbursed</p>
+                      <p className="mt-1 font-clash text-xl font-bold text-[var(--accent)] tabular-nums">{approvedLoans.length}</p>
                     </div>
-                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 p-4">
-                      <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold">Flagged Anomalies</p>
-                      <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{overdueBorrowers.length}</p>
+                    <div className="rounded-[var(--radius-md)] bg-[var(--bg-canvas)] border border-[var(--border-subtle)] p-3.5">
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)] font-semibold">Flagged</p>
+                      <p className="mt-1 font-clash text-xl font-bold text-[var(--status-error)] tabular-nums">{overdueBorrowers.length}</p>
                     </div>
                   </div>
-                </div>
+                </Card>
 
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col">
-                  <div className="flex items-center justify-between mb-5">
+                <Card className="p-6 flex flex-col">
+                  <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4 mb-4">
                     <div>
-                      <h3 className="text-lg font-bold">Top Borrowers</h3>
-                      <p className="text-sm text-slate-500 mt-1">Largest exposures in the portfolio</p>
+                      <h3 className="font-clash font-semibold text-base text-[var(--text-primary)]">Top Borrowers</h3>
+                      <p className="text-xs text-[var(--text-secondary)] mt-0.5">Largest exposures in registry</p>
                     </div>
-                    <span className="material-icons text-[#2262ec]">groups</span>
+                    <span className="material-symbols-outlined text-[var(--accent)]">groups</span>
                   </div>
-                  <div className="space-y-4 flex-1 flex flex-col justify-center">
+                  <div className="space-y-3 flex-1 flex flex-col justify-center">
                     {topBorrowers.length === 0 ? (
-                      <div className="text-center py-6 text-slate-400 text-sm">
+                      <div className="text-center py-6 text-[var(--text-muted)] text-xs">
                         No active borrowers currently recorded in the portfolio.
                       </div>
                     ) : (
                       topBorrowers.map((borrower) => (
-                        <div key={borrower.name} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/60 dark:bg-slate-800/30">
+                        <div key={borrower.name} className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-3 bg-[var(--bg-canvas)]">
                           <div>
-                            <p className="font-semibold text-slate-900 dark:text-white">{borrower.name}</p>
-                            <p className="text-xs text-slate-500 mt-1">{borrower.loan}</p>
+                            <p className="font-semibold text-xs text-[var(--text-primary)]">{borrower.name}</p>
+                            <p className="text-[11px] text-[var(--text-secondary)]">{borrower.loan}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-slate-900 dark:text-white">{borrower.exposure}</p>
-                            <span className={`inline-flex mt-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${riskBadge[borrower.risk]}`}>{borrower.risk} Risk</span>
+                            <p className="font-semibold text-xs text-[var(--text-primary)] tabular-nums">{borrower.exposure}</p>
+                            <StatusBadge
+                              status={borrower.risk === 'Low' ? 'approved' : borrower.risk === 'High' ? 'rejected' : 'under_review'}
+                              label={`${borrower.risk} Risk`}
+                            />
                           </div>
                         </div>
                       ))
                     )}
                   </div>
-                </div>
+                </Card>
               </div>
             </div>
           </>

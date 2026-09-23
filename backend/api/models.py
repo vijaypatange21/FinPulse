@@ -104,6 +104,18 @@ class LenderProfile(TimeStampedModel):
     reviews = models.PositiveIntegerField(default=0)
     description = models.TextField(blank=True, default="")
 
+    class VerificationStatus(models.TextChoices):
+        PENDING = "pending", "Pending Accreditation"
+        VERIFIED = "verified", "Verified Institution"
+        REJECTED = "rejected", "Accreditation Rejected"
+        SUSPENDED = "suspended", "Suspended"
+
+    verification_status = models.CharField(
+        max_length=20,
+        choices=VerificationStatus.choices,
+        default=VerificationStatus.VERIFIED,
+    )
+
     def __str__(self):
         return self.institution_name
 
@@ -317,5 +329,66 @@ class BorrowerDocument(TimeStampedModel):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.borrower.name} - {self.file_name} ({self.document_type})"
+        return f"{self.borrower.display_name} - {self.file_name} ({self.document_type})"
+
+
+class LenderDocument(TimeStampedModel):
+    DOCUMENT_TYPES = [
+        ("nbfc_license", "NBFC License / Certificate"),
+        ("incorporation_cert", "Certificate of Incorporation"),
+        ("audited_financials", "Audited Financial Statements"),
+        ("board_resolution", "Board Resolution / Underwriting Authority"),
+        ("gst_pan", "Corporate PAN / GST Registration"),
+        ("other", "Other Regulatory Filing"),
+    ]
+    STATUS_CHOICES = [
+        ("pending_review", "Pending Review"),
+        ("under_review", "Under Review"),
+        ("verified", "Verified"),
+        ("rejected", "Rejected"),
+    ]
+
+    lender = models.ForeignKey(LenderProfile, on_delete=models.CASCADE, related_name="compliance_documents")
+    file = models.FileField(upload_to="lender_documents/%Y/%m/")
+    document_type = models.CharField(max_length=40, choices=DOCUMENT_TYPES, default="nbfc_license")
+    file_name = models.CharField(max_length=255)
+    file_size = models.CharField(max_length=50, default="Unknown")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending_review")
+    verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="verified_lender_documents")
+    rejection_reason = models.TextField(blank=True, default="")
+    verification_notes = models.TextField(blank=True, default="")
+
+    class Meta:
+        db_table = "lender_documents"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.lender.institution_name} - {self.file_name} ({self.document_type})"
+
+
+class Notification(TimeStampedModel):
+    class NotificationType(models.TextChoices):
+        INFO = "info", "Information"
+        SUCCESS = "success", "Success"
+        WARNING = "warning", "Warning"
+        ALERT = "alert", "Critical Alert"
+        DOCUMENT = "document", "Document Update"
+        LOAN = "loan", "Loan Update"
+        COMPLIANCE = "compliance", "Compliance Update"
+
+    notification_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    notification_type = models.CharField(max_length=20, choices=NotificationType.choices, default=NotificationType.INFO)
+    action_url = models.CharField(max_length=255, blank=True, default="")
+    is_read = models.BooleanField(default=False)
+    data = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        db_table = "notifications"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"[{self.notification_type}] {self.recipient.username}: {self.title}"
 

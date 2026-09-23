@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import LenderLayout from '../components/LenderLayout';
 import { listApplications } from '../lib/api';
+import Card, { ContrastCard } from '../components/ui/Card';
+import StatusBadge from '../components/ui/StatusBadge';
 
 const formatMoney = (value) => {
     const numericValue = Number(value || 0);
@@ -23,6 +25,14 @@ const formatDate = (isoDate) => {
     });
 };
 
+const statusToBadgeStatus = (status) => {
+    const s = String(status || '').toLowerCase();
+    if (s === 'approved') return 'approved';
+    if (s === 'rejected') return 'rejected';
+    if (s === 'verified') return 'verified';
+    return 'under_review';
+};
+
 const statusToLabel = (status) => {
     const map = {
         new: 'New',
@@ -38,6 +48,9 @@ const LoanApplications = () => {
     const [applications, setApplications] = React.useState([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [error, setError] = React.useState('');
+    const [searchQuery, setSearchQuery] = React.useState('');
+    const [selectedStatus, setSelectedStatus] = React.useState('All');
+    const [selectedType, setSelectedType] = React.useState('All Types');
 
     React.useEffect(() => {
         const loadApplications = async () => {
@@ -48,10 +61,12 @@ const LoanApplications = () => {
                     id: item.id || item.application_id,
                     name: item.borrowerName || item.name || 'Borrower',
                     occupation: item.occupation || item.loanType || item.loan_type || 'General',
-                    loanType: item.loanType || item.loan_type,
+                    loanType: item.loanType || item.loan_type || 'Personal Loan',
+                    amountNum: Number(item.amount || item.requested_amount || 0),
                     amount: formatMoney(item.amount || item.requested_amount),
                     aiScore: item.aiScore ?? item.ai_score ?? 0,
                     appliedDate: formatDate(item.appliedDate || item.created_at),
+                    statusRaw: item.status,
                     status: statusToLabel(item.status),
                     avatarUrl: item.avatarUrl || null,
                 }));
@@ -66,203 +81,244 @@ const LoanApplications = () => {
         loadApplications();
     }, []);
 
-    const getScoreStyle = (score) => {
-        if (score >= 750) return { text: 'text-green-700 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/30', border: 'border-green-200 dark:border-green-800/30', dot: 'bg-green-600' };
-        if (score >= 650) return { text: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-900/30', border: 'border-yellow-200 dark:border-yellow-800/30', dot: 'bg-yellow-600' };
-        return { text: 'text-red-700 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/30', border: 'border-red-200 dark:border-red-800/30', dot: 'bg-red-600' };
-    };
-
-    const getStatusStyle = (status) => {
-        switch (status) {
-            case 'New': return { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', icon: 'fiber_new' };
-            case 'Under Review': return { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-400', icon: 'pending_actions' };
-            case 'Verified': return { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', icon: 'check_circle' };
-            case 'Decision Pending': return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-400', icon: 'more_horiz' };
-            default: return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-400', icon: 'help' };
+    const filteredApplications = applications.filter((app) => {
+        if (selectedStatus !== 'All' && app.status !== selectedStatus) return false;
+        if (selectedType !== 'All Types' && !app.loanType.toLowerCase().includes(selectedType.toLowerCase())) return false;
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            const matchesName = app.name.toLowerCase().includes(q);
+            const matchesId = String(app.id).toLowerCase().includes(q);
+            if (!matchesName && !matchesId) return false;
         }
-    };
+        return true;
+    });
+
+    const pendingCount = applications.filter(a => a.status === 'Under Review' || a.status === 'New').length;
+    const avgScore = applications.length
+        ? Math.round(applications.reduce((sum, a) => sum + (a.aiScore || 700), 0) / applications.length)
+        : null;
 
     return (
         <LenderLayout activeSection="applications">
-            <div className="p-8 max-w-7xl mx-auto w-full">
-                    {/* Header Section */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                        <div>
-                            <h2 className="text-3xl font-black tracking-tight">Loan Applications</h2>
-                            <p className="text-slate-500 dark:text-slate-400 mt-1">Manage and review incoming loan requests from all channels</p>
-                        </div>
-                        <div className="flex gap-3">
-                            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                <span className="material-symbols-outlined text-xl">download</span>
-                                Export Report
-                            </button>
-                            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm shadow-primary/30">
-                                <span className="material-symbols-outlined text-xl">add</span>
-                                Manual Entry
-                            </button>
-                        </div>
+            <div className="max-w-7xl mx-auto w-full space-y-8 pb-12">
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--accent)]">
+                            Origination Pipeline
+                        </span>
+                        <h1 className="font-clash text-3xl md:text-4xl font-semibold tracking-tight text-[var(--text-primary)] mt-1">
+                            Loan Applications
+                        </h1>
+                        <p className="text-xs text-[var(--text-secondary)] mt-1">
+                            Manage and underwrite incoming credit applications across all institutional facilities
+                        </p>
                     </div>
+                </div>
 
-                    {/* Summary Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
-                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Total Pending</p>
-                            <div className="flex items-end justify-between">
-                                <h3 className="text-3xl font-bold">{applications.filter(a => a.status === 'Under Review' || a.status === 'New').length}</h3>
-                                {applications.filter(a => a.status === 'Under Review' || a.status === 'New').length > 0 && (
-                                    <span className="text-xs font-semibold px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full dark:bg-yellow-900/30 dark:text-yellow-500">Action Required</span>
+                {/* Summary Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <ContrastCard className="p-6 flex flex-col justify-between min-h-[140px]">
+                        <span className="text-xs font-medium uppercase tracking-wider opacity-75">
+                            Underwriting Pipeline
+                        </span>
+                        <div className="mt-3">
+                            <div className="font-clash text-3xl font-semibold tracking-tight tabular-nums">
+                                {pendingCount}
+                            </div>
+                            <p className="text-xs opacity-75 mt-1 font-medium flex items-center gap-1">
+                                {pendingCount > 0 ? 'Awaiting underwriter decision' : 'All applications addressed'}
+                            </p>
+                        </div>
+                    </ContrastCard>
+
+                    <Card className="p-6 flex flex-col justify-between min-h-[140px]">
+                        <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
+                            Average Applicant Score
+                        </span>
+                        <div className="mt-3">
+                            <div className="flex items-baseline gap-2">
+                                <span className="font-clash text-3xl font-semibold tracking-tight tabular-nums text-[var(--text-primary)]">
+                                    {avgScore !== null ? avgScore : 'N/A'}
+                                </span>
+                                {avgScore !== null && (
+                                    <span className="text-xs text-[var(--text-muted)] font-medium">/ 850</span>
                                 )}
                             </div>
+                            <p className="text-xs text-[var(--text-secondary)] mt-1">Calculated via live AI scoring model</p>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
-                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Average Health Score</p>
-                            <div className="flex items-end justify-between">
-                                <h3 className="text-3xl font-bold">
-                                    {applications.length ? Math.round(applications.reduce((sum, a) => sum + (a.aiScore || 700), 0) / applications.length) : 'N/A'}
-                                </h3>
-                                {applications.length > 0 && (
-                                    <span className="text-xs font-semibold text-slate-400">Out of 850</span>
-                                )}
+                    </Card>
+
+                    <Card className="p-6 flex flex-col justify-between min-h-[140px]">
+                        <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
+                            Processing Velocity
+                        </span>
+                        <div className="mt-3">
+                            <div className="font-clash text-3xl font-semibold tracking-tight text-[var(--status-success)]">
+                                Real-Time AI
                             </div>
+                            <p className="text-xs text-[var(--text-secondary)] mt-1">Instant document verification & OCR</p>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
-                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Avg. Underwriting Time</p>
-                            <div className="flex items-end justify-between">
-                                <h3 className="text-3xl font-bold">{applications.length ? 'Instant' : 'N/A'}</h3>
-                                {applications.length > 0 && (
-                                    <div className="flex text-emerald-600 dark:text-emerald-400 items-center text-xs font-medium">
-                                        <span className="material-symbols-outlined text-base mr-0.5">bolt</span>
-                                        Real-time AI
-                                    </div>
-                                )}
+                    </Card>
+                </div>
+
+                {/* Search & Filter Bar */}
+                <Card className="p-4">
+                    <div className="flex flex-col lg:flex-row gap-4">
+                        <div className="flex-1 relative">
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-lg">
+                                search
+                            </span>
+                            <input
+                                className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+                                placeholder="Search applicants by name or ID..."
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2 bg-[var(--bg-canvas)] border border-[var(--border-subtle)] px-3 py-2 rounded-[var(--radius-md)]">
+                                <span className="text-xs font-medium text-[var(--text-secondary)]">Status:</span>
+                                <select
+                                    className="bg-transparent border-none text-xs font-semibold focus:outline-none text-[var(--text-primary)] cursor-pointer"
+                                    value={selectedStatus}
+                                    onChange={(e) => setSelectedStatus(e.target.value)}
+                                >
+                                    <option value="All" className="bg-[var(--bg-surface)]">All</option>
+                                    <option value="New" className="bg-[var(--bg-surface)]">New</option>
+                                    <option value="Under Review" className="bg-[var(--bg-surface)]">Under Review</option>
+                                    <option value="Verified" className="bg-[var(--bg-surface)]">Verified</option>
+                                    <option value="Approved" className="bg-[var(--bg-surface)]">Approved</option>
+                                    <option value="Rejected" className="bg-[var(--bg-surface)]">Rejected</option>
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-2 bg-[var(--bg-canvas)] border border-[var(--border-subtle)] px-3 py-2 rounded-[var(--radius-md)]">
+                                <span className="text-xs font-medium text-[var(--text-secondary)]">Type:</span>
+                                <select
+                                    className="bg-transparent border-none text-xs font-semibold focus:outline-none text-[var(--text-primary)] cursor-pointer"
+                                    value={selectedType}
+                                    onChange={(e) => setSelectedType(e.target.value)}
+                                >
+                                    <option value="All Types" className="bg-[var(--bg-surface)]">All Types</option>
+                                    <option value="Personal" className="bg-[var(--bg-surface)]">Personal</option>
+                                    <option value="Business" className="bg-[var(--bg-surface)]">Business</option>
+                                    <option value="Home" className="bg-[var(--bg-surface)]">Home</option>
+                                    <option value="Vehicle" className="bg-[var(--bg-surface)]">Vehicle</option>
+                                </select>
                             </div>
                         </div>
                     </div>
+                </Card>
 
-                    {/* Filters */}
-                    <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
-                        <div className="flex flex-col lg:flex-row gap-4">
-                            <div className="flex-1 relative">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                                <input className="w-full pl-10 pr-4 py-2.5 bg-[#f6f6f8] dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/50 text-sm placeholder:text-slate-500" placeholder="Search applicants by name or ID..." type="text" />
-                            </div>
-                            <div className="flex flex-wrap items-center gap-3">
-                                <div className="flex items-center gap-2 bg-[#f6f6f8] dark:bg-slate-950 border border-slate-200 dark:border-slate-700 px-3 py-2.5 rounded-lg">
-                                    <span className="text-xs font-semibold text-slate-500 uppercase">Status:</span>
-                                    <select className="bg-transparent border-none text-sm font-medium focus:ring-0 p-0 pr-8 outline-none dark:text-white cursor-pointer hover:text-primary transition-colors">
-                                        <option className="dark:bg-slate-900">All</option>
-                                        <option className="dark:bg-slate-900">New</option>
-                                        <option className="dark:bg-slate-900">Under Review</option>
-                                        <option className="dark:bg-slate-900">Verified</option>
-                                        <option className="dark:bg-slate-900">Decision Pending</option>
-                                    </select>
-                                </div>
-                                <div className="flex items-center gap-2 bg-[#f6f6f8] dark:bg-slate-950 border border-slate-200 dark:border-slate-700 px-3 py-2.5 rounded-lg">
-                                    <span className="text-xs font-semibold text-slate-500 uppercase">Type:</span>
-                                    <select className="bg-transparent border-none text-sm font-medium focus:ring-0 p-0 pr-8 outline-none dark:text-white cursor-pointer hover:text-primary transition-colors">
-                                        <option className="dark:bg-slate-900">All Types</option>
-                                        <option className="dark:bg-slate-900">Personal</option>
-                                        <option className="dark:bg-slate-900">Business</option>
-                                        <option className="dark:bg-slate-900">Home</option>
-                                        <option className="dark:bg-slate-900">Vehicle</option>
-                                        <option className="dark:bg-slate-900">Agriculture</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Table */}
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                        <div className="overflow-x-auto min-h-[400px]">
-                            <table className="w-full text-left border-collapse whitespace-nowrap">
-                                <thead>
-                                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                                        <th className="p-4 w-10"><input className="rounded text-primary focus:ring-primary border-slate-300 dark:border-slate-700 dark:bg-slate-900 cursor-pointer" type="checkbox" /></th>
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Applicant Name</th>
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Application ID</th>
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Loan Type</th>
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Requested Amount</th>
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">AI Score</th>
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Applied Date</th>
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                {/* Applications Table */}
+                <Card className="overflow-hidden">
+                    <div className="overflow-x-auto min-h-[360px]">
+                        <table className="w-full text-left border-collapse whitespace-nowrap">
+                            <thead>
+                                <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]/40 text-[var(--text-secondary)] text-xs font-semibold tracking-wider">
+                                    <th className="px-6 py-3.5">Applicant Name</th>
+                                    <th className="px-6 py-3.5">Application ID</th>
+                                    <th className="px-6 py-3.5">Loan Type</th>
+                                    <th className="px-6 py-3.5 text-right">Requested</th>
+                                    <th className="px-6 py-3.5">AI Score</th>
+                                    <th className="px-6 py-3.5">Applied Date</th>
+                                    <th className="px-6 py-3.5">Status</th>
+                                    <th className="px-6 py-3.5 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--border-subtle)] text-sm">
+                                {isLoading && (
+                                    <tr>
+                                        <td colSpan="8" className="px-6 py-12 text-center text-xs text-[var(--text-muted)]">
+                                            Loading applications...
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                                    {isLoading && (
-                                        <tr>
-                                            <td colSpan="9" className="p-6 text-center text-slate-400">Loading applications...</td>
-                                        </tr>
-                                    )}
-                                    {!isLoading && error && (
-                                        <tr>
-                                            <td colSpan="9" className="p-6 text-center text-red-500">{error}</td>
-                                        </tr>
-                                    )}
-                                    {!isLoading && !error && applications.map((app) => {
-                                        const scoreStyle = getScoreStyle(app.aiScore);
-                                        const statusStyle = getStatusStyle(app.status);
-                                        return (
-                                            <tr key={app.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer">
-                                                <td className="p-4" onClick={(e) => e.stopPropagation()}><input className="rounded text-primary focus:ring-primary border-slate-300 dark:border-slate-700 dark:bg-slate-900 cursor-pointer" type="checkbox" /></td>
-                                                <td className="p-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-primary/5 overflow-hidden shrink-0">
-                                                            {app.avatarUrl ? (
-                                                                <img className="w-full h-full object-cover" alt={app.name} src={app.avatarUrl} />
-                                                            ) : (
-                                                                <span className="text-primary text-xs font-bold">{app.name.split(' ').map(n => n[0]).join('')}</span>
-                                                            )}
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-semibold text-sm group-hover:text-primary transition-colors">{app.name}</p>
-                                                            <p className="text-xs text-slate-500">{app.occupation}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="p-4 text-sm font-medium text-slate-600 dark:text-slate-400">#{String(app.id).slice(0, 8)}</td>
-                                                <td className="p-4 text-sm font-medium">{app.loanType}</td>
-                                                <td className="p-4 text-sm font-bold text-slate-700 dark:text-slate-300">{app.amount}</td>
-                                                <td className="p-4">
-                                                    <div className={`inline-flex items-center px-2 py-1 rounded-full ${scoreStyle.bg} ${scoreStyle.text} text-xs font-bold border ${scoreStyle.border}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${scoreStyle.dot} mr-1.5`}></span>
-                                                        {app.aiScore}
-                                                    </div>
-                                                </td>
-                                                <td className="p-4 text-sm text-slate-500">{app.appliedDate}</td>
-                                                <td className="p-4">
-                                                    <span className={`px-2.5 py-1 rounded-lg ${statusStyle.bg} ${statusStyle.text} text-xs font-semibold flex items-center w-fit gap-1`}>
-                                                        <span className="material-symbols-outlined text-[14px]">{statusStyle.icon}</span>
-                                                        {app.status}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 text-right">
-                                                    <Link to={`/lender/applications/${app.id}`} className={`inline-flex items-center justify-center px-4 py-2 ${app.status === 'Verified' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-primary hover:bg-blue-700'} text-white text-xs font-bold rounded-lg hover:shadow-md transition-all shadow-sm cursor-pointer`}>
-                                                        {app.status === 'Verified' ? 'Process' : 'Review'}
-                                                    </Link>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Pagination */}
-                        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                            <p className="text-sm text-slate-500 font-medium">Showing {applications.length} of {applications.length} results</p>
-                            <div className="flex items-center gap-2">
-                                <button className="p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 disabled:opacity-50 cursor-not-allowed" disabled>
-                                    <span className="material-symbols-outlined text-sm m-0 leading-none">chevron_left</span>
-                                </button>
-                                <button className="w-8 h-8 bg-primary text-white rounded-lg text-sm font-bold shadow-sm shadow-primary/30">1</button>
-                                <button className="p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 disabled:opacity-50 cursor-not-allowed" disabled>
-                                    <span className="material-symbols-outlined text-sm m-0 leading-none">chevron_right</span>
-                                </button>
-                            </div>
-                        </div>
+                                )}
+                                {!isLoading && error && (
+                                    <tr>
+                                        <td colSpan="8" className="px-6 py-12 text-center text-xs text-[var(--status-error)]">
+                                            {error}
+                                        </td>
+                                    </tr>
+                                )}
+                                {!isLoading && !error && filteredApplications.length === 0 && (
+                                    <tr>
+                                        <td colSpan="8" className="px-6 py-12 text-center text-xs text-[var(--text-muted)]">
+                                            No applications match your filter criteria.
+                                        </td>
+                                    </tr>
+                                )}
+                                {!isLoading && !error && filteredApplications.map((app) => (
+                                    <tr
+                                        key={app.id}
+                                        className="h-14 hover:bg-[var(--bg-surface-hover)] transition-colors"
+                                    >
+                                        <td className="px-6 py-3.5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center font-bold text-xs shrink-0">
+                                                    {app.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-xs text-[var(--text-primary)]">{app.name}</p>
+                                                    <p className="text-[11px] text-[var(--text-secondary)]">{app.occupation}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-3.5 font-mono text-xs font-semibold text-[var(--text-secondary)]">
+                                            #{String(app.id).slice(0, 8)}
+                                        </td>
+                                        <td className="px-6 py-3.5 text-xs text-[var(--text-primary)]">
+                                            {app.loanType}
+                                        </td>
+                                        <td className="px-6 py-3.5 text-right text-xs font-semibold tabular-nums text-[var(--text-primary)]">
+                                            {app.amount}
+                                        </td>
+                                        <td className="px-6 py-3.5">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className={`w-2 h-2 rounded-full ${
+                                                    app.aiScore >= 750
+                                                        ? 'bg-[var(--status-success)]'
+                                                        : app.aiScore >= 650
+                                                        ? 'bg-[var(--status-warning)]'
+                                                        : 'bg-[var(--status-error)]'
+                                                }`} />
+                                                <span className="text-xs font-semibold tabular-nums text-[var(--text-primary)]">
+                                                    {app.aiScore}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-3.5 text-xs text-[var(--text-secondary)]">
+                                            {app.appliedDate}
+                                        </td>
+                                        <td className="px-6 py-3.5">
+                                            <StatusBadge
+                                                status={statusToBadgeStatus(app.statusRaw)}
+                                                label={app.status}
+                                            />
+                                        </td>
+                                        <td className="px-6 py-3.5 text-right">
+                                            <Link
+                                                to={`/lender/applications/${app.id}`}
+                                                className="px-3.5 py-1.5 rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--text-on-accent)] text-xs font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-1"
+                                            >
+                                                Review
+                                                <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                                            </Link>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
+
+                    {/* Table Footer */}
+                    <div className="p-4 border-t border-[var(--border-subtle)] flex items-center justify-between">
+                        <p className="text-xs text-[var(--text-secondary)]">
+                            Showing {filteredApplications.length} of {applications.length} applications
+                        </p>
+                    </div>
+                </Card>
             </div>
         </LenderLayout>
     );

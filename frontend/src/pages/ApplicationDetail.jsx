@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
+import Card, { ContrastCard } from '../components/ui/Card';
+import StatusBadge from '../components/ui/StatusBadge';
+import CustomSelect from '../components/ui/CustomSelect';
+import Logo from '../components/ui/Logo';
 import { mockApplications } from '../data/mockData';
-import { getApplicationById } from '../lib/api';
+import { getApplicationById, updateApplicationStatus } from '../lib/api';
 
 const ApplicationDetail = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const appIndex = parseInt(id, 10) - 1;
-    const [apiApp, setApiApp] = React.useState(null);
+    const [apiApp, setApiApp] = useState(null);
     const app = apiApp || mockApplications[Number.isNaN(appIndex) ? 0 : appIndex] || mockApplications[0];
 
     const [isUpdating, setIsUpdating] = useState(false);
@@ -20,7 +24,7 @@ const ApplicationDetail = () => {
     const [appNotes, setAppNotes] = useState([]);
     const [requestedDocType, setRequestedDocType] = useState('Latest 3 Months Salary Slips');
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (!id) {
             return;
         }
@@ -89,9 +93,9 @@ const ApplicationDetail = () => {
     };
 
     const getScoreRingColor = (score) => {
-        if (score >= 750) return 'text-green-500';
-        if (score >= 650) return 'text-yellow-500';
-        return 'text-red-500';
+        if (score >= 750) return 'text-[var(--status-success)]';
+        if (score >= 650) return 'text-[var(--status-warning)]';
+        return 'text-[var(--status-error)]';
     };
 
     const getScoreRingOffset = (score) => {
@@ -99,379 +103,396 @@ const ApplicationDetail = () => {
         return maxCircum - (score / 850) * maxCircum;
     };
 
-    const riskConfig = {
-        Low: { bg: 'bg-green-50 dark:bg-green-900/10', border: 'border-green-100 dark:border-green-900/30', text: 'text-green-700 dark:text-green-400', label: 'text-green-600', icon: 'shield' },
-        Medium: { bg: 'bg-amber-50 dark:bg-amber-900/10', border: 'border-amber-100 dark:border-amber-900/30', text: 'text-amber-700 dark:text-amber-400', label: 'text-amber-600', icon: 'warning' },
-        High: { bg: 'bg-red-50 dark:bg-red-900/10', border: 'border-red-100 dark:border-red-900/30', text: 'text-red-700 dark:text-red-400', label: 'text-red-600', icon: 'dangerous' }
-    };
-
-    const risk = riskConfig[app.riskLevel] || riskConfig.Low;
-
     return (
-        <div className="bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100 min-h-screen pb-24">
-            <div className="max-w-[1440px] mx-auto">
-                {/* Header Navigation */}
-                <nav className="bg-white dark:bg-slate-900 border-b border-primary/10 px-8 py-4 sticky top-0 z-40">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => navigate(-1)} className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 mr-2">
-                                <span className="material-icons">arrow_back</span>
-                            </button>
-                            <span className="material-icons text-primary text-3xl">analytics</span>
-                            <span className="text-xl font-bold tracking-tight text-primary">FinPulse</span>
-                            <span className="text-slate-300 dark:text-slate-700 mx-2">|</span>
-                            <span className="text-sm font-medium text-slate-500">Underwriting Dashboard</span>
-                        </div>
-                        <div className="flex items-center gap-6">
-                            <ThemeToggle />
-                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer hover:text-primary transition-colors">
-                                <span className="material-icons text-base">notifications</span>
-                                <span>4 Alerts</span>
+        <div className="bg-[var(--bg-canvas)] font-satoshi text-[var(--text-primary)] min-h-screen pb-32">
+            {/* Floating Top Navigation Chrome */}
+            <header className="sticky top-0 z-40 bg-[var(--bg-surface)]/80 backdrop-blur-md border-b border-[var(--border-subtle)] px-6 py-3.5">
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="p-2 rounded-full hover:bg-[var(--bg-surface-hover)] border border-[var(--border-subtle)] transition-colors text-[var(--text-secondary)]"
+                            title="Go Back"
+                        >
+                            <span className="material-symbols-outlined text-base">arrow_back</span>
+                        </button>
+                        <Logo to="/lender/dashboard" size="sm" subtitle="Underwriting Inspection" />
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <ThemeToggle />
+                        <span className="text-xs font-mono font-medium px-2.5 py-1 rounded-[var(--radius-pill)] bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                            App #{String(app.id || id).slice(0, 8)}
+                        </span>
+                    </div>
+                </div>
+            </header>
+
+            <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+                {/* Profile Header Hero Card */}
+                <Card className="p-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-5 text-center sm:text-left">
+                            <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-[var(--accent)]/30 shrink-0 bg-[var(--accent-tint)] flex items-center justify-center">
+                                {app.avatarUrl ? (
+                                    <img className="w-full h-full object-cover" alt={app.name} src={app.avatarUrl} />
+                                ) : (
+                                    <span className="text-[var(--accent)] font-clash text-2xl font-bold">
+                                        {app.name.split(' ').map(n => n[0]).join('')}
+                                    </span>
+                                )}
                             </div>
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary cursor-pointer">
-                                <span className="material-icons text-sm">person</span>
+                            <div>
+                                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+                                    <h1 className="font-clash text-2xl font-semibold text-[var(--text-primary)]">
+                                        {app.name}
+                                    </h1>
+                                    <StatusBadge
+                                        status={app.status === 'approved' ? 'approved' : app.status === 'rejected' ? 'rejected' : 'under_review'}
+                                        label={app.status === 'approved' ? 'Approved' : app.status === 'rejected' ? 'Rejected' : 'Under Review'}
+                                    />
+                                </div>
+                                <p className="text-xs text-[var(--text-secondary)] mt-1 font-medium">
+                                    Applicant ID: <span className="font-mono text-[var(--text-primary)]">{app.borrowerId || 'N/A'}</span> • {app.occupation}
+                                </p>
+                                <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
+                                    <span className="px-2.5 py-0.5 rounded-[var(--radius-pill)] bg-[var(--status-success-bg)] text-[var(--status-success)] text-xs font-semibold flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-xs">verified</span> KYC Verified
+                                    </span>
+                                    <span className="px-2.5 py-0.5 rounded-[var(--radius-pill)] bg-[var(--accent-tint)] text-[var(--accent)] text-xs font-semibold flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-xs">description</span> {app.loanType} Facility
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Health Score Gauge Ring */}
+                        <div className="flex items-center justify-center md:justify-end gap-6 md:border-l border-[var(--border-subtle)] md:pl-8">
+                            <div className="relative flex items-center justify-center w-24 h-24">
+                                <svg className="w-24 h-24 transform -rotate-90">
+                                    <circle
+                                        className="text-[var(--border-subtle)]"
+                                        cx="48"
+                                        cy="48"
+                                        fill="transparent"
+                                        r="40"
+                                        stroke="currentColor"
+                                        strokeWidth="8"
+                                    />
+                                    <circle
+                                        className={`${getScoreRingColor(app.healthScore)} transition-all duration-700`}
+                                        cx="48"
+                                        cy="48"
+                                        fill="transparent"
+                                        r="40"
+                                        stroke="currentColor"
+                                        strokeDasharray="251.3"
+                                        strokeDashoffset={251.3 - (251.3 * (app.healthScore / 850))}
+                                        strokeWidth="8"
+                                        strokeLinecap="round"
+                                    />
+                                </svg>
+                                <div className="absolute flex flex-col items-center">
+                                    <span className="font-clash text-2xl font-bold tabular-nums text-[var(--text-primary)] leading-none">
+                                        {app.healthScore}
+                                    </span>
+                                    <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] font-medium mt-0.5">
+                                        Health Score
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+                                    Max Potential
+                                </p>
+                                <p className="font-clash text-xl font-bold tabular-nums text-[var(--text-primary)]">
+                                    {app.maxPotential}
+                                </p>
+                                <p className="text-xs text-[var(--status-success)] font-medium mt-0.5 tabular-nums">
+                                    {app.scoreChange}
+                                </p>
                             </div>
                         </div>
                     </div>
-                </nav>
-                <div className="px-8 py-8">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                        {/* Main Content Column */}
-                        <div className="col-span-1 md:col-span-9 space-y-8">
-                            {/* Profile Header Card */}
-                            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-primary/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                <div className="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-6 text-center sm:text-left">
-                                    <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-primary/10 shrink-0 bg-primary/5 flex items-center justify-center">
-                                        {app.avatarUrl ? (
-                                            <img className="w-full h-full object-cover" alt={app.name} src={app.avatarUrl} />
-                                        ) : (
-                                            <span className="text-primary text-2xl font-bold">{app.name.split(' ').map(n => n[0]).join('')}</span>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <h1 className="text-2xl font-bold">{app.name}</h1>
-                                        <p className="text-slate-500 dark:text-slate-400 font-medium">ID: <span className="text-primary">{app.borrowerId}</span></p>
-                                        <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-3">
-                                            <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full flex items-center gap-1">
-                                                <span className="material-icons text-xs">verified</span> KYC Verified
-                                            </span>
-                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs font-semibold rounded-full flex items-center gap-1">
-                                                <span className="material-icons text-xs">description</span> {app.loanType} Loan
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-center md:justify-end gap-6 md:border-l border-slate-100 dark:border-slate-800 md:pl-8 mt-4 md:mt-0">
-                                    <div className="relative flex items-center justify-center">
-                                        <svg className="w-24 h-24 transform -rotate-90">
-                                            <circle className="text-slate-100 dark:text-slate-800" cx="48" cy="48" fill="transparent" r="42" stroke="currentColor" strokeWidth="8"></circle>
-                                            <circle className={getScoreRingColor(app.healthScore)} cx="48" cy="48" fill="transparent" r="42" stroke="currentColor" strokeDasharray="263.89" strokeDashoffset={getScoreRingOffset(app.healthScore)} strokeWidth="8"></circle>
-                                        </svg>
-                                        <div className="absolute flex flex-col items-center">
-                                            <span className="text-2xl font-bold leading-none">{app.healthScore}</span>
-                                            <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mt-1 text-center">Health<br/>Score</span>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Max Potential</p>
-                                        <p className="text-lg font-bold">{app.maxPotential}</p>
-                                        <p className={`text-xs font-medium mt-1 ${app.scoreChange.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>{app.scoreChange}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* Tabs Navigation */}
-                            <div className="border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
-                                <nav className="flex gap-8 min-w-max">
-                                    {[
-                                        { id: 'overview', label: 'Overview', icon: 'dashboard' },
-                                        { id: 'financials', label: 'Financial Data', icon: 'account_balance_wallet' },
-                                        { id: 'documents', label: 'Documents', icon: 'description' },
-                                        { id: 'history', label: 'Loan History', icon: 'history' },
-                                    ].map((tab) => (
-                                        <button
-                                            key={tab.id}
-                                            onClick={() => setActiveTab(tab.id)}
-                                            className={`pb-4 px-1 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
-                                                activeTab === tab.id
-                                                    ? 'border-primary text-primary'
-                                                    : 'border-transparent text-slate-500 hover:text-primary'
-                                            }`}
-                                        >
-                                            <span className="material-icons text-sm">{tab.icon}</span> {tab.label}
-                                        </button>
-                                    ))}
-                                </nav>
-                            </div>
+                </Card>
 
-                            {/* Main Viewport Section based on Active Tab */}
-                            {activeTab === 'overview' && (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* Score Breakdown */}
-                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-primary/5 transition-all hover:shadow-md">
-                                        <h3 className="text-base font-bold mb-6 flex items-center gap-2">
-                                            <span className="material-icons text-primary text-sm">insights</span> Score Breakdown
-                                        </h3>
-                                        <div className="space-y-6">
-                                            <div>
-                                                <div className="flex justify-between mb-2">
-                                                    <span className="text-sm text-slate-600 dark:text-slate-400">Payment History</span>
-                                                    <span className={`text-sm font-bold ${app.paymentHistory >= 90 ? 'text-green-500' : app.paymentHistory >= 75 ? 'text-yellow-500' : 'text-red-500'}`}>{app.paymentHistory}%</span>
-                                                </div>
-                                                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                    <div className={`h-full ${app.paymentHistory >= 90 ? 'bg-green-500' : app.paymentHistory >= 75 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{width: `${app.paymentHistory}%`}}></div>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="flex justify-between mb-2">
-                                                    <span className="text-sm text-slate-600 dark:text-slate-400">Credit Utilization</span>
-                                                    <span className={`text-sm font-bold ${app.creditUtilization <= 30 ? 'text-green-500' : app.creditUtilization <= 50 ? 'text-yellow-500' : 'text-red-500'}`}>{app.creditUtilization}%</span>
-                                                </div>
-                                                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                    <div className={`h-full ${app.creditUtilization <= 30 ? 'bg-green-500' : app.creditUtilization <= 50 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{width: `${app.creditUtilization}%`}}></div>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="flex justify-between mb-2">
-                                                    <span className="text-sm text-slate-600 dark:text-slate-400">Account Age</span>
-                                                    <span className="text-sm font-bold text-primary">{app.accountAge}</span>
-                                                </div>
-                                                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-primary" style={{width: `${Math.min(parseFloat(app.accountAge) / 10 * 100, 100)}%`}}></div>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="flex justify-between mb-2">
-                                                    <span className="text-sm text-slate-600 dark:text-slate-400">Credit Mix</span>
-                                                    <span className="text-sm font-bold text-primary">{app.creditMix}</span>
-                                                </div>
-                                                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-primary" style={{width: `${app.creditMix === 'Excellent' ? 90 : app.creditMix === 'Good' ? 75 : app.creditMix === 'Average' ? 55 : 40}%`}}></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Activity Timeline */}
-                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-primary/5 transition-all hover:shadow-md">
-                                        <h3 className="text-base font-bold mb-6 flex items-center gap-2">
-                                            <span className="material-icons text-primary text-sm">history</span> Activity Timeline
-                                        </h3>
-                                        <div className="space-y-6 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
-                                            {app.activities.map((activity, i) => (
-                                                <div key={i} className="flex gap-4 relative">
-                                                    <div className={`size-6 rounded-full bg-${activity.color === 'green' ? 'green-500' : 'primary'} flex items-center justify-center text-white ring-4 ring-white dark:ring-slate-900 shrink-0 z-10`}>
-                                                        <span className="material-icons text-xs">done</span>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-bold">{activity.text}</p>
-                                                        <p className="text-xs text-slate-500">{activity.detail}</p>
-                                                        <span className="text-[10px] text-slate-400 font-medium">{activity.time}</span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                {/* Tabs Navigation */}
+                <div className="flex gap-3 border-b border-[var(--border-subtle)] pb-2 overflow-x-auto">
+                    {[
+                        { id: 'overview', label: 'Score & Overview', icon: 'speed' },
+                        { id: 'financials', label: 'Financial Data', icon: 'account_balance' },
+                        { id: 'documents', label: 'Verified Documents', icon: 'folder' },
+                        { id: 'history', label: 'Credit History', icon: 'history' },
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-4 py-2 rounded-[var(--radius-pill)] text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                                activeTab === tab.id
+                                    ? 'bg-[var(--accent)] text-[var(--text-on-accent)] shadow-[var(--shadow-accent-glow)]'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+                            }`}
+                        >
+                            <span className="material-symbols-outlined text-sm">{tab.icon}</span>
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
 
-                            {activeTab === 'financials' && (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
-                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Monthly Inflow</p>
-                                        <h4 className="text-2xl font-bold text-slate-900 dark:text-white">{app.monthlyIncome}</h4>
-                                        <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1 font-semibold">
-                                            <span className="material-icons text-xs">trending_up</span> Consistent salary credit
-                                        </p>
-                                    </div>
-                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Debt-to-Income (DTI)</p>
-                                        <h4 className="text-2xl font-bold text-[#2262ec]">{app.debtToIncome}</h4>
-                                        <p className="text-xs text-slate-500 mt-2 font-medium">Within safe underwriter threshold (&lt;45%)</p>
-                                    </div>
-                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Default Probability</p>
-                                        <h4 className="text-2xl font-bold text-emerald-600">{app.defaultProbability}</h4>
-                                        <p className="text-xs text-slate-500 mt-2 font-medium">Predicted by FinPulse ML Model</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'documents' && (
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4 animate-fade-in">
-                                    <h4 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                                        <span className="material-icons text-[#2262ec]">folder</span> Verified Underwriting Documents
-                                    </h4>
-                                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                                        <div className="py-4 flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <span className="material-icons text-emerald-500">description</span>
-                                                <div>
-                                                    <p className="text-sm font-bold text-slate-900 dark:text-white">Bank Statement (6 Months)</p>
-                                                    <p className="text-xs text-slate-500">Parsed & Verified via FinPulse OCR</p>
-                                                </div>
-                                            </div>
-                                            <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded-full">Verified</span>
-                                        </div>
-                                        <div className="py-4 flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <span className="material-icons text-emerald-500">badge</span>
-                                                <div>
-                                                    <p className="text-sm font-bold text-slate-900 dark:text-white">PAN Card Verification</p>
-                                                    <p className="text-xs text-slate-500">NSDL / UIDAI Database Match</p>
-                                                </div>
-                                            </div>
-                                            <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded-full">Verified</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'history' && (
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 animate-fade-in">
-                                    <h4 className="font-bold text-base text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                                        <span className="material-icons text-[#2262ec]">history_toggle_off</span> Past Credit Facilities
-                                    </h4>
+                {/* Main Split Content: Left Content + Right Underwriting Panel */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* Left Pane (8 cols) */}
+                    <div className="lg:col-span-8 space-y-6">
+                        {activeTab === 'overview' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Score Breakdown */}
+                                <Card className="p-6">
+                                    <h3 className="font-clash font-semibold text-base text-[var(--text-primary)] mb-5 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[var(--accent)] text-lg">insights</span>
+                                        Credit Dimension Breakdown
+                                    </h3>
                                     <div className="space-y-4">
-                                        <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex justify-between items-center">
-                                            <div>
-                                                <p className="font-bold text-sm text-slate-900 dark:text-white">Prior Vehicle Loan</p>
-                                                <p className="text-xs text-slate-500">Closed on 12 Jan 2024 • 0 Overdue Defaults</p>
+                                        <div>
+                                            <div className="flex justify-between text-xs mb-1.5 font-medium">
+                                                <span className="text-[var(--text-secondary)]">Payment History</span>
+                                                <span className="tabular-nums font-semibold text-[var(--text-primary)]">{app.paymentHistory}</span>
                                             </div>
-                                            <span className="px-2.5 py-1 text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg">Settled</span>
+                                            <div className="h-1.5 w-full bg-[var(--border-subtle)] rounded-full overflow-hidden">
+                                                <div className="h-full bg-[var(--status-success)] rounded-full" style={{ width: `${parseFloat(app.paymentHistory) || 85}%` }} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between text-xs mb-1.5 font-medium">
+                                                <span className="text-[var(--text-secondary)]">Credit Utilization</span>
+                                                <span className="tabular-nums font-semibold text-[var(--text-primary)]">{app.creditUtilization}</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-[var(--border-subtle)] rounded-full overflow-hidden">
+                                                <div className="h-full bg-[var(--accent)] rounded-full" style={{ width: `${parseFloat(app.creditUtilization) || 30}%` }} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between text-xs mb-1.5 font-medium">
+                                                <span className="text-[var(--text-secondary)]">Account Age</span>
+                                                <span className="tabular-nums font-semibold text-[var(--text-primary)]">{app.accountAge}</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-[var(--border-subtle)] rounded-full overflow-hidden">
+                                                <div className="h-full bg-[var(--status-info)] rounded-full" style={{ width: '70%' }} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between text-xs mb-1.5 font-medium">
+                                                <span className="text-[var(--text-secondary)]">Credit Mix</span>
+                                                <span className="tabular-nums font-semibold text-[var(--text-primary)]">{app.creditMix}</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-[var(--border-subtle)] rounded-full overflow-hidden">
+                                                <div className="h-full bg-[var(--status-success)] rounded-full" style={{ width: '80%' }} />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
-                        
-                        {/* Sidebar (Quick Stats & Risk Analysis) */}
-                        <div className="col-span-1 md:col-span-3 space-y-6">
-                            <div className="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-primary/5">
-                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Risk Overview</h3>
-                                <div className="space-y-4">
-                                    <div className={`p-4 ${risk.bg} rounded-lg border ${risk.border}`}>
-                                        <p className={`text-xs ${risk.text} font-semibold mb-1`}>Risk Level</p>
-                                        <div className="flex items-center justify-between">
-                                            <span className={`text-xl font-bold ${risk.label}`}>{app.riskLevel}</span>
-                                            <span className={`material-icons ${risk.label}`}>{risk.icon}</span>
-                                        </div>
-                                    </div>
-                                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                                        <p className="text-xs text-slate-500 font-semibold mb-1">Default Probability</p>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xl font-bold">{app.defaultProbability}</span>
-                                            <span className={`text-xs font-bold ${app.probChange.startsWith('-') ? 'text-green-500' : 'text-red-500'}`}>{app.probChange}</span>
-                                        </div>
-                                    </div>
-                                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                                        <p className="text-xs text-slate-500 font-semibold mb-1">Monthly Income</p>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xl font-bold">{app.monthlyIncome}</span>
-                                            <span className="text-[10px] font-bold py-0.5 px-2 bg-slate-200 dark:bg-slate-700 rounded text-slate-700 dark:text-slate-300">Verified</span>
-                                        </div>
-                                    </div>
-                                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                                        <p className="text-xs text-slate-500 font-semibold mb-1">Debt-to-Income</p>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xl font-bold">{app.debtToIncome}</span>
-                                            <span className="material-icons text-slate-400 text-sm">info</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-primary/5 dark:bg-primary/10 rounded-xl p-5 border border-primary/20">
-                                <h3 className="text-sm font-bold mb-4 text-slate-900 dark:text-slate-100">Underwriter Notes</h3>
-                                <p className="text-xs text-slate-600 dark:text-slate-400 italic mb-4 leading-relaxed">
-                                    "{app.note}"
-                                </p>
-                                {appNotes.length > 0 && (
-                                    <div className="mb-4 space-y-2">
-                                        {appNotes.map((n, i) => (
-                                            <div key={i} className="p-3 bg-white dark:bg-slate-800 rounded-lg text-xs border border-primary/10">
-                                                <p className="font-semibold text-slate-900 dark:text-white">{n.text}</p>
-                                                <span className="text-[10px] text-slate-400">{n.timestamp}</span>
+                                </Card>
+
+                                {/* Activity Timeline */}
+                                <Card className="p-6">
+                                    <h3 className="font-clash font-semibold text-base text-[var(--text-primary)] mb-5 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[var(--accent)] text-lg">history</span>
+                                        Verification Milestone Audit
+                                    </h3>
+                                    <div className="space-y-4 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-[var(--border-subtle)]">
+                                        {app.activities.map((activity, i) => (
+                                            <div key={i} className="flex gap-3 relative">
+                                                <div className="w-6 h-6 rounded-full bg-[var(--accent)] text-[var(--text-on-accent)] flex items-center justify-center shrink-0 z-10 text-xs font-bold">
+                                                    ✓
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-semibold text-[var(--text-primary)]">{activity.text}</p>
+                                                    <p className="text-[11px] text-[var(--text-secondary)]">{activity.detail}</p>
+                                                    <span className="text-[10px] text-[var(--text-muted)] font-mono">{activity.time}</span>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
-                                )}
+                                </Card>
+                            </div>
+                        )}
+
+                        {activeTab === 'financials' && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                <Card className="p-5">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Monthly Inflow</p>
+                                    <h4 className="font-clash text-2xl font-bold text-[var(--text-primary)] mt-1 tabular-nums">{app.monthlyIncome}</h4>
+                                    <p className="text-xs text-[var(--status-success)] mt-2 flex items-center gap-1 font-medium">
+                                        <span className="material-symbols-outlined text-sm">trending_up</span> Consistent salary credit
+                                    </p>
+                                </Card>
+                                <Card className="p-5">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Debt-to-Income (DTI)</p>
+                                    <h4 className="font-clash text-2xl font-bold text-[var(--accent)] mt-1 tabular-nums">{app.debtToIncome}</h4>
+                                    <p className="text-xs text-[var(--text-secondary)] mt-2 font-medium">Below maximum 45% threshold</p>
+                                </Card>
+                                <Card className="p-5">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Default Probability</p>
+                                    <h4 className="font-clash text-2xl font-bold text-[var(--status-success)] mt-1 tabular-nums">{app.defaultProbability}</h4>
+                                    <p className="text-xs text-[var(--text-secondary)] mt-2 font-medium">FinPulse Deep Forest Model</p>
+                                </Card>
+                            </div>
+                        )}
+
+                        {activeTab === 'documents' && (
+                            <Card className="p-6 space-y-4">
+                                <h4 className="font-clash font-semibold text-base text-[var(--text-primary)] flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[var(--accent)]">folder</span>
+                                    Verified Underwriting Documents
+                                </h4>
+                                <div className="divide-y divide-[var(--border-subtle)]">
+                                    <div className="py-3.5 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <span className="material-symbols-outlined text-[var(--status-success)]">description</span>
+                                            <div>
+                                                <p className="text-xs font-semibold text-[var(--text-primary)]">Bank Statement (6 Months)</p>
+                                                <p className="text-[11px] text-[var(--text-secondary)]">Parsed & verified via FinPulse OCR</p>
+                                            </div>
+                                        </div>
+                                        <StatusBadge status="verified" label="Verified" />
+                                    </div>
+                                    <div className="py-3.5 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <span className="material-symbols-outlined text-[var(--status-success)]">badge</span>
+                                            <div>
+                                                <p className="text-xs font-semibold text-[var(--text-primary)]">PAN Card Verification</p>
+                                                <p className="text-[11px] text-[var(--text-secondary)]">NSDL / UIDAI Database Match</p>
+                                            </div>
+                                        </div>
+                                        <StatusBadge status="verified" label="Verified" />
+                                    </div>
+                                </div>
+                            </Card>
+                        )}
+
+                        {activeTab === 'history' && (
+                            <Card className="p-6">
+                                <h4 className="font-clash font-semibold text-base text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[var(--accent)]">history_toggle_off</span>
+                                    Past Credit Facilities
+                                </h4>
+                                <div className="p-4 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-canvas)] flex justify-between items-center">
+                                    <div>
+                                        <p className="text-xs font-semibold text-[var(--text-primary)]">Prior Vehicle Loan</p>
+                                        <p className="text-[11px] text-[var(--text-secondary)]">Settled on 12 Jan 2024 • 0 Overdue Defaults</p>
+                                    </div>
+                                    <StatusBadge status="approved" label="Settled" />
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+
+                    {/* Right Pane (4 cols): Inverse Underwriter Detail Panel */}
+                    <div className="lg:col-span-4 space-y-6">
+                        {/* Risk Overview Card */}
+                        <ContrastCard className="p-6">
+                            <span className="text-xs font-medium uppercase tracking-wider opacity-75">
+                                Risk & Underwriter Assessment
+                            </span>
+                            <div className="mt-4 space-y-3">
+                                <div className="p-3.5 rounded-[var(--radius-md)] bg-black/5 dark:bg-white/5 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[11px] font-medium opacity-75">Risk Classification</p>
+                                        <p className="font-clash text-lg font-bold">{app.riskLevel} Risk</p>
+                                    </div>
+                                    <span className="material-symbols-outlined text-2xl">
+                                        {app.riskLevel === 'Low' ? 'shield' : 'warning'}
+                                    </span>
+                                </div>
+                                <div className="p-3.5 rounded-[var(--radius-md)] bg-black/5 dark:bg-white/5 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[11px] font-medium opacity-75">Default Probability</p>
+                                        <p className="font-clash text-lg font-bold tabular-nums">{app.defaultProbability}</p>
+                                    </div>
+                                    <span className="text-xs font-bold tabular-nums opacity-80">{app.probChange}</span>
+                                </div>
+                                <div className="p-3.5 rounded-[var(--radius-md)] bg-black/5 dark:bg-white/5 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[11px] font-medium opacity-75">Monthly Inflow</p>
+                                        <p className="font-clash text-lg font-bold tabular-nums">{app.monthlyIncome}</p>
+                                    </div>
+                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10">Verified</span>
+                                </div>
+                            </div>
+                        </ContrastCard>
+
+                        {/* Underwriter Notes */}
+                        <Card className="p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="font-clash text-sm font-semibold text-[var(--text-primary)]">
+                                    Underwriter Observations
+                                </h3>
                                 <button
                                     onClick={() => setNoteModal(true)}
-                                    className="w-full py-2.5 bg-white dark:bg-slate-800 text-primary border border-primary/20 text-xs font-bold rounded-lg hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center gap-1"
+                                    className="text-xs text-[var(--accent)] font-semibold hover:underline flex items-center gap-1"
                                 >
-                                    <span className="material-icons text-sm">edit_note</span> Add New Note
+                                    <span className="material-symbols-outlined text-sm">add</span> Add
                                 </button>
                             </div>
-                            <div className="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-primary/5">
-                                <h3 className="text-sm font-bold mb-4">Applicant Info</h3>
-                                <ul className="space-y-3">
-                                    <li className="flex items-center gap-3">
-                                        <span className="material-icons text-primary text-lg">work</span>
-                                        <span className="text-xs font-medium">{app.occupation}</span>
-                                    </li>
-                                    <li className="flex items-center gap-3">
-                                        <span className="material-icons text-primary text-lg">location_on</span>
-                                        <span className="text-xs font-medium">{app.location}</span>
-                                    </li>
-                                    <li className="flex items-center gap-3">
-                                        <span className="material-icons text-green-500 text-lg">check_circle</span>
-                                        <span className="text-xs font-medium">PAN Card Verified</span>
-                                    </li>
-                                    <li className="flex items-center gap-3">
-                                        <span className="material-icons text-green-500 text-lg">check_circle</span>
-                                        <span className="text-xs font-medium">Aadhaar Card Linked</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
+                            <p className="text-xs text-[var(--text-secondary)] italic leading-relaxed bg-[var(--bg-canvas)] p-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)]">
+                                "{app.note}"
+                            </p>
+                            {appNotes.length > 0 && (
+                                <div className="mt-3 space-y-2">
+                                    {appNotes.map((n, i) => (
+                                        <div key={i} className="p-3 rounded-[var(--radius-md)] bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-xs">
+                                            <p className="font-medium text-[var(--text-primary)]">{n.text}</p>
+                                            <span className="text-[10px] text-[var(--text-muted)] font-mono">{n.timestamp}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </Card>
                     </div>
                 </div>
-            </div>
+            </main>
 
-            {/* Sticky Bottom Action Bar */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 py-4 px-4 sm:px-8 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] z-50">
-                <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-6 md:gap-8 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
-                        <div className="shrink-0">
-                            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest hidden sm:block">Loan Amount Request</p>
-                            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest sm:hidden">Amount</p>
-                            <p className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">{app.amount}</p>
+            {/* Sticky Bottom Action Bar with Glass Chrome */}
+            <div className="fixed bottom-0 left-0 right-0 bg-[var(--bg-surface)]/90 backdrop-blur-md border-t border-[var(--border-subtle)] py-4 px-6 z-50">
+                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-6 sm:gap-8 w-full sm:w-auto">
+                        <div>
+                            <p className="text-[10px] text-[var(--text-secondary)] uppercase font-semibold tracking-wider">Requested Facility</p>
+                            <p className="font-clash text-lg md:text-xl font-bold tabular-nums text-[var(--text-primary)]">{app.amount}</p>
                         </div>
-                        <div className="shrink-0 border-l border-slate-200 dark:border-slate-700 pl-4 md:pl-6">
-                            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Tenure</p>
-                            <p className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">{app.tenure}</p>
+                        <div className="border-l border-[var(--border-subtle)] pl-6">
+                            <p className="text-[10px] text-[var(--text-secondary)] uppercase font-semibold tracking-wider">Tenure</p>
+                            <p className="font-clash text-lg md:text-xl font-bold text-[var(--text-primary)]">{app.tenure}</p>
                         </div>
-                        <div className="shrink-0 border-l border-slate-200 dark:border-slate-700 pl-4 md:pl-6">
-                            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Interest Rate</p>
-                            <p className="text-lg md:text-xl font-bold text-primary">{app.interestRate}</p>
+                        <div className="border-l border-[var(--border-subtle)] pl-6">
+                            <p className="text-[10px] text-[var(--text-secondary)] uppercase font-semibold tracking-wider">Interest Rate</p>
+                            <p className="font-clash text-lg md:text-xl font-bold text-[var(--accent)]">{app.interestRate}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
+
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
                         {actionMessage && (
-                            <span className="text-xs font-bold text-primary px-3 py-1 bg-primary/10 rounded-lg">
+                            <span className="text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-pill)] bg-[var(--accent-tint)] text-[var(--accent)]">
                                 {actionMessage}
                             </span>
                         )}
                         <button
                             onClick={() => handleStatusUpdate('rejected')}
                             disabled={isUpdating}
-                            className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 border border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-bold rounded-lg transition-colors whitespace-nowrap disabled:opacity-50"
+                            className="px-5 py-2.5 rounded-[var(--radius-pill)] border border-[var(--status-error)] text-[var(--status-error)] hover:bg-[var(--status-error-bg)] text-xs font-semibold transition-all disabled:opacity-50"
                         >
                             Reject
                         </button>
                         <button
                             onClick={() => setRequestInfoModal(true)}
-                            className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-colors whitespace-nowrap hidden lg:block"
+                            className="px-5 py-2.5 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-semibold transition-all hidden sm:block"
                         >
                             Request Info
                         </button>
                         <button
                             onClick={() => handleStatusUpdate('approved')}
                             disabled={isUpdating}
-                            className="flex-1 sm:flex-none px-4 sm:px-8 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg shadow-lg shadow-green-600/20 transition-all flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50"
+                            className="px-6 py-2.5 rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--text-on-accent)] text-xs font-semibold transition-all shadow-[var(--shadow-accent-glow)] hover:opacity-90 flex items-center gap-1.5 disabled:opacity-50"
                         >
-                            <span className="material-icons text-sm hidden sm:block">verified_user</span> 
-                            Approve
+                            <span className="material-symbols-outlined text-sm">verified_user</span>
+                            Approve Facility
                         </button>
                     </div>
                 </div>
@@ -479,24 +500,24 @@ const ApplicationDetail = () => {
 
             {/* Note Addition Modal */}
             {noteModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                    <Card className="max-w-md w-full p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <span className="material-icons text-primary">edit_note</span> Add Underwriting Note
+                            <h3 className="font-clash text-base font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[var(--accent)]">edit_note</span> Add Underwriting Note
                             </h3>
-                            <button onClick={() => setNoteModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+                            <button onClick={() => setNoteModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">✕</button>
                         </div>
                         <textarea
                             value={customNote}
                             onChange={(e) => setCustomNote(e.target.value)}
                             placeholder="Type evaluation notes or observations regarding borrower income stability..."
-                            className="w-full h-28 p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                            className="w-full h-28 p-3 text-xs bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
                         />
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setNoteModal(false)}
-                                className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300"
+                                className="flex-1 py-2 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-secondary)]"
                             >
                                 Cancel
                             </button>
@@ -510,44 +531,48 @@ const ApplicationDetail = () => {
                                         setTimeout(() => setActionMessage(''), 3000);
                                     }
                                 }}
-                                className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:bg-primary/90"
+                                className="flex-1 py-2 rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--text-on-accent)] text-xs font-semibold shadow-[var(--shadow-accent-glow)]"
                             >
                                 Save Note
                             </button>
                         </div>
-                    </div>
+                    </Card>
                 </div>
             )}
 
             {/* Request Info Modal */}
             {requestInfoModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                    <Card className="max-w-md w-full p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <span className="material-icons text-primary">contact_support</span> Request Additional Information
+                            <h3 className="font-clash text-base font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[var(--accent)]">contact_support</span> Request Additional Information
                             </h3>
-                            <button onClick={() => setRequestInfoModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+                            <button onClick={() => setRequestInfoModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">✕</button>
                         </div>
-                        <p className="text-xs text-slate-500">Send an automated request notice to the applicant's dashboard asking for missing records.</p>
+                        <p className="text-xs text-[var(--text-secondary)]">
+                            Send an automated request notice to the applicant's dashboard asking for missing records.
+                        </p>
                         <div>
-                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Required Document / Information</label>
-                            <select
+                            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
+                                Required Document / Record
+                            </label>
+                            <CustomSelect
                                 value={requestedDocType}
                                 onChange={(e) => setRequestedDocType(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs"
-                            >
-                                <option>Latest 3 Months Salary Slips</option>
-                                <option>ITR-V Acknowledgement Form</option>
-                                <option>GST-3B Returns (Latest Quarter)</option>
-                                <option>Proof of Current Business Address</option>
-                                <option>Explanation of Recent Credit Enquiries</option>
-                            </select>
+                                options={[
+                                    'Latest 3 Months Salary Slips',
+                                    'ITR-V Acknowledgement Form',
+                                    'GST-3B Returns (Latest Quarter)',
+                                    'Proof of Current Business Address',
+                                    'Explanation of Recent Credit Enquiries'
+                                ]}
+                            />
                         </div>
                         <div className="flex gap-3 pt-2">
                             <button
                                 onClick={() => setRequestInfoModal(false)}
-                                className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300"
+                                className="flex-1 py-2 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-secondary)]"
                             >
                                 Cancel
                             </button>
@@ -557,12 +582,12 @@ const ApplicationDetail = () => {
                                     setActionMessage(`Notice sent: Requesting ${requestedDocType}`);
                                     setTimeout(() => setActionMessage(''), 4000);
                                 }}
-                                className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:bg-primary/90"
+                                className="flex-1 py-2 rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--text-on-accent)] text-xs font-semibold shadow-[var(--shadow-accent-glow)]"
                             >
                                 Send Request Notice
                             </button>
                         </div>
-                    </div>
+                    </Card>
                 </div>
             )}
         </div>

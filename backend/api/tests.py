@@ -39,6 +39,15 @@ class FinPulseAPITests(TestCase):
             institution_type="Digital Bank",
         )
 
+        # Create Demo Admin User
+        self.admin_user = User.objects.create_user(
+            username="test_admin",
+            email="admin@test.com",
+            password="password123",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+
         # Create Loan Application
         self.application = LoanApplication.objects.create(
             borrower=self.borrower_profile,
@@ -179,7 +188,7 @@ class FinPulseAPITests(TestCase):
 
     def test_document_verification_rbac(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
-        from api.models import BorrowerDocument
+        from api.models import BorrowerDocument, Notification
 
         test_file = SimpleUploadedFile("statement.pdf", b"test statement bytes", content_type="application/pdf")
         doc = BorrowerDocument.objects.create(
@@ -189,21 +198,91 @@ class FinPulseAPITests(TestCase):
             status="pending_review",
         )
 
-        # 1. Borrower user cannot verify document (403 Forbidden)
+        # 1. Borrower user cannot verify or reject document (403 Forbidden)
         self.client.force_authenticate(user=self.borrower_user)
         resp_borrower = self.client.post(f"/api/v1/documents/{doc.id}/verify/", {"notes": "Self verification attempt"})
         self.assertEqual(resp_borrower.status_code, status.HTTP_403_FORBIDDEN)
 
-        # 2. Borrower user cannot reject document (403 Forbidden)
         resp_borrower_reject = self.client.post(f"/api/v1/documents/{doc.id}/reject/", {"reason": "Self rejection attempt"})
         self.assertEqual(resp_borrower_reject.status_code, status.HTTP_403_FORBIDDEN)
 
-        # 3. Lender user CAN verify document (200 OK)
+        # 2. STRICT SECURITY: Lender user CANNOT verify or reject document (403 Forbidden)
         self.client.force_authenticate(user=self.lender_user)
-        resp_lender = self.client.post(f"/api/v1/documents/{doc.id}/verify/", {"notes": "Approved by lender underwriter"})
-        self.assertEqual(resp_lender.status_code, status.HTTP_200_OK)
+        resp_lender_verify = self.client.post(f"/api/v1/documents/{doc.id}/verify/", {"notes": "Lender attempt to verify"})
+        self.assertEqual(resp_lender_verify.status_code, status.HTTP_403_FORBIDDEN)
+
+        resp_lender_reject = self.client.post(f"/api/v1/documents/{doc.id}/reject/", {"reason": "Lender attempt to reject"})
+        self.assertEqual(resp_lender_reject.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 3. ONLY Admin user CAN verify document (200 OK)
+        self.client.force_authenticate(user=self.admin_user)
+        resp_admin = self.client.post(f"/api/v1/documents/{doc.id}/verify/", {"notes": "Approved by platform compliance admin"})
+        self.assertEqual(resp_admin.status_code, status.HTTP_200_OK)
         doc.refresh_from_db()
         self.assertEqual(doc.status, "verified")
-        self.assertEqual(doc.verified_by, self.lender_user)
+        self.assertEqual(doc.verified_by, self.admin_user)
+
+        # 4. Check that real-time notification was created for Borrower
+        borrower_notif = Notification.objects.filter(recipient=self.borrower_user).first()
+        self.assertIsNotNone(borrower_notif)
+        self.assertIn("Verified", borrower_notif.title)
+
+    def test_lender_compliance_and_notifications(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from api.models import LenderDocument, LenderProfile, Notification
+
+        test_file = SimpleUploadedFile("nbfc_cert.pdf", b"license cert bytes", content_type="application/pdf")
+
+        # 1. Lender uploads compliance document
+        self.client.force_authenticate(user=self.lender_user)
+        resp = self.client.post(
+            "/api/v1/lender-documents/",
+            {"file": test_file, "document_type": "nbfc_license"},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        doc_id = resp.data["id"]
+
+        # 2. Lender cannot self-verify compliance document
+        resp_self_verify = self.client.post(f"/api/v1/lender-documents/{doc_id}/verify/")
+        self.assertEqual(resp_self_verify.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 3. Admin verifies institutional compliance document
+        self.client.force_authenticate(user=self.admin_user)
+        resp_admin_verify = self.client.post(f"/api/v1/lender-documents/{doc_id}/verify/", {"notes": "RBI registration confirmed"})
+        self.assertEqual(resp_admin_verify.status_code, status.HTTP_200_OK)
+
+        self.lender_profile.refresh_from_db()
+        self.assertEqual(self.lender_profile.verification_status, LenderProfile.VerificationStatus.VERIFIED)
+
+        # 4. Lender checks notifications endpoint
+        self.client.force_authenticate(user=self.lender_user)
+        notif_resp = self.client.get("/api/v1/notifications/")
+        self.assertEqual(notif_resp.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(notif_resp.data), 1)
+
+        notif_id = notif_resp.data[0]["notification_id"]
+        # Mark read
+        read_resp = self.client.post(f"/api/v1/notifications/{notif_id}/read/")
+        self.assertEqual(read_resp.status_code, status.HTTP_200_OK)
+
+    def test_admin_dashboard_stats_and_user_management(self):
+        # 1. Borrower cannot access admin stats
+        self.client.force_authenticate(user=self.borrower_user)
+        resp_forbidden = self.client.get("/api/v1/admin/stats/")
+        self.assertEqual(resp_forbidden.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 2. Admin can access admin stats
+        self.client.force_authenticate(user=self.admin_user)
+        resp_stats = self.client.get("/api/v1/admin/stats/")
+        self.assertEqual(resp_stats.status_code, status.HTTP_200_OK)
+        self.assertIn("kpis", resp_stats.data)
+        self.assertIn("total_borrowers", resp_stats.data["kpis"])
+        self.assertIn("system_health", resp_stats.data)
+
+        # 3. Admin can list users
+        resp_users = self.client.get("/api/v1/admin/users/")
+        self.assertEqual(resp_users.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(resp_users.data["users"]), 3)
 
 

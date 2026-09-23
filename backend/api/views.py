@@ -9,8 +9,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .ml.service import MLModelService
-from .models import BorrowerDocument, BorrowerProfile, LenderProfile, LoanApplication, User
+from .models import BorrowerDocument, BorrowerProfile, LenderDocument, LenderProfile, LoanApplication, Notification, User
 from .parsers.bank_statement import apply_verified_document_metrics, parse_and_process_bank_statement
+from .services.notification_service import broadcast_role_notification, create_and_send_notification
 from .tasks import (
     build_lender_overview_task,
     parse_bank_statement_task,
@@ -22,10 +23,12 @@ from .serializers import (
     BorrowerDocumentSerializer,
     BorrowerProfileSerializer,
     BorrowerRegistrationSerializer,
+    LenderDocumentSerializer,
     LenderProfileSerializer,
     LenderRegistrationSerializer,
     LoanApplicationSerializer,
     LoginSerializer,
+    NotificationSerializer,
     UserSerializer,
 )
 
@@ -187,6 +190,22 @@ class LoanApplicationViewSet(viewsets.ModelViewSet):
             borrower.status = BorrowerProfile.Status.ON_TRACK
             borrower.save(update_fields=["principal_amount", "outstanding_amount", "loan_type", "status", "updated_at"])
 
+            create_and_send_notification(
+                recipient=borrower.user,
+                title="Loan Application Approved",
+                message=f"Congratulations! Your {application.loan_type} application of ₹{int(application.requested_amount):,} has been approved.",
+                notification_type=Notification.NotificationType.LOAN,
+                action_url="/borrower/loans",
+            )
+        elif application.status == LoanApplication.Status.REJECTED:
+            create_and_send_notification(
+                recipient=application.borrower.user,
+                title="Loan Application Update",
+                message=f"Your {application.loan_type} application of ₹{int(application.requested_amount):,} was not approved at this time.",
+                notification_type=Notification.NotificationType.WARNING,
+                action_url="/borrower/loans",
+            )
+
 
 
 class HealthScorePredictionView(APIView):
@@ -332,6 +351,14 @@ class BorrowerDocumentViewSet(viewsets.ModelViewSet):
             status="processing",
         )
 
+        broadcast_role_notification(
+            role="admin",
+            title="New Document Uploaded",
+            message=f"{profile.display_name} uploaded {doc.get_document_type_display()} for review.",
+            notification_type=Notification.NotificationType.DOCUMENT,
+            action_url="/admin/documents",
+        )
+
         safe_delay(parse_bank_statement_task, str(doc.id))
         try:
             import sys
@@ -357,14 +384,26 @@ class BorrowerDocumentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def verify(self, request, pk=None):
         user = request.user
-        if not (user.is_staff or user.role in [User.Role.ADMIN, User.Role.LENDER]):
+        # STRICT SECURITY: Only platform administrators or staff can approve documents.
+        # Lenders CANNOT approve documents.
+        if not (user.is_staff or user.role == User.Role.ADMIN):
             return Response(
-                {"error": "Forbidden: Only site administrators or verified lenders can approve documents."},
+                {"error": "Forbidden: Only platform administrators can verify and approve documents."},
                 status=status.HTTP_403_FORBIDDEN,
             )
         doc = self.get_object()
         notes = request.data.get("notes", "")
         new_score = apply_verified_document_metrics(doc, verified_by_user=request.user, notes=notes)
+
+        # Send real-time notification to borrower
+        create_and_send_notification(
+            recipient=doc.borrower.user,
+            title="Document Verified & Approved",
+            message=f"Your {doc.get_document_type_display()} has been approved. Updated Health Score: {new_score}",
+            notification_type=Notification.NotificationType.SUCCESS,
+            action_url="/borrower/health-score",
+        )
+
         serializer = self.get_serializer(doc)
         return Response({
             "message": "Document successfully approved and verified.",
@@ -375,9 +414,11 @@ class BorrowerDocumentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
         user = request.user
-        if not (user.is_staff or user.role in [User.Role.ADMIN, User.Role.LENDER]):
+        # STRICT SECURITY: Only platform administrators or staff can reject documents.
+        # Lenders CANNOT reject documents.
+        if not (user.is_staff or user.role == User.Role.ADMIN):
             return Response(
-                {"error": "Forbidden: Only site administrators or verified lenders can reject documents."},
+                {"error": "Forbidden: Only platform administrators can reject documents."},
                 status=status.HTTP_403_FORBIDDEN,
             )
         doc = self.get_object()
@@ -388,11 +429,295 @@ class BorrowerDocumentViewSet(viewsets.ModelViewSet):
         doc.verification_notes = notes
         doc.verified_by = request.user
         doc.save(update_fields=["status", "rejection_reason", "verification_notes", "verified_by", "updated_at"])
+
+        # Send real-time notification to borrower
+        create_and_send_notification(
+            recipient=doc.borrower.user,
+            title="Document Verification Rejected",
+            message=f"Your {doc.get_document_type_display()} could not be verified: {reason}",
+            notification_type=Notification.NotificationType.WARNING,
+            action_url="/borrower/upload",
+        )
+
         serializer = self.get_serializer(doc)
         return Response({
             "message": "Document marked as rejected.",
             "document": serializer.data,
         }, status=status.HTTP_200_OK)
+
+
+class LenderDocumentViewSet(viewsets.ModelViewSet):
+    serializer_class = LenderDocumentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return LenderDocument.objects.none()
+
+        if user.is_staff or user.role == User.Role.ADMIN:
+            return LenderDocument.objects.all().select_related("lender__user", "verified_by")
+
+        try:
+            profile = user.lender_profile
+            return LenderDocument.objects.filter(lender=profile).select_related("lender__user", "verified_by")
+        except (LenderProfile.DoesNotExist, AttributeError):
+            return LenderDocument.objects.none()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        try:
+            profile = user.lender_profile
+        except (LenderProfile.DoesNotExist, AttributeError):
+            return Response({"error": "Only registered lenders can upload compliance documents."}, status=status.HTTP_400_BAD_REQUEST)
+
+        file_obj = self.request.FILES.get("file")
+        file_name = file_obj.name if file_obj else "document.pdf"
+        size_bytes = file_obj.size if file_obj else 0
+        file_size = f"{round(size_bytes / 1024, 1)} KB" if size_bytes < 1024 * 1024 else f"{round(size_bytes / (1024 * 1024), 1)} MB"
+
+        doc = serializer.save(
+            lender=profile,
+            file_name=file_name,
+            file_size=file_size,
+            status="pending_review",
+        )
+
+        broadcast_role_notification(
+            role="admin",
+            title="New Institutional Compliance Document",
+            message=f"{profile.institution_name} uploaded {doc.get_document_type_display()} for accreditation review.",
+            notification_type=Notification.NotificationType.COMPLIANCE,
+            action_url="/admin/documents",
+        )
+
+    @action(detail=True, methods=["post"])
+    def verify(self, request, pk=None):
+        user = request.user
+        if not (user.is_staff or user.role == User.Role.ADMIN):
+            return Response(
+                {"error": "Forbidden: Only platform administrators can verify institutional documents."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        doc = self.get_object()
+        notes = request.data.get("notes", "")
+        doc.status = "verified"
+        doc.verified_by = user
+        doc.verification_notes = notes
+        doc.save(update_fields=["status", "verified_by", "verification_notes", "updated_at"])
+
+        lender = doc.lender
+        lender.verification_status = LenderProfile.VerificationStatus.VERIFIED
+        lender.save(update_fields=["verification_status"])
+
+        create_and_send_notification(
+            recipient=lender.user,
+            title="Institutional Accreditation Approved",
+            message=f"Your {doc.get_document_type_display()} has been approved. Your institution is fully verified.",
+            notification_type=Notification.NotificationType.SUCCESS,
+            action_url="/lender/dashboard",
+        )
+
+        serializer = self.get_serializer(doc)
+        return Response({
+            "message": "Institutional document successfully verified.",
+            "document": serializer.data,
+            "verification_status": lender.verification_status,
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"])
+    def reject(self, request, pk=None):
+        user = request.user
+        if not (user.is_staff or user.role == User.Role.ADMIN):
+            return Response(
+                {"error": "Forbidden: Only platform administrators can reject institutional documents."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        doc = self.get_object()
+        reason = request.data.get("reason", "Institutional compliance criteria not met.")
+        notes = request.data.get("notes", "")
+        doc.status = "rejected"
+        doc.rejection_reason = reason
+        doc.verification_notes = notes
+        doc.verified_by = user
+        doc.save(update_fields=["status", "rejection_reason", "verification_notes", "verified_by", "updated_at"])
+
+        create_and_send_notification(
+            recipient=doc.lender.user,
+            title="Institutional Document Action Required",
+            message=f"Your {doc.get_document_type_display()} was rejected: {reason}",
+            notification_type=Notification.NotificationType.WARNING,
+            action_url="/lender/dashboard",
+        )
+
+        serializer = self.get_serializer(doc)
+        return Response({
+            "message": "Institutional document rejected.",
+            "document": serializer.data,
+        }, status=status.HTTP_200_OK)
+
+
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Notification.objects.filter(recipient=user).order_by("-created_at")
+        if self.request.query_params.get("unread", "").lower() == "true":
+            qs = qs.filter(is_read=False)
+        return qs
+
+    @action(detail=True, methods=["post"])
+    def read(self, request, pk=None):
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save(update_fields=["is_read", "updated_at"])
+        return Response({"status": "ok", "message": "Marked as read."})
+
+    @action(detail=False, methods=["post"])
+    def mark_all_read(self, request):
+        Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+        return Response({"status": "ok", "message": "All notifications marked as read."})
+
+    @action(detail=False, methods=["get"])
+    def unread_count(self, request):
+        count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        return Response({"unread_count": count})
+
+
+class AdminDashboardStatsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not (user.is_staff or user.role == User.Role.ADMIN):
+            return Response({"error": "Forbidden: Platform administrator access required."}, status=status.HTTP_403_FORBIDDEN)
+
+        from django.db.models import Sum
+        total_borrowers = BorrowerProfile.objects.count()
+        total_lenders = LenderProfile.objects.count()
+        verified_lenders = LenderProfile.objects.filter(verification_status=LenderProfile.VerificationStatus.VERIFIED).count()
+        pending_borrower_docs = BorrowerDocument.objects.filter(status__in=["pending_review", "processing"]).count()
+        pending_lender_docs = LenderDocument.objects.filter(status__in=["pending_review", "under_review"]).count()
+        total_loans = LoanApplication.objects.count()
+        approved_loans = LoanApplication.objects.filter(status=LoanApplication.Status.APPROVED).count()
+
+        vol_req = LoanApplication.objects.aggregate(total=Sum("requested_amount"))["total"] or 0
+        vol_disb = BorrowerProfile.objects.aggregate(total=Sum("principal_amount"))["total"] or 0
+
+        recent_borrower_docs = BorrowerDocument.objects.select_related("borrower__user").order_by("-created_at")[:5]
+        recent_lender_docs = LenderDocument.objects.select_related("lender").order_by("-created_at")[:5]
+
+        activities = []
+        for d in recent_borrower_docs:
+            activities.append({
+                "id": f"b_{d.id}",
+                "type": "borrower_doc",
+                "title": f"Borrower: {d.get_document_type_display()}",
+                "user": d.borrower.display_name,
+                "status": d.status,
+                "time": d.created_at.isoformat(),
+            })
+        for d in recent_lender_docs:
+            activities.append({
+                "id": f"l_{d.id}",
+                "type": "lender_doc",
+                "title": f"Institution: {d.get_document_type_display()}",
+                "user": d.lender.institution_name,
+                "status": d.status,
+                "time": d.created_at.isoformat(),
+            })
+        activities.sort(key=lambda x: x["time"], reverse=True)
+
+        return Response({
+            "kpis": {
+                "total_borrowers": total_borrowers,
+                "total_lenders": total_lenders,
+                "verified_lenders": verified_lenders,
+                "pending_borrower_docs": pending_borrower_docs,
+                "pending_lender_docs": pending_lender_docs,
+                "total_pending_verifications": pending_borrower_docs + pending_lender_docs,
+                "total_loans": total_loans,
+                "approved_loans": approved_loans,
+                "volume_requested": float(vol_req),
+                "volume_disbursed": float(vol_disb),
+            },
+            "recent_activities": activities[:8],
+            "system_health": {
+                "celery_broker": "Operational",
+                "websocket_gateway": "Active",
+                "ml_underwriter_status": "Online (v2.4)",
+                "active_models": ["XGBoost Default Classifier", "Isolation Forest Anomaly", "ARIMA Forecaster", "Neural Credit Score"],
+            },
+        }, status=status.HTTP_200_OK)
+
+
+class AdminUserManagementView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not (user.is_staff or user.role == User.Role.ADMIN):
+            return Response({"error": "Forbidden: Platform administrator access required."}, status=status.HTTP_403_FORBIDDEN)
+
+        users = User.objects.all().order_by("-date_joined")
+        data = []
+        for u in users:
+            entity_name = u.get_full_name() or u.username
+            details = {}
+            if u.role == User.Role.BORROWER and hasattr(u, "borrower_profile"):
+                bp = u.borrower_profile
+                entity_name = bp.display_name
+                details = {
+                    "health_score": bp.health_score,
+                    "risk_level": bp.risk_level,
+                    "city": bp.city,
+                    "occupation": bp.occupation,
+                }
+            elif u.role == User.Role.LENDER and hasattr(u, "lender_profile"):
+                lp = u.lender_profile
+                entity_name = lp.institution_name
+                details = {
+                    "institution_type": lp.institution_type,
+                    "verification_status": lp.verification_status,
+                    "monthly_volume": float(lp.monthly_loan_volume),
+                }
+
+            data.append({
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "role": u.role,
+                "name": entity_name,
+                "is_active": u.is_active,
+                "is_staff": u.is_staff,
+                "date_joined": u.date_joined.isoformat(),
+                "details": details,
+            })
+        return Response({"users": data}, status=status.HTTP_200_OK)
+
+    def patch(self, request, user_id=None):
+        user = request.user
+        if not (user.is_staff or user.role == User.Role.ADMIN):
+            return Response({"error": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if "is_active" in request.data:
+            target_user.is_active = bool(request.data["is_active"])
+        if "role" in request.data and request.data["role"] in [User.Role.BORROWER, User.Role.LENDER, User.Role.ADMIN]:
+            target_user.role = request.data["role"]
+        target_user.save()
+
+        if "verification_status" in request.data and hasattr(target_user, "lender_profile"):
+            lp = target_user.lender_profile
+            lp.verification_status = request.data["verification_status"]
+            lp.save(update_fields=["verification_status"])
+
+        return Response({"message": f"User {target_user.username} updated successfully."})
 
 
 

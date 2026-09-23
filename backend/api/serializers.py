@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 
-from .models import BorrowerDocument, BorrowerProfile, LenderProfile, LoanApplication, User
+from .models import BorrowerDocument, BorrowerProfile, LenderDocument, LenderProfile, LoanApplication, Notification, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -420,5 +420,71 @@ class BorrowerDocumentSerializer(serializers.ModelSerializer):
         if request is not None:
             return request.build_absolute_uri(obj.file.url)
         return obj.file.url
+
+
+class LenderDocumentSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+    institutionName = serializers.CharField(source="lender.institution_name", read_only=True)
+    lenderId = serializers.CharField(source="lender.lender_id", read_only=True)
+    verified_by = UserReferenceSerializer(read_only=True)
+
+    class Meta:
+        model = LenderDocument
+        fields = [
+            "id",
+            "lender",
+            "lenderId",
+            "institutionName",
+            "file",
+            "file_url",
+            "document_type",
+            "file_name",
+            "file_size",
+            "status",
+            "verified_by",
+            "rejection_reason",
+            "verification_notes",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "lender",
+            "lenderId",
+            "institutionName",
+            "file_name",
+            "file_size",
+            "file_url",
+            "verified_by",
+            "rejection_reason",
+            "verification_notes",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_file_url(self, obj):
+        if not obj.file:
+            return None
+        request = self.context.get("request")
+        if request is not None:
+            return request.build_absolute_uri(obj.file.url)
+        return obj.file.url
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = [
+            "notification_id",
+            "recipient",
+            "title",
+            "message",
+            "notification_type",
+            "action_url",
+            "is_read",
+            "data",
+            "created_at",
+        ]
+        read_only_fields = ["notification_id", "recipient", "created_at"]
 
 

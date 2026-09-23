@@ -17,6 +17,7 @@ ALLOWED_HOSTS = [
 
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -27,6 +28,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "django_celery_results",
+    "channels",
     "api",
 ]
 
@@ -107,3 +109,25 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = int(os.getenv("CELERY_TASK_TIME_LIMIT", "300"))
 CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv("CELERY_TASK_SOFT_TIME_LIMIT", "240"))
 CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "True").lower() == "true"
+
+ASGI_APPLICATION = "finpulse_backend.asgi.application"
+
+# Channel Layers: In-Memory layer ensures zero external dependency for local dev / testing,
+# while Redis layer can be activated via environment variable USE_REDIS_CHANNELS=True
+USE_REDIS_CHANNELS = os.getenv("USE_REDIS_CHANNELS", "False").lower() == "true"
+
+if USE_REDIS_CHANNELS:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1")],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }

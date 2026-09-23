@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from api.ml.service import MLModelService
-from api.models import BorrowerProfile, LenderProfile, LoanApplication, User
+from api.models import BorrowerDocument, BorrowerProfile, LenderDocument, LenderProfile, LoanApplication, Notification, User
 
 
 class Command(BaseCommand):
@@ -478,6 +478,76 @@ class Command(BaseCommand):
                         {"date": "2026-08-29", "title": "ML Risk Scoring Complete", "description": f"Assigned Default Probability: {def_prob_str} ({risk_class})."},
                         {"date": "2026-08-30", "title": "Lender Review", "description": f"Under evaluation by {lender.institution_name}."},
                     ],
+                )
+
+            # 5. Create Sample Lender Compliance Documents for Admin Review
+            if seeded_lender_profiles:
+                l1 = seeded_lender_profiles[0]
+                l2 = seeded_lender_profiles[1] if len(seeded_lender_profiles) > 1 else l1
+
+                LenderDocument.objects.get_or_create(
+                    lender=l1,
+                    file_name="RBI_NBFC_Registration_Certificate_2025.pdf",
+                    defaults={
+                        "document_type": "nbfc_license",
+                        "file_size": "2.4 MB",
+                        "status": "pending_review",
+                        "verification_notes": "RBI Section 45-IA Registration documentation awaiting compliance officer review.",
+                    },
+                )
+                LenderDocument.objects.get_or_create(
+                    lender=l1,
+                    file_name="Certificate_Of_Incorporation_MCA.pdf",
+                    defaults={
+                        "document_type": "incorporation_cert",
+                        "file_size": "1.1 MB",
+                        "status": "verified",
+                        "verified_by": admin_user,
+                        "verification_notes": "Verified against Ministry of Corporate Affairs database.",
+                    },
+                )
+                LenderDocument.objects.get_or_create(
+                    lender=l2,
+                    file_name="Audited_Balance_Sheet_FY24_25.pdf",
+                    defaults={
+                        "document_type": "audited_financials",
+                        "file_size": "4.8 MB",
+                        "status": "pending_review",
+                        "verification_notes": "Statutory audit report by Deloitte & Touche LLP.",
+                    },
+                )
+
+            # 6. Create Initial Seed Notifications
+            Notification.objects.get_or_create(
+                recipient=admin_user,
+                title="New Institutional Compliance Document",
+                defaults={
+                    "message": "Tata Capital submitted RBI NBFC Registration Certificate for compliance verification.",
+                    "notification_type": Notification.NotificationType.COMPLIANCE,
+                    "action_url": "/admin/documents",
+                    "is_read": False,
+                },
+            )
+            Notification.objects.get_or_create(
+                recipient=admin_user,
+                title="Pending Bank Statement Verification",
+                defaults={
+                    "message": "Sarah Jenkins uploaded 6-month HDFC Bank Statement awaiting Underwriter review.",
+                    "notification_type": Notification.NotificationType.DOCUMENT,
+                    "action_url": "/admin/documents",
+                    "is_read": False,
+                },
+            )
+            if seeded_borrower_profiles:
+                Notification.objects.get_or_create(
+                    recipient=seeded_borrower_profiles[0].user,
+                    title="Welcome to FinPulse",
+                    defaults={
+                        "message": "Your profile is active. Upload your financial statements to generate your verified AI Credit Health Score.",
+                        "notification_type": Notification.NotificationType.INFO,
+                        "action_url": "/borrower/upload",
+                        "is_read": False,
+                    },
                 )
 
         self.stdout.write(self.style.SUCCESS("Successfully seeded FinPulse database with demo data!"))

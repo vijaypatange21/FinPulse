@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
+import Card, { ContrastCard } from '../components/ui/Card';
+import StatusBadge from '../components/ui/StatusBadge';
+import Logo from '../components/ui/Logo';
 import { mockBorrowers } from '../data/mockData';
 import { getBorrowerById } from '../lib/api';
 
@@ -8,10 +11,10 @@ const BorrowerMonitoring = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const borrowerIndex = parseInt(id, 10) - 1;
-    const [apiBorrower, setApiBorrower] = React.useState(null);
+    const [apiBorrower, setApiBorrower] = useState(null);
     const borrower = apiBorrower || mockBorrowers[Number.isNaN(borrowerIndex) ? 0 : borrowerIndex] || mockBorrowers[0];
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (!id) {
             return;
         }
@@ -59,13 +62,13 @@ const BorrowerMonitoring = () => {
         loadBorrower();
     }, [id]);
 
-    const [activeTab, setActiveTab] = React.useState('overview');
-    const [actionMsg, setActionMsg] = React.useState('');
-    const [reminderModal, setReminderModal] = React.useState(false);
-    const [limitModal, setLimitModal] = React.useState(false);
-    const [recoveryModal, setRecoveryModal] = React.useState(false);
-    const [forecloseModal, setForecloseModal] = React.useState(false);
-    const [creditLimit, setCreditLimit] = React.useState(500000);
+    const [activeTab, setActiveTab] = useState('overview');
+    const [actionMsg, setActionMsg] = useState('');
+    const [reminderModal, setReminderModal] = useState(false);
+    const [limitModal, setLimitModal] = useState(false);
+    const [recoveryModal, setRecoveryModal] = useState(false);
+    const [forecloseModal, setForecloseModal] = useState(false);
+    const [creditLimit, setCreditLimit] = useState(500000);
 
     const showActionToast = (msg) => {
         setActionMsg(msg);
@@ -94,394 +97,351 @@ const BorrowerMonitoring = () => {
         showActionToast('Dossier downloaded successfully.');
     };
 
-    const riskColors = {
-        green: { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-400', border: 'border-green-100 dark:border-green-800/30', dot: 'bg-green-500' },
-        yellow: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-100 dark:border-amber-800/30', dot: 'bg-amber-500' },
-        red: { bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-700 dark:text-red-400', border: 'border-red-100 dark:border-red-800/30', dot: 'bg-red-500' }
-    };
-    const rc = riskColors[borrower.riskColor] || riskColors.green;
-
     return (
-        <div className="bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100 min-h-screen">
-            <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
-                <div className="layout-container flex h-full grow flex-col">
-                    {/* Top Navigation Bar */}
-                    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-3 lg:px-40 sticky top-0 z-40">
-                        <div className="flex items-center gap-8">
-                            <div className="flex items-center gap-4 text-primary">
-                                <button onClick={() => navigate(-1)} className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 mr-2 -ml-4">
-                                    <span className="material-icons">arrow_back</span>
-                                </button>
-                                <span className="material-icons text-3xl">insights</span>
-                                <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">FinPulse</h2>
-                            </div>
-                            <nav className="hidden md:flex items-center gap-9">
-                                <Link className="text-slate-600 dark:text-slate-400 text-sm font-medium hover:text-primary transition-colors" to="/lender/dashboard">Dashboard</Link>
-                                <Link className="text-primary text-sm font-bold border-b-2 border-primary pb-1" to="/lender/borrowers">My Borrowers</Link>
-                                <a className="text-slate-600 dark:text-slate-400 text-sm font-medium hover:text-primary transition-colors" href="#">Reports</a>
-                                <a className="text-slate-600 dark:text-slate-400 text-sm font-medium hover:text-primary transition-colors" href="#">Settings</a>
-                            </nav>
-                        </div>
-                        <div className="flex flex-1 justify-end gap-6 items-center">
-                            <ThemeToggle />
-                            <div className="relative">
-                                <span className="material-icons text-slate-600 dark:text-slate-400 cursor-pointer hover:text-primary transition-colors">notifications</span>
-                                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900"></span>
-                            </div>
-                        </div>
-                    </header>
+        <div className="bg-[var(--bg-canvas)] font-satoshi text-[var(--text-primary)] min-h-screen pb-32">
+            {/* Top Navigation Bar */}
+            <header className="sticky top-0 z-40 bg-[var(--bg-surface)]/80 backdrop-blur-md border-b border-[var(--border-subtle)] px-6 py-3.5">
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="p-2 rounded-full hover:bg-[var(--bg-surface-hover)] border border-[var(--border-subtle)] transition-colors text-[var(--text-secondary)]"
+                            title="Go Back"
+                        >
+                            <span className="material-symbols-outlined text-base">arrow_back</span>
+                        </button>
+                        <Logo to="/lender/dashboard" size="sm" subtitle="Borrower Surveillance" />
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <ThemeToggle />
+                        <span className="text-xs font-mono font-medium px-2.5 py-1 rounded-[var(--radius-pill)] bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                            Borrower #{String(borrower.id).slice(0, 8)}
+                        </span>
+                    </div>
+                </div>
+            </header>
 
-                    <main className="flex-1 px-4 lg:px-40 py-8">
-                        {/* Borrower Header Card */}
-                        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 mb-8 transition-all hover:shadow-md">
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                                <div className="flex gap-6 items-center flex-col sm:flex-row text-center sm:text-left">
-                                    <div className="h-24 w-24 rounded-xl border-4 border-slate-50 dark:border-slate-800 shrink-0 shadow-sm overflow-hidden bg-primary/10 flex items-center justify-center">
-                                        {borrower.avatarUrl ? (
-                                            <img className="w-full h-full object-cover" alt={borrower.name} src={borrower.avatarUrl} />
-                                        ) : (
-                                            <span className="text-primary text-2xl font-bold">{borrower.name.split(' ').map(n => n[0]).join('')}</span>
-                                        )}
-                                    </div>
-                                    <div className="flex flex-col items-center sm:items-start">
-                                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
-                                            <h1 className="text-slate-900 dark:text-white text-2xl font-bold">{borrower.name}</h1>
-                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${borrower.status === 'On Track' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/30' : borrower.status === 'Overdue' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800/30' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30'}`}>{borrower.status}</span>
-                                        </div>
-                                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Borrower ID: <span className="font-mono font-medium text-slate-700 dark:text-slate-300">{borrower.id}</span> • Member since {borrower.memberSince}</p>
-                                        <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4 mt-3">
-                                            <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/5 rounded-lg border border-primary/10">
-                                                <span className="material-icons text-primary text-lg">favorite</span>
-                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Health Score: <span className="text-primary font-bold">{borrower.healthScore}</span> <span className="text-xs text-slate-500 font-normal opacity-80">({borrower.healthLabel})</span></span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                                                <span className="material-icons text-slate-400 text-lg">location_on</span>
-                                                <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">{borrower.location}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 mt-2 md:mt-0">
-                                    <button className="flex-1 md:flex-none px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700">
-                                        <span className="material-icons text-lg">mail</span> Message
-                                    </button>
-                                    <button className="flex-1 md:flex-none px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-lg transition-colors shadow-sm shadow-primary/30 flex items-center justify-center gap-2">
-                                        <span className="material-icons text-lg text-white/90">description</span> Full Report
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                            {/* Sidebar: Loan Details & Risk */}
-                            <aside className="lg:col-span-4 flex flex-col gap-6">
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm transition-all hover:shadow-md">
-                                    <div className="p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
-                                        <h3 className="font-bold text-slate-900 dark:text-white">Active Loan Summary</h3>
-                                        <button className="text-slate-400 hover:text-primary transition-colors"><span className="material-icons text-sm">open_in_new</span></button>
-                                    </div>
-                                    <div className="p-5 flex flex-col gap-4">
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
-                                                <span className="material-icons text-lg opacity-80">account_balance_wallet</span>
-                                                <span className="text-sm font-medium">Total Outstanding</span>
-                                            </div>
-                                            <span className="font-bold text-slate-900 dark:text-white text-lg">{borrower.totalOutstanding}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
-                                                <span className="material-icons text-lg opacity-80">event</span>
-                                                <span className="text-sm font-medium">Next EMI Date</span>
-                                            </div>
-                                            <span className="font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-sm border border-slate-200 dark:border-slate-700">{borrower.nextEmiDate}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
-                                                <span className="material-icons text-lg opacity-80">percent</span>
-                                                <span className="text-sm font-medium">Interest Rate</span>
-                                            </div>
-                                            <span className="font-bold text-primary">{borrower.interestRate}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
-                                                <span className="material-icons text-lg opacity-80">category</span>
-                                                <span className="text-sm font-medium">Loan Type</span>
-                                            </div>
-                                            <span className="font-bold text-slate-900 dark:text-white">{borrower.productType}</span>
-                                        </div>
-                                        <div className="mt-4 flex gap-2">
-                                            <button
-                                                onClick={handleDownloadSummary}
-                                                className="flex-1 py-2 text-xs font-bold text-primary bg-primary/10 rounded-lg hover:bg-primary hover:text-white transition-colors flex items-center justify-center gap-1"
-                                            >
-                                                <span className="material-icons text-xs">download</span> Download PDF
-                                            </button>
-                                            <button
-                                                onClick={() => setForecloseModal(true)}
-                                                className="flex-1 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                                            >
-                                                Foreclose
-                                            </button>
-                                        </div>
-                                        <div className="mt-2 pt-5 border-t border-slate-100 dark:border-slate-800">
-                                            <div className="flex justify-between items-center mb-3">
-                                                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5"><span className="material-icons text-[14px]">radar</span>Risk Monitoring</span>
-                                                <span className={`flex items-center gap-1.5 text-xs font-bold ${rc.text} ${rc.bg} px-2 py-1 rounded border ${rc.border}`}>
-                                                    <span className={`size-2 rounded-full ${rc.dot} animate-pulse`}></span> {borrower.riskLevel} Risk
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-slate-500 leading-relaxed font-medium">{borrower.riskNote}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                {borrower.policyNumber !== 'None' && (
-                                    <div className="bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 rounded-xl border border-primary/20 p-5 shadow-sm transition-all hover:shadow-md">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <h4 className="text-sm font-bold text-primary flex items-center gap-2">
-                                                <span className="material-icons text-lg">verified_user</span> Insurance Coverage
-                                            </h4>
-                                            <span className="bg-white/80 dark:bg-slate-800/80 p-1.5 rounded-lg text-primary shadow-sm backdrop-blur-sm">
-                                                <span className="material-icons text-lg block">shield</span>
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col gap-3">
-                                            <p className="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">Comprehensive Loan Protection Plan active until <strong className="text-slate-900 dark:text-white">{borrower.insuranceExpiry}</strong>.</p>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Policy #{borrower.policyNumber}</span>
-                                                <button
-                                                    onClick={() => showActionToast(`Displaying Policy Certificate #${borrower.policyNumber}`)}
-                                                    className="text-xs font-bold text-primary hover:underline flex items-center gap-1 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-primary/20 shadow-sm transition-all hover:shadow-md"
-                                                >
-                                                    View Cert <span className="material-icons text-[14px]">arrow_forward</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
+            <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+                {/* Borrower Header Card */}
+                <Card className="p-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div className="flex gap-5 items-center flex-col sm:flex-row text-center sm:text-left">
+                            <div className="h-20 w-20 rounded-full border-2 border-[var(--accent)]/30 shrink-0 bg-[var(--accent-tint)] flex items-center justify-center">
+                                {borrower.avatarUrl ? (
+                                    <img className="w-full h-full object-cover rounded-full" alt={borrower.name} src={borrower.avatarUrl} />
+                                ) : (
+                                    <span className="text-[var(--accent)] font-clash text-2xl font-bold">
+                                        {borrower.name.split(' ').map(n => n[0]).join('')}
+                                    </span>
                                 )}
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                                    <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-                                        <h3 className="font-bold text-sm text-slate-900 dark:text-white">Recent Alerts</h3>
-                                        <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Last 30 days</span>
+                            </div>
+                            <div className="flex flex-col items-center sm:items-start">
+                                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+                                    <h1 className="font-clash text-2xl font-semibold text-[var(--text-primary)]">{borrower.name}</h1>
+                                    <StatusBadge
+                                        status={borrower.status === 'On Track' ? 'approved' : 'rejected'}
+                                        label={borrower.status}
+                                    />
+                                </div>
+                                <p className="text-xs text-[var(--text-secondary)] mt-1 font-medium">
+                                    Borrower ID: <span className="font-mono text-[var(--text-primary)]">{borrower.id}</span> • Member since {borrower.memberSince}
+                                </p>
+                                <div className="flex flex-wrap justify-center sm:justify-start items-center gap-3 mt-3">
+                                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-pill)] bg-[var(--accent-tint)] text-[var(--accent)] text-xs font-semibold">
+                                        <span className="material-symbols-outlined text-sm">favorite</span>
+                                        <span>Health Score: <strong className="tabular-nums font-bold">{borrower.healthScore}</strong> ({borrower.healthLabel})</span>
                                     </div>
-                                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                                        <div className="p-4 flex gap-3 text-sm">
-                                            <span className={`material-icons text-lg mt-0.5 ${borrower.riskColor === 'red' ? 'text-red-500' : 'text-amber-500'}`}>warning_amber</span>
-                                            <div>
-                                                <p className="font-medium text-slate-800 dark:text-slate-200">{borrower.alertText}</p>
-                                                <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase">Recent</p>
-                                            </div>
+                                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-pill)] bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-[var(--text-secondary)] text-xs font-medium">
+                                        <span className="material-symbols-outlined text-sm">location_on</span>
+                                        <span>{borrower.location}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 w-full md:w-auto shrink-0 pt-4 md:pt-0 border-t md:border-t-0 border-[var(--border-subtle)]">
+                            <button
+                                onClick={handleDownloadSummary}
+                                className="px-4 py-2 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-semibold hover:border-[var(--border-strong)] transition-all flex items-center gap-1.5"
+                            >
+                                <span className="material-symbols-outlined text-sm">download</span>
+                                Export Dossier
+                            </button>
+                            <button
+                                onClick={() => setReminderModal(true)}
+                                className="px-4 py-2 rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--text-on-accent)] text-xs font-semibold transition-all shadow-[var(--shadow-accent-glow)] hover:opacity-90 flex items-center gap-1.5"
+                            >
+                                <span className="material-symbols-outlined text-sm">notifications</span>
+                                Send Notice
+                            </button>
+                        </div>
+                    </div>
+                </Card>
+
+                {/* Main Grid: Left Sidebar (4 cols) + Right Content Area (8 cols) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* Sidebar: Loan Details & Risk */}
+                    <div className="lg:col-span-4 space-y-6">
+                        {/* Active Loan Summary Contrast Card */}
+                        <ContrastCard className="p-6">
+                            <span className="text-xs font-medium uppercase tracking-wider opacity-75">
+                                Facility Snapshot
+                            </span>
+                            <div className="mt-4 space-y-3.5">
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="opacity-75">Total Outstanding</span>
+                                    <span className="font-clash text-lg font-bold tabular-nums">{borrower.totalOutstanding}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="opacity-75">Next EMI Due</span>
+                                    <span className="font-semibold">{borrower.nextEmiDate}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="opacity-75">Interest Rate</span>
+                                    <span className="font-bold">{borrower.interestRate}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="opacity-75">Loan Type</span>
+                                    <span className="font-semibold">{borrower.productType}</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-5 pt-4 border-t border-black/10 dark:border-white/10">
+                                <div className="flex justify-between items-center mb-1.5">
+                                    <span className="text-[11px] font-semibold uppercase tracking-wider opacity-75">Risk Classification</span>
+                                    <span className="text-xs font-bold capitalize">{borrower.riskLevel} Risk</span>
+                                </div>
+                                <p className="text-xs opacity-75 leading-relaxed">{borrower.riskNote}</p>
+                            </div>
+                        </ContrastCard>
+
+                        {/* Recent Alerts Card */}
+                        <Card className="p-5">
+                            <div className="flex justify-between items-center mb-3">
+                                <h3 className="font-clash text-sm font-semibold text-[var(--text-primary)]">Surveillance Alert</h3>
+                                <span className="text-[10px] text-[var(--text-muted)] font-medium">Last 30 days</span>
+                            </div>
+                            <div className="p-3 rounded-[var(--radius-md)] bg-[var(--bg-canvas)] border border-[var(--border-subtle)] flex items-start gap-2.5">
+                                <span className="material-symbols-outlined text-[var(--status-warning)] text-base mt-0.5">warning</span>
+                                <div>
+                                    <p className="text-xs text-[var(--text-primary)] font-medium leading-relaxed">{borrower.alertText}</p>
+                                    <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono">Live AI Alert Engine</p>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* Main Content Area (8 cols) */}
+                    <div className="lg:col-span-8 space-y-6">
+                        {/* Repayment Progress Card */}
+                        <Card className="p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-clash font-semibold text-base text-[var(--text-primary)] flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[var(--accent)] text-lg">track_changes</span>
+                                    Repayment Amortization
+                                </h3>
+                                <span className="text-xs font-bold px-2.5 py-1 rounded-[var(--radius-pill)] bg-[var(--accent-tint)] text-[var(--accent)] tabular-nums">
+                                    {borrower.repaymentPercent}% Paid
+                                </span>
+                            </div>
+                            <div className="w-full bg-[var(--border-subtle)] rounded-full h-2.5 mb-4 overflow-hidden">
+                                <div
+                                    className="bg-[var(--accent)] h-full rounded-full transition-all duration-700"
+                                    style={{ width: `${borrower.repaymentPercent}%` }}
+                                />
+                            </div>
+                            <div className="flex justify-between text-xs font-medium text-[var(--text-secondary)]">
+                                <span>Total Paid: <strong className="tabular-nums text-[var(--text-primary)] font-semibold">{borrower.totalPaid}</strong></span>
+                                <span>Remaining: <strong className="tabular-nums text-[var(--text-primary)] font-semibold">{borrower.remaining}</strong></span>
+                            </div>
+                        </Card>
+
+                        {/* Cash Flow Stability Chart */}
+                        <Card className="p-6">
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-3">
+                                <div>
+                                    <h3 className="font-clash font-semibold text-base text-[var(--text-primary)] flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[var(--accent)] text-lg">analytics</span>
+                                        Monthly Cash Flow Stability
+                                    </h3>
+                                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">Verified bank inflow vs debit expenses</p>
+                                </div>
+                                <div className="flex items-center gap-4 text-xs">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="w-2.5 h-2.5 rounded-sm bg-[var(--accent)]"></span>
+                                        <span className="text-[var(--text-secondary)]">Income</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="w-2.5 h-2.5 rounded-sm bg-[var(--border-strong)]"></span>
+                                        <span className="text-[var(--text-secondary)]">Expenses</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="h-48 w-full flex items-end justify-between gap-2 px-2 pb-2 border-b border-[var(--border-subtle)]">
+                                {borrower.cashFlow.map((cf, i) => (
+                                    <div key={i} className="flex-1 flex flex-col justify-end items-center h-full">
+                                        <div className="w-full max-w-[36px] flex items-end gap-1 h-full">
+                                            <div
+                                                className="w-1/2 bg-[var(--border-strong)] rounded-t-sm transition-all"
+                                                style={{ height: `${cf.expenseH}%` }}
+                                                title={`Expense: ${cf.expenseH}%`}
+                                            />
+                                            <div
+                                                className="w-1/2 bg-[var(--accent)] rounded-t-sm transition-all"
+                                                style={{ height: `${cf.incomeH}%` }}
+                                                title={`Income: ${cf.incomeH}%`}
+                                            />
                                         </div>
+                                        <p className="text-[10px] text-center font-semibold text-[var(--text-secondary)] mt-2 uppercase">
+                                            {cf.month}
+                                        </p>
                                     </div>
-                                </div>
-                            </aside>
+                                ))}
+                            </div>
+                        </Card>
 
-                            {/* Main Content Area */}
-                            <div className="lg:col-span-8 flex flex-col">
-                                <div className="border-b border-slate-200 dark:border-slate-800 mb-6 flex gap-6 overflow-x-auto pb-0.5 no-scrollbar">
-                                    {[
-                                        { id: 'overview', label: 'Overview', icon: 'dashboard' },
-                                        { id: 'repayment', label: 'Repayment Schedule', icon: 'payments' },
-                                        { id: 'transactions', label: 'Transaction Monitoring', icon: 'monitoring' },
-                                        { id: 'documents', label: 'Documents', icon: 'description' },
-                                    ].map((tab) => (
-                                        <button
-                                            key={tab.id}
-                                            onClick={() => setActiveTab(tab.id)}
-                                            className={`pb-4 px-1 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
-                                                activeTab === tab.id
-                                                    ? 'border-primary text-primary'
-                                                    : 'border-transparent text-slate-500 hover:text-primary'
-                                            }`}
-                                        >
-                                            <span className="material-icons text-sm">{tab.icon}</span> {tab.label}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Progress Bar Section */}
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 mb-6 shadow-sm transition-all hover:shadow-md">
-                                    <div className="flex justify-between items-center mb-5">
-                                        <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                            <span className="material-icons text-primary text-lg">track_changes</span> Repayment Progress
-                                        </h3>
-                                        <span className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-md shadow-sm">{borrower.repaymentPercent}% Paid</span>
-                                    </div>
-                                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 mb-5 overflow-hidden border border-slate-200 dark:border-slate-700">
-                                        <div className="bg-gradient-to-r from-primary to-blue-400 h-full rounded-full transition-all duration-1000 ease-out relative" style={{width: `${borrower.repaymentPercent}%`}}>
-                                            <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-l from-white/20 to-transparent"></div>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500 font-medium">Total Paid: <span className="font-bold text-slate-900 dark:text-white ml-1">{borrower.totalPaid}</span></span>
-                                        <span className="text-slate-500 font-medium">Remaining: <span className="font-bold text-slate-900 dark:text-white ml-1">{borrower.remaining}</span></span>
-                                    </div>
-                                </div>
-
-                                {/* Cash Flow Health */}
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 mb-6 shadow-sm transition-all hover:shadow-md">
-                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
-                                        <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                            <span className="material-icons text-primary text-lg">analytics</span> Cash Flow Stability
-                                        </h3>
+                        {/* Repayment Timeline */}
+                        <Card className="overflow-hidden">
+                            <div className="p-5 border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]/40 flex justify-between items-center">
+                                <h3 className="font-clash font-semibold text-base text-[var(--text-primary)] flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[var(--accent)] text-lg">history</span>
+                                    Repayment History & Schedule
+                                </h3>
+                            </div>
+                            <div className="divide-y divide-[var(--border-subtle)]">
+                                {borrower.timeline.map((t, i) => (
+                                    <div key={i} className="p-4 flex items-center justify-between hover:bg-[var(--bg-surface-hover)] transition-colors">
                                         <div className="flex items-center gap-3">
-                                            <div className="flex items-center gap-3 mr-4">
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="size-2.5 bg-primary rounded-sm shadow-sm"></span>
-                                                    <span className="text-xs text-slate-500 font-medium">Income</span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="size-2.5 bg-primary/20 rounded-sm"></span>
-                                                    <span className="text-xs text-slate-500 font-medium">Expenses</span>
+                                            <div className="w-8 h-8 rounded-full bg-[var(--status-success-bg)] text-[var(--status-success)] flex items-center justify-center shrink-0">
+                                                <span className="material-symbols-outlined text-sm">check_circle</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold text-[var(--text-primary)]">EMI - {t.month}</p>
+                                                <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
+                                                    <span>{t.date}</span>
+                                                    <span>•</span>
+                                                    <span className="font-mono">Ref: {t.ref}</span>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="h-56 w-full flex items-end justify-between gap-1.5 sm:gap-3 px-1 sm:px-4 mt-4 pb-2 relative border-b border-slate-100 dark:border-slate-800">
-                                        {borrower.cashFlow.map((cf, i) => (
-                                            <div key={i} className={`flex-1 max-w-16 space-y-2 group flex flex-col justify-end h-full relative z-10 w-full`}>
-                                                <div className={`w-full flex items-end gap-[2px] h-[${Math.max(cf.incomeH, cf.expenseH)}%] group-hover:-translate-y-1 transition-transform duration-300`}>
-                                                    <div className="flex-1 bg-primary/20 hover:bg-primary/30 rounded-t-sm transition-colors cursor-pointer" style={{height: `${cf.expenseH}%`}}></div>
-                                                    <div className="flex-1 bg-primary hover:bg-primary/90 rounded-t-sm transition-colors shadow-sm cursor-pointer" style={{height: `${cf.incomeH}%`}}></div>
-                                                </div>
-                                                <p className={`text-[10px] text-center font-bold uppercase tracking-wider ${i === borrower.cashFlow.length - 1 ? 'text-primary' : 'text-slate-400'}`}>{cf.month}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* EMI Timeline */}
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm transition-all hover:shadow-md mb-8">
-                                    <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
-                                        <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                            <span className="material-icons text-primary text-lg">history</span> Repayment Timeline
-                                        </h3>
-                                    </div>
-                                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                                        {borrower.timeline.map((t, i) => (
-                                            <div key={i} className="p-4 sm:p-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`${t.status === 'Paid Full' ? 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800/50' : t.status === 'Missed' ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/50' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/50'} rounded-lg p-3 shrink-0 group-hover:scale-110 transition-transform shadow-inner border`}>
-                                                        <span className="material-icons leading-none">{t.status === 'Paid Full' ? 'check_circle' : t.status === 'Missed' ? 'cancel' : 'warning'}</span>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-bold text-slate-900 dark:text-white mb-0.5">EMI - {t.month}</p>
-                                                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                            <span>{t.date}</span>
-                                                            <span className="size-1 bg-slate-300 rounded-full"></span>
-                                                            <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">Ref: {t.ref}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right shrink-0">
-                                                    <p className="text-base font-bold text-slate-900 dark:text-white leading-none mb-1.5">{t.amount}</p>
-                                                    <span className={`text-[10px] font-bold ${t.status === 'Paid Full' ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/30' : t.status === 'Missed' ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30' : 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/30'} px-2.5 py-1 rounded border uppercase tracking-wider`}>{t.status}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {/* Upcoming EMI */}
-                                        <div className="p-4 sm:p-5 flex items-center justify-between bg-primary/5 dark:bg-primary/10 border-l-4 border-l-primary group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="bg-white dark:bg-slate-800 text-primary border border-primary/20 rounded-lg p-3 shrink-0 shadow-sm">
-                                                    <span className="material-icons leading-none animate-bounce" style={{animationDuration: '2s'}}>schedule</span>
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-bold text-slate-900 dark:text-white mb-0.5">Next EMI <span className="bg-primary text-white text-[9px] px-1.5 py-0.5 rounded uppercase font-bold tracking-widest hidden sm:inline-block">Due Soon</span></p>
-                                                    <div className="flex items-center gap-2 text-xs text-primary font-medium">
-                                                        <span>Scheduled for {borrower.nextEmiDate} (Auto-Debit)</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="text-right shrink-0">
-                                                <p className="text-base font-bold text-slate-900 dark:text-white leading-none mb-1.5">{borrower.emiAmount}</p>
-                                                <span className="text-[10px] font-bold text-primary bg-white dark:bg-slate-800 px-2.5 py-1 rounded border border-primary/20 uppercase tracking-wider shadow-sm">Upcoming</span>
-                                            </div>
+                                        <div className="text-right">
+                                            <p className="text-xs font-semibold text-[var(--text-primary)] tabular-nums">{t.amount}</p>
+                                            <StatusBadge status="approved" label={t.status} />
                                         </div>
                                     </div>
+                                ))}
+
+                                {/* Upcoming EMI */}
+                                <div className="p-4 flex items-center justify-between bg-[var(--accent-tint)]/20 border-l-4 border-l-[var(--accent)]">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                                            <span className="material-symbols-outlined text-sm">schedule</span>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-semibold text-[var(--text-primary)]">
+                                                Upcoming EMI Due
+                                            </p>
+                                            <p className="text-[11px] text-[var(--accent)] font-medium">
+                                                Scheduled for {borrower.nextEmiDate} (NACH Auto-Debit)
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs font-bold text-[var(--text-primary)] tabular-nums">{borrower.emiAmount}</p>
+                                        <span className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-wider">Scheduled</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </main>
+                        </Card>
+                    </div>
+                </div>
+            </main>
 
-                    {/* Action Toast */}
-                    {actionMsg && (
-                        <div className="fixed top-20 right-8 z-50 p-4 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold flex items-center gap-2 shadow-2xl animate-fade-in">
-                            <span className="material-icons text-emerald-400 text-base">check_circle</span>
-                            <span>{actionMsg}</span>
-                        </div>
-                    )}
+            {/* Action Toast */}
+            {actionMsg && (
+                <div className="fixed top-20 right-8 z-50 p-4 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-semibold flex items-center gap-2 shadow-2xl animate-fade-in">
+                    <span className="material-symbols-outlined text-[var(--status-success)] text-base">check_circle</span>
+                    <span>{actionMsg}</span>
+                </div>
+            )}
 
-                    {/* Sticky Bottom Action Bar */}
-                    <footer className="sticky bottom-0 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 sm:px-6 lg:px-40 py-4 lg:py-4 z-40 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)]">
-                        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                            <div className="hidden lg:flex items-center gap-3 bg-amber-50 dark:bg-amber-900/10 px-4 py-2 rounded-lg border border-amber-100 dark:border-amber-900/30">
-                                <span className="material-icons text-amber-500">info</span>
-                                <p className="text-sm text-amber-900 dark:text-amber-200 font-medium">Next formal review scheduled in <span className="font-bold underline decoration-amber-400">12 days</span>. {borrower.healthLabel} financial profile.</p>
-                            </div>
-                            <div className="flex flex-wrap md:flex-nowrap justify-center sm:justify-end gap-3 w-full lg:w-auto">
-                                <button
-                                    onClick={() => setReminderModal(true)}
-                                    className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center gap-2"
-                                >
-                                    <span className="material-icons text-lg">notifications_active</span> <span className="hidden sm:inline">Send Reminder</span><span className="sm:hidden">Remind</span>
-                                </button>
-                                <button
-                                    onClick={() => setLimitModal(true)}
-                                    className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center gap-2"
-                                >
-                                    <span className="material-icons text-lg">edit_note</span> Adjust Limit
-                                </button>
-                                <div className="h-10 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1 hidden sm:block"></div>
-                                <button
-                                    onClick={() => setRecoveryModal(true)}
-                                    className="flex-[2] sm:flex-none px-4 sm:px-6 py-2.5 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-400 text-sm font-bold rounded-lg transition-all border border-red-200 dark:border-red-900/50 shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
-                                >
-                                    <span className="material-icons text-lg">gavel</span> Initiate Recovery
-                                </button>
-                            </div>
-                        </div>
-                    </footer>
+            {/* Sticky Bottom Action Bar with Glass Chrome */}
+            <div className="fixed bottom-0 left-0 right-0 bg-[var(--bg-surface)]/90 backdrop-blur-md border-t border-[var(--border-subtle)] px-6 py-4 z-40">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                        <span className="material-symbols-outlined text-base text-[var(--accent)]">info</span>
+                        <span>Next formal review scheduled in 12 days. {borrower.healthLabel} profile.</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setReminderModal(true)}
+                            className="px-4 py-2 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-semibold transition-all flex items-center gap-1.5"
+                        >
+                            <span className="material-symbols-outlined text-sm">notifications_active</span>
+                            Send Reminder
+                        </button>
+                        <button
+                            onClick={() => setLimitModal(true)}
+                            className="px-4 py-2 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-semibold transition-all flex items-center gap-1.5"
+                        >
+                            <span className="material-symbols-outlined text-sm">tune</span>
+                            Adjust Limit
+                        </button>
+                        <button
+                            onClick={() => setRecoveryModal(true)}
+                            className="px-5 py-2 rounded-[var(--radius-pill)] border border-[var(--status-error)] text-[var(--status-error)] hover:bg-[var(--status-error-bg)] text-xs font-semibold transition-all flex items-center gap-1.5"
+                        >
+                            <span className="material-symbols-outlined text-sm">gavel</span>
+                            Initiate Recovery
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             {/* Reminder Modal */}
             {reminderModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                    <Card className="max-w-md w-full p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <span className="material-icons text-primary">notifications_active</span> Send Borrower Notice
+                            <h3 className="font-clash text-base font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[var(--accent)]">notifications_active</span> Send Borrower Notice
                             </h3>
-                            <button onClick={() => setReminderModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+                            <button onClick={() => setReminderModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">✕</button>
                         </div>
-                        <p className="text-xs text-slate-500">Dispatch an automated payment reminder to <strong>{borrower.name}</strong> for upcoming EMI ({borrower.emiAmount}) due on {borrower.nextEmiDate}.</p>
+                        <p className="text-xs text-[var(--text-secondary)]">
+                            Dispatch an automated payment reminder to <strong>{borrower.name}</strong> for upcoming EMI ({borrower.emiAmount}) due on {borrower.nextEmiDate}.
+                        </p>
                         <div className="flex gap-3 pt-2">
-                            <button onClick={() => setReminderModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300">Cancel</button>
+                            <button onClick={() => setReminderModal(false)} className="flex-1 py-2 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-secondary)]">Cancel</button>
                             <button
                                 onClick={() => {
                                     setReminderModal(false);
-                                    showActionToast(`Payment reminder SMS & email dispatched to ${borrower.name}.`);
+                                    showActionToast(`Payment reminder dispatched to ${borrower.name}.`);
                                 }}
-                                className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:bg-primary/90"
+                                className="flex-1 py-2 rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--text-on-accent)] text-xs font-semibold shadow-[var(--shadow-accent-glow)]"
                             >
                                 Dispatch Notice
                             </button>
                         </div>
-                    </div>
+                    </Card>
                 </div>
             )}
 
             {/* Limit Adjustment Modal */}
             {limitModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                    <Card className="max-w-md w-full p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <span className="material-icons text-primary">tune</span> Modify Credit Exposure Limit
+                            <h3 className="font-clash text-base font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[var(--accent)]">tune</span> Modify Exposure Limit
                             </h3>
-                            <button onClick={() => setLimitModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+                            <button onClick={() => setLimitModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">✕</button>
                         </div>
                         <div>
-                            <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                            <div className="flex justify-between text-xs font-medium text-[var(--text-secondary)] mb-2">
                                 <span>Sanctioned Credit Limit</span>
-                                <span className="text-primary font-bold">₹{creditLimit.toLocaleString('en-IN')}</span>
+                                <span className="font-clash font-bold tabular-nums text-[var(--accent)]">₹{creditLimit.toLocaleString('en-IN')}</span>
                             </div>
                             <input
                                 type="range"
@@ -490,83 +450,51 @@ const BorrowerMonitoring = () => {
                                 step="50000"
                                 value={creditLimit}
                                 onChange={(e) => setCreditLimit(Number(e.target.value))}
-                                className="w-full accent-primary"
+                                className="w-full accent-[var(--accent)]"
                             />
                         </div>
                         <div className="flex gap-3 pt-2">
-                            <button onClick={() => setLimitModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300">Cancel</button>
+                            <button onClick={() => setLimitModal(false)} className="flex-1 py-2 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-secondary)]">Cancel</button>
                             <button
                                 onClick={() => {
                                     setLimitModal(false);
-                                    showActionToast(`Credit limit for ${borrower.name} adjusted to ₹${creditLimit.toLocaleString('en-IN')}.`);
+                                    showActionToast(`Credit limit adjusted to ₹${creditLimit.toLocaleString('en-IN')}.`);
                                 }}
-                                className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:bg-primary/90"
+                                className="flex-1 py-2 rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--text-on-accent)] text-xs font-semibold shadow-[var(--shadow-accent-glow)]"
                             >
                                 Confirm Adjustment
                             </button>
                         </div>
-                    </div>
+                    </Card>
                 </div>
             )}
 
             {/* Recovery Modal */}
             {recoveryModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-base font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
-                                <span className="material-icons">gavel</span> Initiate Legal Recovery Notice
-                            </h3>
-                            <button onClick={() => setRecoveryModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                    <Card className="max-w-md w-full p-6 space-y-4">
+                        <div className="flex items-center gap-2.5 text-[var(--status-error)]">
+                            <span className="material-symbols-outlined text-2xl">gavel</span>
+                            <h3 className="font-clash font-semibold text-base text-[var(--text-primary)]">Legal Recovery Escalation</h3>
                         </div>
-                        <p className="text-xs text-slate-500">Initiate formal loan default escalation and issue formal legal recovery proceedings for outstanding amount {borrower.totalOutstanding}.</p>
+                        <p className="text-xs text-[var(--text-secondary)]">
+                            Initiate formal loan default escalation and issue formal legal recovery proceedings for outstanding amount {borrower.totalOutstanding}.
+                        </p>
                         <div className="flex gap-3 pt-2">
-                            <button onClick={() => setRecoveryModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300">Cancel</button>
+                            <button onClick={() => setRecoveryModal(false)} className="flex-1 py-2 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-secondary)]">Cancel</button>
                             <button
                                 onClick={() => {
                                     setRecoveryModal(false);
                                     showActionToast(`Recovery notice initiated against facility #${borrower.id}.`);
                                 }}
-                                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md"
+                                className="flex-1 py-2 rounded-[var(--radius-pill)] bg-[var(--status-error)] text-white text-xs font-semibold hover:opacity-90"
                             >
                                 Proceed with Notice
                             </button>
                         </div>
-                    </div>
+                    </Card>
                 </div>
             )}
-
-            {/* Foreclose Modal */}
-            {forecloseModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <span className="material-icons text-primary">account_balance</span> Foreclosure Settlement
-                            </h3>
-                            <button onClick={() => setForecloseModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
-                        </div>
-                        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-1 text-xs">
-                            <p className="text-slate-500">Total Outstanding Balance: <strong className="text-slate-900 dark:text-white">{borrower.totalOutstanding}</strong></p>
-                            <p className="text-slate-500">Foreclosure Waiver: <strong>100% Prepayment Penalty Waived</strong></p>
-                        </div>
-                        <div className="flex gap-3 pt-2">
-                            <button onClick={() => setForecloseModal(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300">Cancel</button>
-                            <button
-                                onClick={() => {
-                                    setForecloseModal(false);
-                                    showActionToast(`Foreclosure demand note issued for ${borrower.name}.`);
-                                }}
-                                className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:bg-primary/90"
-                            >
-                                Issue Settlement
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-                </div>
-            </div>
         </div>
     );
 };

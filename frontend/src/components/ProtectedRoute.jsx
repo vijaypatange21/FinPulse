@@ -18,7 +18,9 @@ const ProtectedRoute = ({ allowedRoles = [], children }) => {
       // Redirect user to their role-appropriate dashboard if they attempt to access forbidden routes
       if (userRole === 'borrower') {
         return <Navigate to="/borrower/dashboard" replace />;
-      } else if (userRole === 'lender' || userRole === 'admin') {
+      } else if (userRole === 'admin') {
+        return <Navigate to="/admin/dashboard" replace />;
+      } else if (userRole === 'lender') {
         return <Navigate to="/lender/dashboard" replace />;
       }
       return <Navigate to="/login" replace />;

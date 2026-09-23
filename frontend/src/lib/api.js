@@ -212,6 +212,76 @@ export function getMediaUrl(url) {
   return url.startsWith('/') ? url : `/${url}`;
 }
 
+// Lender Institutional Compliance Documents
+export function listLenderDocuments() {
+  return apiRequest('/lender-documents/', { auth: true });
+}
+
+export function uploadLenderDocument(formData) {
+  return apiRequest('/lender-documents/', {
+    method: 'POST',
+    body: formData,
+    auth: true,
+  });
+}
+
+export function verifyLenderDocument(id, notes = '') {
+  return apiRequest(`/lender-documents/${id}/verify/`, {
+    method: 'POST',
+    body: { notes },
+    auth: true,
+  });
+}
+
+export function rejectLenderDocument(id, reason = '', notes = '') {
+  return apiRequest(`/lender-documents/${id}/reject/`, {
+    method: 'POST',
+    body: { reason, notes },
+    auth: true,
+  });
+}
+
+// Real-Time Notifications API
+export function listNotifications({ unread = false } = {}) {
+  const query = unread ? '?unread=true' : '';
+  return apiRequest(`/notifications/${query}`, { auth: true });
+}
+
+export function markNotificationRead(id) {
+  return apiRequest(`/notifications/${id}/read/`, {
+    method: 'POST',
+    auth: true,
+  });
+}
+
+export function markAllNotificationsRead() {
+  return apiRequest('/notifications/mark_all_read/', {
+    method: 'POST',
+    auth: true,
+  });
+}
+
+export function getUnreadNotificationCount() {
+  return apiRequest('/notifications/unread_count/', { auth: true });
+}
+
+// Platform Administrator API
+export function getAdminStats() {
+  return apiRequest('/admin/stats/', { auth: true });
+}
+
+export function listAdminUsers() {
+  return apiRequest('/admin/users/', { auth: true });
+}
+
+export function updateAdminUser(userId, data) {
+  return apiRequest(`/admin/users/${userId}/`, {
+    method: 'PATCH',
+    body: data,
+    auth: true,
+  });
+}
+
 
 
 

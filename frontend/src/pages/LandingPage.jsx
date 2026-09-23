@@ -1,426 +1,1004 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import ThemeToggle from '../components/ThemeToggle';
+import Lenis from 'lenis';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ArrowRight, 
+  Shield, 
+  Zap, 
+  CheckCircle2, 
+  TrendingUp, 
+  FileText, 
+  Activity, 
+  Layers, 
+  Lock, 
+  Scale, 
+  Users, 
+  ChevronRight, 
+  Sliders, 
+  Sparkles, 
+  Menu, 
+  X, 
+  Building2, 
+  Compass,
+  FileCheck,
+  Cpu,
+  BarChart3,
+  Check,
+  ArrowUpRight,
+  Database,
+  Key,
+  ShieldCheck,
+  FileSpreadsheet
+} from 'lucide-react';
 
-const LandingPage = () => {
+import ThemeToggle from '../components/ThemeToggle';
+import AnimatedCounter from '../components/landing/AnimatedCounter';
+import FeatureCard from '../components/landing/FeatureCard';
+import FAQAccordion from '../components/landing/FAQAccordion';
+import ScrollReveal from '../components/landing/ScrollReveal';
+import HeroShowcase from '../components/landing/HeroShowcase';
+import DocumentScannerMockup from '../components/landing/DocumentScannerMockup';
+import CreditCardStack from '../components/landing/CreditCardStack';
+import Logo, { LogoIcon } from '../components/ui/Logo';
+
+export default function LandingPage() {
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.1,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      touchMultiplier: 1.5,
+    });
+
+    let animationFrameId;
+    function raf(time) {
+      lenis.raf(time);
+      animationFrameId = requestAnimationFrame(raf);
+    }
+    animationFrameId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      lenis.destroy();
+    };
+  }, []);
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeAudienceTab, setActiveAudienceTab] = useState('lenders'); // 'lenders' | 'borrowers' | 'compliance'
+  
+  // Interactive Simulator State
+  const [simRevenue, setSimRevenue] = useState(65); // in Lakhs
+  const [simStability, setSimStability] = useState(85); // %
+  const [simOcrVerified, setSimOcrVerified] = useState(true);
+
+  // Computed Demo Score: Base + factors
+  const computedScore = Math.min(
+    880,
+    Math.round(550 + (simRevenue * 1.8) + (simStability * 1.6) + (simOcrVerified ? 50 : 0))
+  );
+
+  const getTier = (score) => {
+    if (score >= 760) return { label: 'Prime Tier (Low Risk)', color: 'text-emerald-600 dark:text-[var(--accent)]', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30' };
+    if (score >= 680) return { label: 'Near Prime (Moderate Risk)', color: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-500/15', border: 'border-sky-500/30' };
+    return { label: 'Subprime (Elevated Spread)', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-500/30' };
+  };
+
+  const currentTier = getTier(computedScore);
+
+  const faqItems = [
+    {
+      question: 'How is FinPulse different from traditional CIBIL or bureau credit scores?',
+      answer: 'Traditional bureaus rely strictly on historical loan repayment history, penalizing newer enterprises and thin-file borrowers. FinPulse utilizes real-time cashflow intelligence (GST e-filings, verified bank statement ledgers, transaction velocity) through a cascade Deep Forest AI architecture. This produces a forward-looking creditworthiness index with verifiable SHAP explainability.'
+    },
+    {
+      question: 'How does the OCR document verification prevent fraud?',
+      answer: 'Our document processing pipeline extracts multi-page tabular transactions, cross-verifies IFSC/tax checksums against official government registries, and scans for visual tampering, font manipulation, and metadata inconsistencies in under 3 seconds.'
+    },
+    {
+      question: 'Can institutional lenders configure custom risk thresholds?',
+      answer: 'Yes! FinPulse provides a dedicated Lender Portal and REST APIs that allow risk officers to customize debt-to-income caps, minimum cashflow stability scores, exposure limits, and automated webhook triggers for instant loan disbursement.'
+    },
+    {
+      question: 'How is borrower financial data protected and encrypted?',
+      answer: 'We employ bank-grade 256-bit AES encryption at rest and TLS 1.3 in transit. FinPulse never stores raw net-banking credentials, operates under ISO 27001 data protection protocols, and ensures borrowers retain granular consent over all shared documents.'
+    },
+    {
+      question: 'How long does underwriting and offer matching take?',
+      answer: 'Borrowers who upload required bank statements and KYC documents receive an instant FinPulse Credit Health Diagnosis. Verified profiles are indexed on the lender exchange, where institutional capital partners deploy sanction offers typically within 2 to 24 hours.'
+    }
+  ];
+
   return (
-    <div className="bg-[#f6f6f8] dark:bg-[#101622] font-sans text-slate-900 dark:text-slate-100 antialiased min-h-screen">
-      <style>{`
-        .pulse-logo {
-            background: linear-gradient(90deg, #2262ec 0%, #60a5fa 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-12px); }
-            100% { transform: translateY(0px); }
-        }
-        @keyframes float-delay {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-16px); }
-            100% { transform: translateY(0px); }
-        }
-        @keyframes float-slow {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-            100% { transform: translateY(0px); }
-        }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.2; }
-            100% { transform: scale(0.8); opacity: 0.5; }
-        }
-        @keyframes dash-move {
-            0% { stroke-dashoffset: 0; }
-            100% { stroke-dashoffset: -200; }
-        }
-        .animate-float { animation: float 5s ease-in-out infinite; }
-        .animate-float-delay { animation: float-delay 6s ease-in-out infinite 1s; }
-        .animate-float-slow { animation: float-slow 7s ease-in-out infinite 0.5s; }
-        .animate-pulse-ring { animation: pulse-ring 3s ease-in-out infinite; }
-        .animate-dash { animation: dash-move 20s linear infinite; }
-      `}</style>
+    <div className="bg-[var(--bg-canvas)] text-[var(--text-primary)] font-body min-h-screen selection:bg-[var(--accent)] selection:text-black overflow-x-hidden transition-colors duration-300">
       
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-[#2262ec]/10 bg-white/80 dark:bg-[#101622]/80 backdrop-blur-md">
+      {/* 1. STICKY GLASSMORPHIC NAVBAR */}
+      <header className="sticky top-0 z-50 w-full border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]/85 backdrop-blur-xl transition-all">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="material-icons text-[#2262ec] text-3xl">show_chart</span>
-            <span className="text-2xl font-extrabold tracking-tight pulse-logo">FinPulse</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600 dark:text-slate-300">
-            <a className="hover:text-[#2262ec] transition-colors" href="#">Solutions</a>
-            <a className="hover:text-[#2262ec] transition-colors" href="#">Platform</a>
-            <a className="hover:text-[#2262ec] transition-colors" href="#">Resources</a>
+          
+          {/* Logo Brand */}
+          <Logo to="/" size="md" subtitle="AI Credit Intelligence" />
+
+          {/* Desktop Navigation Links (Clean 4 Core Links) */}
+          <nav className="hidden lg:flex items-center gap-9 text-sm font-medium text-[var(--text-secondary)]">
+            <a href="#process" className="hover:text-[var(--text-primary)] transition-colors">How It Works</a>
+            <a href="#suite" className="hover:text-[var(--text-primary)] transition-colors">Platform</a>
+            <Link to="/find-lender" className="hover:text-[var(--text-primary)] transition-colors">Marketplace</Link>
+            <Link to="/lender/plans" className="hover:text-[var(--text-primary)] transition-colors">Pricing</Link>
           </nav>
-          <div className="flex items-center gap-4">
+
+          {/* Actions & Theme Toggle */}
+          <div className="hidden sm:flex items-center gap-4">
             <ThemeToggle />
-            <Link className="hidden sm:block text-sm font-semibold text-slate-700 dark:text-slate-200" to="/login">Log In</Link>
-            <Link className="bg-[#2262ec] hover:bg-[#2262ec]/90 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all shadow-lg shadow-[#2262ec]/20" to="/role-selection">Get Started</Link>
+            <Link
+              to="/login"
+              className="text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-4 py-2 transition-colors"
+            >
+              Log In
+            </Link>
+            <Link
+              to="/role-selection"
+              className="group relative inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-medium text-sm tracking-normal whitespace-nowrap bg-[var(--accent)] text-black hover:opacity-90 shadow-lg shadow-[var(--accent-glow)] transition-all hover:scale-105"
+            >
+              <span>Get Started</span>
+              <div className="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center">
+                <ArrowRight className="w-3.5 h-3.5" />
+              </div>
+            </Link>
+          </div>
+
+          {/* Mobile Hamburger Button */}
+          <div className="flex sm:hidden items-center gap-3">
+            <ThemeToggle />
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-lg bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)] text-[var(--text-primary)]"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="sm:hidden border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6 py-6 space-y-4"
+            >
+              <div className="flex flex-col space-y-3 text-base font-medium text-[var(--text-primary)]">
+                <a href="#process" onClick={() => setMobileMenuOpen(false)} className="hover:text-[var(--accent)] py-1">How It Works</a>
+                <a href="#suite" onClick={() => setMobileMenuOpen(false)} className="hover:text-[var(--accent)] py-1">Platform</a>
+                <Link to="/find-lender" onClick={() => setMobileMenuOpen(false)} className="hover:text-[var(--accent)] py-1">Marketplace</Link>
+                <Link to="/lender/plans" onClick={() => setMobileMenuOpen(false)} className="hover:text-[var(--accent)] py-1">Pricing</Link>
+              </div>
+              <div className="pt-4 border-t border-[var(--border-subtle)] flex flex-col gap-3">
+                <Link
+                  to="/login"
+                  className="w-full text-center py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-primary)] font-medium"
+                >
+                  Log In
+                </Link>
+                <Link
+                  to="/role-selection"
+                  className="w-full text-center py-2.5 rounded-xl bg-[var(--accent)] text-black font-display font-semibold"
+                >
+                  Get Started
+                </Link>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-16 pb-24 md:pt-24 md:pb-32">
-        <div className="absolute inset-0 pointer-events-none opacity-40 dark:opacity-20">
-          <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#2262ec]/20 rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 right-0 w-80 h-80 bg-[#2262ec]/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-purple-400/10 rounded-full blur-3xl"></div>
-        </div>
-        <div className="max-w-7xl mx-auto px-6 relative">
-          <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-20">
-            {/* Left: Text */}
-            <div className="flex-1 text-center lg:text-left">
-              <span className="inline-block py-1.5 px-4 rounded-full bg-[#2262ec]/10 text-[#2262ec] text-xs font-bold tracking-widest uppercase mb-6 border border-[#2262ec]/20">The Future of Lending is Here</span>
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-8 leading-[1.08]">
-                Transform Lending with <span className="text-[#2262ec]">Real-Time</span> Financial Intelligence
-              </h1>
-              <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-10 leading-relaxed max-w-xl mx-auto lg:mx-0">
-                Leverage AI to assess risk, monitor financial health, and close loans faster than ever before. Empowering both lenders and borrowers through transparency.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <Link className="w-full sm:w-auto px-8 py-4 bg-[#2262ec] text-white font-bold rounded-xl shadow-xl shadow-[#2262ec]/30 hover:scale-[1.02] transition-transform" to="/role-selection">
-                  For Lenders
-                </Link>
-                <Link className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-slate-800 border-2 border-[#2262ec]/20 hover:border-[#2262ec]/50 text-slate-800 dark:text-white font-bold rounded-xl transition-all" to="/role-selection">
-                  For Borrowers
-                </Link>
-              </div>
+      {/* 2. CENTER-ALIGNED HERO SECTION (MATCHING REFERENCE DESIGN EXACTLY) */}
+      <section className="relative pt-12 pb-20 lg:pt-20 lg:pb-28 overflow-hidden transition-colors duration-300">
+        {/* Subtle Ambient Radial Glows */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[450px] bg-[var(--accent)]/10 rounded-full blur-[130px] pointer-events-none" />
+
+        <div className="max-w-5xl mx-auto px-6 relative z-10 text-center">
+          
+          {/* Main Headline */}
+          <ScrollReveal direction="up" delay={0.2}>
+            <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-normal text-[var(--text-primary)] leading-[1.12] mb-6 max-w-4xl mx-auto">
+              Autonomous <span className="text-gradient-lime">Credit Intelligence</span> for Next-Gen Lending.
+            </h1>
+          </ScrollReveal>
+
+          {/* Subheading */}
+          <ScrollReveal direction="up" delay={0.3}>
+            <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-2xl mx-auto mb-8 leading-relaxed font-body">
+              Assess borrower cashflow resilience, automate bank statement OCR, and match with verified institutional lenders in real-time.
+            </p>
+          </ScrollReveal>
+
+          {/* Centered Primary CTA Button (Matching Reference Button Style) */}
+          <ScrollReveal direction="up" delay={0.4}>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+              <Link
+                to="/role-selection"
+                className="group px-8 py-3.5 rounded-full font-display font-semibold text-sm bg-[var(--accent)] text-black hover:opacity-90 shadow-xl shadow-[var(--accent-glow)] flex items-center gap-3 transition-all hover:scale-105"
+              >
+                <span>Get Started Free</span>
+                <div className="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center group-hover:translate-x-0.5 transition-transform">
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </div>
+              </Link>
+              <Link
+                to="/role-selection"
+                className="px-7 py-3.5 rounded-full font-display font-medium text-sm bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/50 text-[var(--text-primary)] transition-all flex items-center gap-2"
+              >
+                <Sliders className="w-4 h-4 text-[var(--accent)]" />
+                <span>Simulate Score</span>
+              </Link>
             </div>
+          </ScrollReveal>
 
-            {/* Right: Animated Hero Graphic */}
-            <div className="flex-1 relative w-full max-w-lg lg:max-w-xl">
-              <div className="relative aspect-square">
-                {/* Background circles */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-80 h-80 md:w-96 md:h-96 rounded-full border-2 border-dashed border-[#2262ec]/15 animate-pulse-ring"></div>
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-56 h-56 md:w-72 md:h-72 rounded-full border border-[#2262ec]/10 bg-[#2262ec]/5 dark:bg-[#2262ec]/10"></div>
-                </div>
+          {/* HERO VISUAL SHOWCASE: SLEEK DEVICE + SURROUNDING FLOATING METRIC CARDS */}
+          <ScrollReveal direction="up" delay={0.5}>
+            <HeroShowcase />
+          </ScrollReveal>
 
-                {/* Center orb */}
-                <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <div className="relative">
-                    <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-gradient-to-br from-[#2262ec] to-blue-400 shadow-2xl shadow-[#2262ec]/40 flex items-center justify-center">
-                      <span className="material-icons text-white text-5xl md:text-6xl">insights</span>
-                    </div>
-                    <div className="absolute -inset-4 rounded-full border border-[#2262ec]/30 animate-pulse-ring"></div>
-                  </div>
-                </div>
+        </div>
+      </section>
 
-                {/* Floating Stat Card 1 — Top Left */}
-                <div className="absolute top-4 left-0 md:top-6 md:-left-4 animate-float z-20">
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl shadow-slate-900/10 dark:shadow-black/20 p-4 border border-slate-100 dark:border-slate-700 w-44 md:w-52 backdrop-blur-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-green-500/15 flex items-center justify-center">
-                        <span className="material-icons text-green-500 text-base">trending_up</span>
-                      </div>
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Health Score</span>
-                    </div>
-                    <div className="flex items-end gap-2">
-                      <span className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white">847</span>
-                      <span className="text-xs font-bold text-green-500 mb-1">+12.3%</span>
-                    </div>
-                    <div className="mt-2 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full" style={{width: '84%'}}></div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Floating Stat Card 2 — Top Right */}
-                <div className="absolute top-0 right-0 md:top-2 md:-right-4 animate-float-delay z-20">
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl shadow-slate-900/10 dark:shadow-black/20 p-4 border border-slate-100 dark:border-slate-700 w-44 md:w-52 backdrop-blur-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-[#2262ec]/15 flex items-center justify-center">
-                        <span className="material-icons text-[#2262ec] text-base">speed</span>
-                      </div>
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Risk Analysis</span>
-                    </div>
-                    <div className="flex items-end gap-2">
-                      <span className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white">Low</span>
-                      <span className="text-xs font-bold text-[#2262ec] mb-1">AI Score</span>
-                    </div>
-                    <div className="mt-2 flex gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <div key={i} className={`flex-1 h-1.5 rounded-full ${i < 4 ? 'bg-[#2262ec]' : 'bg-slate-200 dark:bg-slate-700'}`}></div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Floating Stat Card 3 — Bottom Left */}
-                <div className="absolute bottom-8 -left-2 md:bottom-12 md:-left-6 animate-float-slow z-20">
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl shadow-slate-900/10 dark:shadow-black/20 p-4 border border-slate-100 dark:border-slate-700 w-44 md:w-52 backdrop-blur-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center">
-                        <span className="material-icons text-purple-500 text-base">account_balance</span>
-                      </div>
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Loan Portfolio</span>
-                    </div>
-                    <div className="flex items-end gap-2">
-                      <span className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white">₹24Cr</span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-1 font-medium">142 Active Borrowers</p>
-                  </div>
-                </div>
-
-                {/* Floating Stat Card 4 — Bottom Right */}
-                <div className="absolute bottom-0 right-2 md:bottom-4 md:-right-2 animate-float z-20">
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl shadow-slate-900/10 dark:shadow-black/20 p-3.5 border border-slate-100 dark:border-slate-700 w-40 md:w-48 backdrop-blur-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
-                        <span className="material-icons text-amber-500 text-sm">bolt</span>
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Approval Speed</span>
-                    </div>
-                    <div className="flex items-end gap-2">
-                      <span className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white">4.2hrs</span>
-                      <span className="text-[10px] font-bold text-amber-500 mb-0.5">Avg</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Decorative connector lines (SVG) */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 400 400">
-                  <line x1="200" y1="200" x2="80" y2="80" stroke="currentColor" className="text-[#2262ec]/20" strokeWidth="1" strokeDasharray="6 4" />
-                  <line x1="200" y1="200" x2="320" y2="70" stroke="currentColor" className="text-[#2262ec]/20" strokeWidth="1" strokeDasharray="6 4" />
-                  <line x1="200" y1="200" x2="60" y2="310" stroke="currentColor" className="text-[#2262ec]/20" strokeWidth="1" strokeDasharray="6 4" />
-                  <line x1="200" y1="200" x2="330" y2="340" stroke="currentColor" className="text-[#2262ec]/20" strokeWidth="1" strokeDasharray="6 4" />
-                </svg>
-              </div>
+      {/* 3. VERIFIED DATA PROTOCOLS & ARCHITECTURE STRIP (Clean & Authentic - No Fake Logos!) */}
+      <section className="py-10 border-y border-[var(--border-subtle)] bg-[var(--bg-surface-raised)]/60 backdrop-blur-md relative">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center text-xs font-mono uppercase tracking-widest text-[var(--text-secondary)] mb-6">
+            Supported Data Standards & Protocols
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 items-center justify-center text-center">
+            <div className="flex items-center justify-center gap-2 text-xs font-semibold text-[var(--text-primary)] p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <FileSpreadsheet className="w-4 h-4 text-[var(--accent)]" />
+              <span>PDF Bank OCR</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-xs font-semibold text-[var(--text-primary)] p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <Database className="w-4 h-4 text-emerald-500" />
+              <span>GSTR-3B Ingestion</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-xs font-semibold text-[var(--text-primary)] p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <FileText className="w-4 h-4 text-sky-500" />
+              <span>ITR-V Tax Records</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-xs font-semibold text-[var(--text-primary)] p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <Key className="w-4 h-4 text-amber-500" />
+              <span>Account Aggregator</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-xs font-semibold text-[var(--text-primary)] p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <Lock className="w-4 h-4 text-[var(--accent)]" />
+              <span>AES-256 GCM</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-xs font-semibold text-[var(--text-primary)] p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>ISO 27001 Protocol</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Bar */}
-      <section className="py-12 bg-[#2262ec] dark:bg-[#2262ec]/90 text-white">
+      {/* 4. UNDERWRITING PROCESS STEP BY STEP (MATCHING REFERENCE SECTION 3) */}
+      <section id="process" className="py-24 lg:py-32 relative">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-white/20">
-            <div className="py-6 md:py-0">
-              <div className="text-4xl font-extrabold mb-1">30-45 Days</div>
-              <div className="text-blue-100/80 font-medium">Saved in Processing Time</div>
-            </div>
-            <div className="py-6 md:py-0">
-              <div className="text-4xl font-extrabold mb-1">40%</div>
-              <div className="text-blue-100/80 font-medium">Reduction in Default Risk</div>
-            </div>
-            <div className="py-6 md:py-0">
-              <div className="text-4xl font-extrabold mb-1">99.9%</div>
-              <div className="text-blue-100/80 font-medium">Data Accuracy Rate</div>
-            </div>
+          
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-5xl font-display font-semibold text-[var(--text-primary)] tracking-normal mb-4">
+              FinPulse Underwriting Process Step by Step
+            </h2>
+            <p className="text-base sm:text-lg text-[var(--text-secondary)]">
+              Upload, verify, evaluate, and disburse capital faster than ever before.
+            </p>
           </div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="py-24 bg-white dark:bg-[#101622]">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Powerful Features for Modern Finance</h2>
-            <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto italic">Precision analytics powered by advanced neural networks.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {/* Feature 1 */}
-            <div className="p-8 rounded-2xl border border-[#2262ec]/10 bg-[#f6f6f8] dark:bg-slate-800/50 hover:shadow-xl transition-shadow group">
-              <div className="w-14 h-14 rounded-xl bg-[#2262ec]/10 text-[#2262ec] flex items-center justify-center mb-6 group-hover:bg-[#2262ec] group-hover:text-white transition-colors">
-                <span className="material-icons text-3xl">analytics</span>
-              </div>
-              <h3 className="text-xl font-bold mb-4">Alternative Credit Scoring</h3>
-              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                Go beyond traditional FICO. Our AI analyzes thousands of data points including cash flow and spending patterns to find hidden opportunities.
-              </p>
+          {/* Split 2-Column Process Showcase */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center mb-16">
+            
+            {/* Left Column: Live Document Scanner Mockup */}
+            <div className="lg:col-span-6">
+              <DocumentScannerMockup />
             </div>
-            {/* Feature 2 */}
-            <div className="p-8 rounded-2xl border border-[#2262ec]/10 bg-[#f6f6f8] dark:bg-slate-800/50 hover:shadow-xl transition-shadow group">
-              <div className="w-14 h-14 rounded-xl bg-[#2262ec]/10 text-[#2262ec] flex items-center justify-center mb-6 group-hover:bg-[#2262ec] group-hover:text-white transition-colors">
-                <span className="material-icons text-3xl">speed</span>
-              </div>
-              <h3 className="text-xl font-bold mb-4">Real-Time Monitoring</h3>
-              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                Continuous health tracking ensures you're never caught off guard. Get instant alerts when risk profiles change or opportunities arise.
-              </p>
-            </div>
-            {/* Feature 3 */}
-            <div className="p-8 rounded-2xl border border-[#2262ec]/10 bg-[#f6f6f8] dark:bg-slate-800/50 hover:shadow-xl transition-shadow group">
-              <div className="w-14 h-14 rounded-xl bg-[#2262ec]/10 text-[#2262ec] flex items-center justify-center mb-6 group-hover:bg-[#2262ec] group-hover:text-white transition-colors">
-                <span className="material-icons text-3xl">psychology</span>
-              </div>
-              <h3 className="text-xl font-bold mb-4">Transparent Insights</h3>
-              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                Explainable AI results. We don't just provide a score; we provide the 'why' behind every decision, ensuring full regulatory compliance.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* How It Works Section */}
-      <section className="py-24 bg-[#f6f6f8] dark:bg-slate-900/50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row gap-16 items-center">
-            {/* Image Side */}
-            <div className="w-full md:w-1/2">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <img className="w-full h-auto object-cover aspect-[4/3]" alt="Financial professionals working with AI software on screens" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBohapDc2-kPWxN6CYAatv046dgLgLGAlyVmNmMbxPx1EBgEEd_wYsqSxIJQXGNRzuFzPp4Ao__rXNjzToMYrA20N8myXctQPD3mH9tfnjzxgi1qqUIeJIXQlx4Ir74Z2GNe_LB0th8Xqlx9tppv_gHjq18R67nnzL8GyJLYoCpQMjynVUwLa08m1suv9SnOA-iLbyz5VQJAURCsCoULv51lGz05bEj613aqBgFMIMm3Q-pMpKg23Y6UDGNWUUlffF3jht-s9yIJbM"/>
-                <div className="absolute bottom-6 left-6 right-6 bg-white/95 dark:bg-slate-800/95 p-6 rounded-xl shadow-lg border-l-4 border-[#2262ec]">
-                  <p className="text-sm font-semibold italic text-slate-800 dark:text-slate-100">"FinPulse has completely revolutionized our risk assessment protocol. We've seen a massive jump in efficiency."</p>
-                  <span className="block mt-2 text-xs font-bold text-[#2262ec] uppercase tracking-wide">— Director of Lending, GlobalBank</span>
+            {/* Right Column: 3 Sequential Step Cards */}
+            <div className="lg:col-span-6 space-y-5">
+              
+              {/* Step 1 */}
+              <div className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm hover:border-[var(--accent)]/50 transition-all flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-[var(--accent)] text-black flex items-center justify-center shrink-0 font-display font-bold text-lg">
+                  01
                 </div>
-              </div>
-            </div>
-            {/* Content Side */}
-            <div className="w-full md:w-1/2">
-              <h2 className="text-3xl md:text-4xl font-bold mb-8">How it Works</h2>
-              <div className="space-y-12">
-                {/* Path 1 */}
                 <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className="bg-[#2262ec]/20 text-[#2262ec] p-1.5 rounded-full"><span className="material-icons text-sm">business</span></span>
-                    <h4 className="text-lg font-bold">For Lenders</h4>
-                  </div>
-                  <div className="space-y-6">
-                    <div className="flex gap-4">
-                      <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[#2262ec] text-white flex items-center justify-center font-bold text-sm">1</span>
-                      <div>
-                        <h5 className="font-bold mb-1">Integrate Data</h5>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Connect your existing CRM and bank feeds via our secure API.</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-4">
-                      <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[#2262ec] text-white flex items-center justify-center font-bold text-sm">2</span>
-                      <div>
-                        <h5 className="font-bold mb-1">AI Risk Assessment</h5>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Our engine runs thousands of simulations to determine health scores.</p>
-                      </div>
-                    </div>
-                  </div>
+                  <h3 className="text-lg font-display font-semibold text-[var(--text-primary)] mb-1">
+                    Upload Financial Statements
+                  </h3>
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                    Borrowers upload multi-page PDF bank statements, GST invoices, and ITR filings. FinPulse automatically detects bank formats and validates checksums.
+                  </p>
                 </div>
-                <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
-                {/* Path 2 */}
+              </div>
+
+              {/* Step 2 */}
+              <div className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm hover:border-[var(--accent)]/50 transition-all flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 font-display font-bold text-lg">
+                  02
+                </div>
                 <div>
-                  <div className="flex items-center gap-3 mb-6 text-slate-500">
-                    <span className="bg-slate-200 dark:bg-slate-700 p-1.5 rounded-full"><span className="material-icons text-sm">person</span></span>
-                    <h4 className="text-lg font-bold">For Borrowers</h4>
+                  <h3 className="text-lg font-display font-semibold text-[var(--text-primary)] mb-1">
+                    Deep Forest Multi-Modal Analysis
+                  </h3>
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                    Our proprietary cascade tree ensemble examines 240+ behavioral cashflow features—revenue velocity, volatility indices, and bounce history—far beyond basic bureau numbers.
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm hover:border-[var(--accent)]/50 transition-all flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-sky-500 text-white flex items-center justify-center shrink-0 font-display font-bold text-lg">
+                  03
+                </div>
+                <div>
+                  <h3 className="text-lg font-display font-semibold text-[var(--text-primary)] mb-1">
+                    Instant Sanction & Capital Disbursement
+                  </h3>
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                    Approved borrowers match with partner institutional lenders who disburse pre-calibrated working capital tranches with zero paperwork friction.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* 4 Bottom Feature Badges (Matching Reference Section 3 Bottom Badges) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center shrink-0">
+                <FileCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-[var(--text-primary)]">Sub-3s OCR Parsing</h4>
+                <p className="text-xs text-[var(--text-secondary)]">Zero manual data transcription</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
+                <Cpu className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-[var(--text-primary)]">Deep Forest AI Scoring</h4>
+                <p className="text-xs text-[var(--text-secondary)]">240+ behavioral signal trees</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-500 flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-[var(--text-primary)]">Bank-Grade Encryption</h4>
+                <p className="text-xs text-[var(--text-secondary)]">AES-256 GCM & ISO 27001</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center shrink-0">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-[var(--text-primary)]">Delinquency Radar</h4>
+                <p className="text-xs text-[var(--text-secondary)]">Continuous post-sanction watch</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 5. THE INTELLIGENT CREDIT SUITE (MATCHING REFERENCE SECTION 4: CENTER PHONE + 4 FLANKING CARDS) */}
+      <section id="suite" className="py-24 bg-[var(--bg-surface-raised)]/40 border-t border-[var(--border-subtle)] relative">
+        <div className="max-w-7xl mx-auto px-6">
+          
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-5xl font-display font-semibold text-[var(--text-primary)] tracking-normal mb-4">
+              The Next-Gen Credit Intelligence Suite
+            </h2>
+            <p className="text-base sm:text-lg text-[var(--text-secondary)]">
+              Expand institutional underwriting velocity and empower MSMEs with transparent, data-driven decisions.
+            </p>
+          </div>
+
+          {/* 3-Column Layout: Left 2 Cards, Center Phone Mockup, Right 2 Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            
+            {/* Left 2 Cards */}
+            <div className="lg:col-span-4 space-y-6">
+              <FeatureCard
+                icon={Zap}
+                badge="Speed"
+                title="Sub-3-Second OCR Parsing"
+                description="Upload raw multi-page bank statements or scanned returns. High-precision OCR extracts ledgers and reconciles tax checksums in under 3 seconds."
+              />
+              <FeatureCard
+                icon={TrendingUp}
+                badge="Signals"
+                title="Alternative Cashflow Modeling"
+                description="Evaluate daily operating stability, seasonal revenue consistency, and vendor payment velocity instead of relying strictly on stale bureau records."
+              />
+            </div>
+
+            {/* Center Phone Screen Showcase */}
+            <div className="lg:col-span-4 flex items-center justify-center">
+              <div className="w-[280px] rounded-[40px] p-3 bg-neutral-900 shadow-2xl border-4 border-neutral-700 text-white font-sans overflow-hidden">
+                <div className="w-full rounded-[32px] bg-[#0E1218] p-4 text-center">
+                  <div className="w-20 h-3.5 bg-black rounded-full mx-auto mb-4" />
+                  
+                  <div className="text-[10px] text-neutral-400 uppercase font-mono mb-1">
+                    Explainable AI Breakdown
                   </div>
-                  <div className="space-y-6">
-                    <div className="flex gap-4 opacity-75">
-                      <span className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-400 text-white flex items-center justify-center font-bold text-sm">1</span>
-                      <div>
-                        <h5 className="font-bold mb-1">Secure Connection</h5>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Securely upload and share financial records with partner institutions.</p>
+                  <div className="text-xl font-display font-bold text-white mb-3">
+                    SHAP Factor Matrix
+                  </div>
+
+                  {/* SHAP Bars inside Phone */}
+                  <div className="space-y-3 text-left mb-4">
+                    <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-neutral-300">Revenue Consistency</span>
+                        <span className="text-[var(--accent)] font-mono font-bold">+44 pts</span>
+                      </div>
+                      <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-[var(--accent)] h-full w-[85%]" />
                       </div>
                     </div>
-                    <div className="flex gap-4 opacity-75">
-                      <span className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-400 text-white flex items-center justify-center font-bold text-sm">2</span>
-                      <div>
-                        <h5 className="font-bold mb-1">Dashboard Insights</h5>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Receive a clear path to loan approval and financial health tips.</p>
+
+                    <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-neutral-300">Tax Filing Punctuality</span>
+                        <span className="text-emerald-400 font-mono font-bold">+28 pts</span>
+                      </div>
+                      <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-emerald-400 h-full w-[70%]" />
                       </div>
                     </div>
+
+                    <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-neutral-300">Cash Cushion Margin</span>
+                        <span className="text-sky-400 font-mono font-bold">+16 pts</span>
+                      </div>
+                      <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-sky-400 h-full w-[55%]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-[var(--accent)]/15 border border-[var(--accent)]/30 text-xs text-[var(--accent)] font-semibold">
+                    AUROC 0.942 • Bank Auditable
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Trusted By Section */}
-      <section className="py-16 bg-white dark:bg-[#101622]">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-sm font-semibold text-slate-400 uppercase tracking-[0.2em] mb-10">Trusted by Forward-Thinking Financial Institutions</p>
-          <div className="flex flex-wrap justify-center items-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all">
-            <img alt="Visa" className="h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA904sx6jv-Sk42mbJbqadUvbJTMej_CO1k9g6FQDG_erJLvY6hxT2jBjXTnpEFAssofNpFUr6llEJiW2YZbhr1fXl_EZ4_BXKWZ0xZ_zZSFYCXGcPZflXeSrQ5efuV1WQtm9azgqn9UV0QWPtDPlp1HPU8Bvn-sg-DIl2EwaWnDkbDN9NZeU2J2yz0o1mMvG9j-sMPB-yJ7l9GAK1cwctq1q3f2yU7sl1a5QzFA849tgKXu5IOPDuicEr9GJEnk0gy8IJGvEZcuJM"/>
-            <img alt="Mastercard" className="h-8" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEALK8tt6KHFUjiO5bHuQH3NwCxcGtcxycX24S5KD7aFdDZoC-mdbiiPQv1Seei_sVNsyOMeXviWkL_iFtPs26lxPsWtyuymMJY5W4gDT4tAK7KLHWDEtM5pnxwxv5qYLnLMB9yKOCccatyBCWN0UuyivUBKLO4zx116OwgHiadVWRQfgOjDZ5WWSnw66TWb-al5kl4aY0n1-p5qVw3xPwrbO_Cw0kYU7YzUmvwj6mxBm7uL_SqdXvLExcrSh4t3NbyOzuyrnINr4"/>
-            <img alt="PayPal" className="h-8" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhLVfKM0gU3yXafOqbNlo1fI3wBFnnII45BN9WFUosX62GTKp-UCdeGdDJ7Ll3OaMQ2rCJNTvH02gyWzFlsNEUyM48YxPN8EWgPmOeV1iLxZJ5aGa1X3d2zpUxcQZKkgWZCAHRFpKs2rxxe6qgVyWvEBiCYoZ_7xx-P2DuN8zsQIwxyU9e3QmbSnRgLtQcDJVP3ylJ-DLQNLQS8EGH3m_rASRE4mI8kfNDBAsA1BXWK61J6m7vETAFLRmuoy7sY2-OhuMvfoMYaQ0"/>
-            <img alt="Chase" className="h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDc3pZ0NDslyHWp3ltodf9nNcIuakvUfsDBX4BzjcXj40h4F6Vz-60xFOeTQ1AB1msxzed0-_YFANRZxSa-L02Ud9f7IOj0jS_ADD0VWk9lJdYGzFmc3A1Vr7k-9tK7mrIabZWwMfKIhtUTOQhJ8FDTKDLAIRL_wTsgQXkvXcQvrb0OcMLJrGLODYjTNitvJfvDplg_1j3aEusTu1l1VXV3KN75bV9o8WdbHDn2QeAf3WEq4u_tG2WTSLkPST2WINErW05jMEpPyPA"/>
-            <img alt="Goldman Sachs" className="h-8" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUpzhJpVpGaQPkiJ8xXy3KL-j_EHob-fzo1zYyC65nTWV3tC8QqgAFHw3nZ6QOvPW9DxDBr88ZVccqIDNHIQfy57gJmt4Z1LDbY_YLqsohxChIhYLj62PxFk_Cba2EcoSKaGLcQcWi6CvI3Rp6h-4lDvxzsakRDtXRTgexocBQURn6FjQEeJsZj2-2cxN4oLXZvMDgpE58HuobpqYUM0d4p_gyrd7jyvxH8O4Ei4KN5oRagSc5XnY2GR2h6w_rC1cV6SHm426B2Zk"/>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA Section */}
-      <section className="py-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="bg-[#2262ec] rounded-3xl p-12 md:p-20 text-center relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10 pointer-events-none">
-              <svg height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" width="100%">
-                <path d="M0 50 Q 25 25, 50 50 T 100 50" fill="none" stroke="white" strokeWidth="0.5"></path>
-                <path d="M0 70 Q 25 45, 50 70 T 100 70" fill="none" stroke="white" strokeWidth="0.5"></path>
-                <path d="M0 30 Q 25 5, 50 30 T 100 30" fill="none" stroke="white" strokeWidth="0.5"></path>
-              </svg>
+            {/* Right 2 Cards */}
+            <div className="lg:col-span-4 space-y-6">
+              <FeatureCard
+                icon={Scale}
+                badge="Explainable"
+                title="Explainable SHAP Risk Vectors"
+                description="Inspect exact positive and negative factor contributions before capital allocation. Generate regulatory adverse action disclosures with one click."
+              />
+              <FeatureCard
+                icon={Activity}
+                badge="Automation"
+                title="Real-Time Webhook & API Alerts"
+                description="Connect FinPulse directly into your existing loan management system (LMS). Receive instant alerts on underwriting status and tranche disbursement."
+              />
             </div>
-            <div className="relative z-10 max-w-3xl mx-auto">
-              <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-8">Ready to supercharge your lending pipeline?</h2>
-              <p className="text-xl text-blue-100/80 mb-10">Join 500+ financial institutions using FinPulse to make smarter, faster decisions.</p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to="/role-selection" className="px-10 py-4 bg-white text-[#2262ec] font-extrabold rounded-xl hover:bg-slate-50 transition-colors shadow-xl">Request a Demo</Link>
-                <Link to="/role-selection" className="px-10 py-4 bg-[#2262ec]/20 border border-white/30 text-white font-extrabold rounded-xl hover:bg-[#2262ec]/30 transition-colors">Speak to Sales</Link>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* 6. NEXT-GEN CREDIT FACILITY & ASSET MANAGEMENT (MATCHING REFERENCE SECTION 5) */}
+      <section id="facility" className="py-24 border-t border-[var(--border-subtle)] relative">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            {/* Left Column: Headline, Descriptions, and Green CTA Button */}
+            <div className="lg:col-span-6">
+              <h2 className="text-3xl sm:text-5xl font-display font-semibold text-[var(--text-primary)] tracking-normal mb-6">
+                Explore Next-Gen Credit Facility Management
+              </h2>
+              <p className="text-base text-[var(--text-secondary)] leading-relaxed mb-8">
+                Empower your business with revolving lines of credit, automated repayments, and dynamic limit expansion based on real-time operating performance.
+              </p>
+
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[var(--accent)] text-black flex items-center justify-center shrink-0">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">
+                    Automated limit increases as monthly bank cashflow expands
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[var(--accent)] text-black flex items-center justify-center shrink-0">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">
+                    Interest charged only on deployed capital, zero idle commitment fees
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[var(--accent)] text-black flex items-center justify-center shrink-0">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">
+                    Flexible repayment schedules matched with seasonal invoice cycles
+                  </span>
+                </div>
+              </div>
+
+              <Link
+                to="/register/borrower"
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-display font-semibold text-sm bg-[var(--accent)] text-black hover:opacity-90 shadow-lg shadow-[var(--accent-glow)] transition-all hover:scale-105"
+              >
+                <span>Apply for Credit Facility</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {/* Right Column: Stacked Credit Card Showcase */}
+            <div className="lg:col-span-6">
+              <CreditCardStack />
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* 7. DUAL-SIDED ARCHITECTURE: FOR LENDERS & BORROWERS (MATCHING REFERENCE SECTION 6) */}
+      <section className="py-24 bg-[var(--bg-surface-raised)]/40 border-t border-[var(--border-subtle)] relative">
+        <div className="max-w-7xl mx-auto px-6">
+          
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-3xl sm:text-5xl font-display font-semibold text-[var(--text-primary)] tracking-normal mb-4">
+              Best Underwriting Solution, Built for Scale
+            </h2>
+            <p className="text-base sm:text-lg text-[var(--text-secondary)]">
+              Tailored tools for institutional underwriters, risk officers, and ambitious borrowers.
+            </p>
+          </div>
+
+          {/* Interactive Audience Tabs */}
+          <div className="flex justify-center mb-12">
+            <div className="inline-flex p-1.5 rounded-full bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <button
+                onClick={() => setActiveAudienceTab('lenders')}
+                className={`px-5 py-2 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                  activeAudienceTab === 'lenders'
+                    ? 'bg-[var(--accent)] text-black font-semibold shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                For Institutional Lenders
+              </button>
+              <button
+                onClick={() => setActiveAudienceTab('borrowers')}
+                className={`px-5 py-2 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                  activeAudienceTab === 'borrowers'
+                    ? 'bg-[var(--accent)] text-black font-semibold shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                For Growing Borrowers
+              </button>
+              <button
+                onClick={() => setActiveAudienceTab('compliance')}
+                className={`px-5 py-2 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                  activeAudienceTab === 'compliance'
+                    ? 'bg-[var(--accent)] text-black font-semibold shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                Risk & Compliance
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Content Display */}
+          <div className="max-w-4xl mx-auto rounded-3xl p-8 sm:p-10 bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl">
+            {activeAudienceTab === 'lenders' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div>
+                  <h3 className="text-2xl font-display font-semibold text-[var(--text-primary)] mb-3">
+                    Automated Portfolio Underwriting
+                  </h3>
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-6">
+                    Connect your LMS or loan origination system to ingest borrower files, verify bank statement authenticity, and deploy capital under pre-calibrated risk thresholds.
+                  </p>
+                  <ul className="space-y-2 text-sm text-[var(--text-primary)]">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[var(--accent)]" />
+                      <span>Custom risk weights and exposure caps</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[var(--accent)]" />
+                      <span>Automated webhook event triggers</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[var(--accent)]" />
+                      <span>Early warning delinquency monitoring</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="p-6 rounded-2xl bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)]">
+                  <div className="text-xs uppercase font-mono text-[var(--text-secondary)] mb-1">Underwriter Benefit</div>
+                  <div className="text-3xl font-display font-bold text-[var(--accent)] mb-2">90 Seconds</div>
+                  <p className="text-xs text-[var(--text-secondary)] mb-4">Turnaround time from file upload to automated sanction recommendation.</p>
+                  <Link
+                    to="/register/lender"
+                    className="w-full py-3 rounded-full bg-[var(--accent)] text-black font-display font-semibold text-xs flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity"
+                  >
+                    <span>Onboard as Partner Lender</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {activeAudienceTab === 'borrowers' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div>
+                  <h3 className="text-2xl font-display font-semibold text-[var(--text-primary)] mb-3">
+                    Fair, Cashflow-Driven Capital
+                  </h3>
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-6">
+                    Get evaluated on the real health of your business operations. Our AI looks at your cash inflows, operating consistency, and tax filings—not just legacy CIBIL history.
+                  </p>
+                  <ul className="space-y-2 text-sm text-[var(--text-primary)]">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <span>Zero bureau score inquiry penalty</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <span>Direct matches with 15+ verified lenders</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <span>Actionable recommendations to boost credit rating</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="p-6 rounded-2xl bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)]">
+                  <div className="text-xs uppercase font-mono text-[var(--text-secondary)] mb-1">Borrower Benefit</div>
+                  <div className="text-3xl font-display font-bold text-emerald-500 mb-2">₹50L Limit</div>
+                  <p className="text-xs text-[var(--text-secondary)] mb-4">Maximum instant working capital facility with flexible seasonal tranches.</p>
+                  <Link
+                    to="/register/borrower"
+                    className="w-full py-3 rounded-full bg-[var(--accent)] text-black font-display font-semibold text-xs flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity"
+                  >
+                    <span>Check Business Eligibility</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {activeAudienceTab === 'compliance' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div>
+                  <h3 className="text-2xl font-display font-semibold text-[var(--text-primary)] mb-3">
+                    Bank-Grade Explainability & Audits
+                  </h3>
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-6">
+                    Meet all regulatory requirements with mathematically sound SHAP explanations for every credit approval or decline decision.
+                  </p>
+                  <ul className="space-y-2 text-sm text-[var(--text-primary)]">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-sky-500" />
+                      <span>One-click Adverse Action Notice generation</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-sky-500" />
+                      <span>Immutable audit logs for compliance officers</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-sky-500" />
+                      <span>ISO 27001 and AES-256 data protection</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="p-6 rounded-2xl bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)]">
+                  <div className="text-xs uppercase font-mono text-[var(--text-secondary)] mb-1">Audit Guarantee</div>
+                  <div className="text-3xl font-display font-bold text-sky-500 mb-2">100% SHAP</div>
+                  <p className="text-xs text-[var(--text-secondary)] mb-4">Every prediction is fully explainable with exact feature weight attribution.</p>
+                  <Link
+                    to="/role-selection"
+                    className="w-full py-3 rounded-full bg-[var(--accent)] text-black font-display font-semibold text-xs flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity"
+                  >
+                    <span>Inspect Compliance Stack</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </section>
+
+      {/* 8. INTERACTIVE CREDIT HEALTH SIMULATOR */}
+      <section id="simulator" className="py-24 lg:py-32 relative overflow-hidden border-t border-[var(--border-subtle)]">
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            <div className="lg:col-span-6">
+              <h2 className="text-3xl sm:text-5xl font-display font-semibold text-[var(--text-primary)] tracking-normal mb-6">
+                Simulate Your Underwriting Health Score
+              </h2>
+              <p className="text-base text-[var(--text-secondary)] leading-relaxed mb-8">
+                Test how real-time operating parameters impact your predicted default risk and lender pricing tiers. Drag the sliders to see instant model calibration.
+              </p>
+
+              {/* Slider 1: Revenue */}
+              <div className="space-y-6">
+                <div className="p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <label className="text-sm font-display font-semibold text-[var(--text-primary)]">Monthly Cash Inflow</label>
+                    <span className="font-mono text-sm text-[var(--accent)] font-bold">₹{simRevenue} Lakhs</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="10"
+                    max="150"
+                    value={simRevenue}
+                    onChange={(e) => setSimRevenue(Number(e.target.value))}
+                    className="w-full h-2 bg-[var(--bg-surface-raised)] rounded-lg appearance-none cursor-pointer accent-[var(--accent)]"
+                  />
+                  <div className="flex justify-between text-[11px] text-[var(--text-secondary)] mt-1 font-mono">
+                    <span>₹10L</span>
+                    <span>₹75L</span>
+                    <span>₹150L</span>
+                  </div>
+                </div>
+
+                {/* Slider 2: Stability */}
+                <div className="p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <label className="text-sm font-display font-semibold text-[var(--text-primary)]">Operating Balance Consistency</label>
+                    <span className="font-mono text-sm text-emerald-500 font-bold">{simStability}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="30"
+                    max="100"
+                    value={simStability}
+                    onChange={(e) => setSimStability(Number(e.target.value))}
+                    className="w-full h-2 bg-[var(--bg-surface-raised)] rounded-lg appearance-none cursor-pointer accent-[var(--accent)]"
+                  />
+                  <div className="flex justify-between text-[11px] text-[var(--text-secondary)] mt-1 font-mono">
+                    <span>Volatile (30%)</span>
+                    <span>Moderate (65%)</span>
+                    <span>Highly Stable (100%)</span>
+                  </div>
+                </div>
+
+                {/* Checkbox: OCR Verification */}
+                <div className="p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-display font-semibold text-[var(--text-primary)]">GST & Bank Statements Verified via OCR</div>
+                    <div className="text-xs text-[var(--text-secondary)]">Provides +50 confidence factor weighting</div>
+                  </div>
+                  <button
+                    onClick={() => setSimOcrVerified(!simOcrVerified)}
+                    className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-colors cursor-pointer ${
+                      simOcrVerified ? 'bg-[var(--accent)] border-[var(--accent)] text-black' : 'border-[var(--border-subtle)] bg-[var(--bg-surface-raised)]'
+                    }`}
+                  >
+                    {simOcrVerified && <Check className="w-4 h-4 stroke-[3]" />}
+                  </button>
+                </div>
               </div>
             </div>
+
+            {/* Result Simulation Card */}
+            <div className="lg:col-span-6">
+              <div className="rounded-3xl p-8 sm:p-10 bg-gradient-to-b from-[var(--bg-surface)] to-[var(--bg-surface-raised)] border border-[var(--border-subtle)] shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-60 h-60 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="flex justify-between items-center mb-8">
+                  <span className="text-xs uppercase font-mono tracking-widest text-[var(--text-secondary)]">
+                    Calculated Health Score
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${currentTier.bg} ${currentTier.color} border ${currentTier.border}`}>
+                    {currentTier.label}
+                  </span>
+                </div>
+
+                {/* Big Score Gauge */}
+                <div className="text-center py-6">
+                  <div className="font-display font-bold text-7xl sm:text-8xl tracking-tight text-[var(--text-primary)] mb-2">
+                    {computedScore}
+                  </div>
+                  <div className="text-xs uppercase tracking-widest text-[var(--text-secondary)] font-mono">
+                    Scale Range: 300 - 900
+                  </div>
+                </div>
+
+                {/* Offer Metrics */}
+                <div className="grid grid-cols-2 gap-4 my-6 pt-6 border-t border-[var(--border-subtle)]">
+                  <div className="p-4 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)]">
+                    <div className="text-xs text-[var(--text-secondary)] mb-1">Pre-Approved Capital</div>
+                    <div className="text-xl font-display font-bold text-[var(--text-primary)]">
+                      ₹{(simRevenue * 0.45).toFixed(1)} Lakhs
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)]">
+                    <div className="text-xs text-[var(--text-secondary)] mb-1">Indicative Interest Rate</div>
+                    <div className="text-xl font-display font-bold text-[var(--accent)]">
+                      {(14.5 - (computedScore - 600) * 0.015).toFixed(2)}% p.a.
+                    </div>
+                  </div>
+                </div>
+
+                <Link
+                  to="/role-selection"
+                  className="w-full py-4 rounded-full font-semibold text-sm tracking-wide bg-[var(--accent)] text-black hover:opacity-90 flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent-glow)] transition-all"
+                >
+                  <span>Apply with This Score</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 pt-20 pb-10">
+      {/* 9. FREQUENTLY ASKED QUESTIONS (MATCHING REFERENCE SECTION 8) */}
+      <section id="faq" className="py-24 lg:py-32 border-t border-[var(--border-subtle)] relative">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-12 mb-20">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-5xl font-display font-semibold text-[var(--text-primary)] tracking-normal mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-base sm:text-lg text-[var(--text-secondary)]">
+              Everything you need to know about our scoring methodology and platform architecture.
+            </p>
+          </div>
+
+          <FAQAccordion items={faqItems} />
+        </div>
+      </section>
+
+      {/* 10. HIGH-IMPACT BOTTOM BANNER (MATCHING REFERENCE SECTION 9) */}
+      <section className="py-16 relative overflow-hidden">
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <div className="rounded-[40px] p-8 sm:p-14 bg-gradient-to-r from-[#141C16] via-[#1A261D] to-[#121A14] text-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 border border-[var(--accent)]/30">
+            <div className="absolute inset-0 bg-radial from-[var(--accent)]/15 via-transparent to-transparent pointer-events-none" />
+
+            {/* Left Column: Device Mockup */}
+            <div className="w-48 sm:w-56 shrink-0 relative z-10 hidden sm:block">
+              <div className="w-full rounded-[30px] p-2 bg-neutral-900 shadow-2xl border-2 border-neutral-700">
+                <div className="w-full rounded-[24px] bg-[#0E1218] p-3 text-center">
+                  <div className="w-12 h-2.5 bg-black rounded-full mx-auto mb-2" />
+                  <div className="text-[9px] text-neutral-400 font-mono">Instant Limit</div>
+                  <div className="text-lg font-display font-bold text-[var(--accent)] mb-1">₹50,00,000</div>
+                  <div className="text-[8px] text-emerald-400 font-medium">● 90s Underwrite Ready</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Copy & Action */}
+            <div className="relative z-10 text-center md:text-left flex-1">
+              <h2 className="text-2xl sm:text-4xl font-display font-bold text-white tracking-tight mb-4">
+                Start Underwriting Smarter with FinPulse
+              </h2>
+              <p className="text-sm sm:text-base text-neutral-300 max-w-lg mb-8 leading-relaxed">
+                Connect your business or lending portfolio to the autonomous AI credit intelligence network.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
+                <Link
+                  to="/role-selection"
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-full font-display font-semibold text-sm bg-[var(--accent)] text-black hover:opacity-90 shadow-xl shadow-[var(--accent-glow)] transition-all hover:scale-105"
+                >
+                  Get Started Now
+                </Link>
+                <Link
+                  to="/find-lender"
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-full font-display font-medium text-sm bg-white/10 hover:bg-white/15 border border-white/15 text-white transition-all"
+                >
+                  Explore Marketplace
+                </Link>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* 11. FOOTER WITH MASSIVE "FINPULSE" BRAND TYPOGRAPHY (MATCHING REFERENCE SECTION 10) */}
+      <footer className="pt-20 pb-12 border-t border-[var(--border-subtle)] bg-[var(--bg-canvas)] relative overflow-hidden transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-16">
+            
+            {/* Col 1: Brand Info */}
             <div className="col-span-2">
-              <div className="flex items-center gap-2 mb-6">
-                <span className="material-icons text-[#2262ec] text-2xl">show_chart</span>
-                <span className="text-xl font-bold pulse-logo">FinPulse</span>
+              <div className="mb-4">
+                <Logo to="/" size="lg" subtitle="Autonomous Underwriting" />
               </div>
-              <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-xs">
-                The world's leading AI platform for real-time financial health and loan risk intelligence.
+              <p className="text-sm text-[var(--text-secondary)] max-w-sm mb-6 leading-relaxed">
+                Autonomous AI credit underwriting platform powering next-generation financial inclusion for verified MSMEs and lenders.
               </p>
-              <div className="flex gap-4">
-                <a className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-[#2262ec] hover:text-white transition-all" href="#"><span className="material-icons text-sm">public</span></a>
-                <a className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-[#2262ec] hover:text-white transition-all" href="#"><span className="material-icons text-sm">camera_alt</span></a>
-                <a className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-[#2262ec] hover:text-white transition-all" href="#"><span className="material-icons text-sm">groups</span></a>
+              <div className="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+                <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
+                <span>All Models & Systems Operational</span>
               </div>
             </div>
+
+            {/* Col 2: Platform */}
             <div>
-              <h5 className="font-bold mb-6">Product</h5>
-              <ul className="space-y-4 text-sm text-slate-500 dark:text-slate-400">
-                <li><a className="hover:text-[#2262ec] transition-colors" href="#">Scoring Engine</a></li>
-                <li><a className="hover:text-[#2262ec] transition-colors" href="#">Monitoring</a></li>
-                <li><a className="hover:text-[#2262ec] transition-colors" href="#">API Docs</a></li>
-                <li><a className="hover:text-[#2262ec] transition-colors" href="#">Integrations</a></li>
+              <h4 className="text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] mb-4 font-semibold">Platform</h4>
+              <ul className="space-y-3 text-sm text-[var(--text-secondary)]">
+                <li><a href="#process" className="hover:text-[var(--text-primary)] transition-colors">Underwriting Engine</a></li>
+                <li><a href="#process" className="hover:text-[var(--text-primary)] transition-colors">OCR Parser</a></li>
+                <li><a href="#simulator" className="hover:text-[var(--text-primary)] transition-colors">Risk Simulator</a></li>
+                <li><Link to="/find-lender" className="hover:text-[var(--text-primary)] transition-colors">Lender Exchange</Link></li>
               </ul>
             </div>
+
+            {/* Col 3: Solutions */}
             <div>
-              <h5 className="font-bold mb-6">Company</h5>
-              <ul className="space-y-4 text-sm text-slate-500 dark:text-slate-400">
-                <li><a className="hover:text-[#2262ec] transition-colors" href="#">About Us</a></li>
-                <li><a className="hover:text-[#2262ec] transition-colors" href="#">Careers</a></li>
-                <li><a className="hover:text-[#2262ec] transition-colors" href="#">Press</a></li>
-                <li><a className="hover:text-[#2262ec] transition-colors" href="#">Contact</a></li>
+              <h4 className="text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] mb-4 font-semibold">Solutions</h4>
+              <ul className="space-y-3 text-sm text-[var(--text-secondary)]">
+                <li><Link to="/role-selection" className="hover:text-[var(--text-primary)] transition-colors">For FinTech Lenders</Link></li>
+                <li><Link to="/role-selection" className="hover:text-[var(--text-primary)] transition-colors">For Small Businesses</Link></li>
+                <li><Link to="/lender/plans" className="hover:text-[var(--text-primary)] transition-colors">Enterprise Plans</Link></li>
+                <li><Link to="/role-selection" className="hover:text-[var(--text-primary)] transition-colors">API Integration</Link></li>
               </ul>
             </div>
+
+            {/* Col 4: Trust & Legal */}
             <div>
-              <h5 className="font-bold mb-6">Legal</h5>
-              <ul className="space-y-4 text-sm text-slate-500 dark:text-slate-400">
-                <li><a className="hover:text-[#2262ec] transition-colors" href="#">Privacy Policy</a></li>
-                <li><a className="hover:text-[#2262ec] transition-colors" href="#">Terms of Service</a></li>
-                <li><a className="hover:text-[#2262ec] transition-colors" href="#">Compliance</a></li>
+              <h4 className="text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] mb-4 font-semibold">Compliance</h4>
+              <ul className="space-y-3 text-sm text-[var(--text-secondary)]">
+                <li><span>ISO 27001 Certified</span></li>
+                <li><span>AES-256 Encryption</span></li>
+                <li><span>SHAP Explainability</span></li>
+                <li><span>Data Privacy Policy</span></li>
               </ul>
             </div>
+
           </div>
-          <div className="pt-10 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-sm text-slate-400">© 2024 FinPulse Intelligence Inc. All rights reserved.</p>
-            <div className="flex items-center gap-6 text-sm text-slate-400">
-              <span className="flex items-center gap-1"><span className="material-icons text-xs text-green-500">fiber_manual_record</span> All Systems Operational</span>
+
+          {/* MASSIVE BRAND NAME TEXT (As in Reference Image) */}
+          <div className="w-full text-center overflow-hidden py-4 select-none pointer-events-none">
+            <span className="text-massive-brand block">
+              FINPULSE
+            </span>
+          </div>
+
+          {/* Bottom Copyright & Disclaimer */}
+          <div className="pt-8 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row items-center justify-between text-xs text-[var(--text-secondary)] gap-4">
+            <div>
+              © {new Date().getFullYear()} FinPulse Technologies Inc. All rights reserved.
+            </div>
+            <div className="flex items-center gap-6">
+              <span>Financial Intelligence Protocol v2.4</span>
+              <span>Made for High-Trust Lending</span>
             </div>
           </div>
         </div>
       </footer>
+
     </div>
   );
-};
-
-export default LandingPage;
+}

@@ -2,6 +2,8 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    AdminDashboardStatsView,
+    AdminUserManagementView,
     AnomalyDetectionView,
     AsyncTaskStatusView,
     BorrowerDocumentViewSet,
@@ -10,13 +12,15 @@ from .views import (
     CashFlowForecastView,
     DefaultRiskPredictionView,
     HealthScorePredictionView,
-    QueueApplicationProcessingView,
-    QueueBorrowerRefreshView,
-    QueueLenderOverviewView,
+    LenderDocumentViewSet,
     LenderProfileViewSet,
     LenderRegistrationView,
     LoanApplicationViewSet,
     LoginView,
+    NotificationViewSet,
+    QueueApplicationProcessingView,
+    QueueBorrowerRefreshView,
+    QueueLenderOverviewView,
     WellnessRecommendationView,
     health_check,
 )
@@ -26,6 +30,8 @@ router.register(r"borrowers", BorrowerProfileViewSet, basename="borrowers")
 router.register(r"lenders", LenderProfileViewSet, basename="lenders")
 router.register(r"applications", LoanApplicationViewSet, basename="applications")
 router.register(r"documents", BorrowerDocumentViewSet, basename="documents")
+router.register(r"lender-documents", LenderDocumentViewSet, basename="lender-documents")
+router.register(r"notifications", NotificationViewSet, basename="notifications")
 
 urlpatterns = [
     path("health/", health_check, name="health-check"),
@@ -37,6 +43,9 @@ urlpatterns = [
     path("detect/anomaly/", AnomalyDetectionView.as_view(), name="detect-anomaly"),
     path("forecast/balance/", CashFlowForecastView.as_view(), name="forecast-balance"),
     path("recommend/wellness/", WellnessRecommendationView.as_view(), name="recommend-wellness"),
+    path("admin/stats/", AdminDashboardStatsView.as_view(), name="admin-stats"),
+    path("admin/users/", AdminUserManagementView.as_view(), name="admin-users"),
+    path("admin/users/<int:user_id>/", AdminUserManagementView.as_view(), name="admin-user-detail"),
     path("queue/tasks/<str:task_id>/", AsyncTaskStatusView.as_view(), name="queue-task-status"),
     path(
         "queue/applications/<uuid:application_id>/process/",

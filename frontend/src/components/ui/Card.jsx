@@ -1,15 +1,35 @@
 import React from 'react';
 
-export const Card = ({ children, className = '', ...props }) => {
+export const Card = ({ children, className = '', hoverGlow = true, ...props }) => {
   return (
-    <div className={`bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden ${className}`} {...props}>
+    <div
+      className={`bg-[var(--bg-surface)] text-[var(--text-primary)] rounded-[24px] border border-[var(--border-subtle)] shadow-[0_12px_32px_rgba(0,0,0,0.25)] overflow-hidden transition-all duration-200 ${
+        hoverGlow ? 'hover:shadow-[0_12px_32px_rgba(0,0,0,0.35),0_0_0_1px_var(--accent-glow)]' : ''
+      } ${className}`}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+};
+
+export const ContrastCard = ({ children, className = '', accent = false, ...props }) => {
+  return (
+    <div
+      className={`rounded-[24px] p-6 shadow-[0_12px_32px_rgba(0,0,0,0.3)] transition-all duration-200 ${
+        accent
+          ? 'bg-[var(--accent)] text-[var(--text-on-accent)]'
+          : 'bg-[var(--bg-inverse-panel)] text-[var(--text-on-inverse)]'
+      } ${className}`}
+      {...props}
+    >
       {children}
     </div>
   );
 };
 
 export const CardHeader = ({ children, className = '' }) => (
-  <div className={`px-6 py-5 border-b border-gray-100 dark:border-slate-800 ${className}`}>
+  <div className={`px-6 py-5 border-b border-[var(--border-subtle)] ${className}`}>
     {children}
   </div>
 );
@@ -21,7 +41,9 @@ export const CardContent = ({ children, className = '' }) => (
 );
 
 export const CardFooter = ({ children, className = '' }) => (
-  <div className={`px-6 py-4 bg-gray-50 dark:bg-slate-850 border-t border-gray-100 dark:border-slate-800 ${className}`}>
+  <div className={`px-6 py-4 bg-[var(--bg-surface-raised)] border-t border-[var(--border-subtle)] ${className}`}>
     {children}
   </div>
 );
+
+export default Card;

@@ -4,16 +4,14 @@ const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
     const [theme, setTheme] = useState(() => {
-        // Retrieve theme from localStorage or default to 'light'
+        // Retrieve theme from localStorage or default to canonical 'dark'
         if (typeof window !== 'undefined') {
             const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
+            if (savedTheme === 'light' || savedTheme === 'dark') {
                 return savedTheme;
             }
-            // Optional: fallback to system preference
-            // if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
         }
-        return 'light';
+        return 'dark'; // Canonical dark default per design.md §2.1
     });
 
     useEffect(() => {
@@ -22,14 +20,14 @@ export const ThemeProvider = ({ children }) => {
             root.classList.add('dark');
             root.classList.remove('light');
             root.setAttribute('data-theme', 'dark');
-            document.body.style.backgroundColor = '#0f172a';
-            document.body.style.color = '#f8fafc';
+            document.body.style.backgroundColor = 'var(--bg-canvas)';
+            document.body.style.color = 'var(--text-primary)';
         } else {
             root.classList.add('light');
             root.classList.remove('dark');
             root.setAttribute('data-theme', 'light');
-            document.body.style.backgroundColor = '#f8fafc';
-            document.body.style.color = '#0f172a';
+            document.body.style.backgroundColor = 'var(--bg-canvas)';
+            document.body.style.color = 'var(--text-primary)';
         }
         localStorage.setItem('theme', theme);
     }, [theme]);

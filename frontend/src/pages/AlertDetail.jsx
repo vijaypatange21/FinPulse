@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import LenderLayout from '../components/LenderLayout';
 import { listApplications, listBorrowers, getApplicationById, getBorrowerById } from '../lib/api';
+import Card, { ContrastCard } from '../components/ui/Card';
+import StatusBadge from '../components/ui/StatusBadge';
 
 const formatMoney = (value) => {
     const numericValue = Number(value || 0);
@@ -82,8 +84,8 @@ const AlertDetail = () => {
         return (
             <LenderLayout activeSection="alerts">
                 <div className="max-w-7xl mx-auto w-full space-y-6 animate-pulse">
-                    <div className="h-20 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800" />
-                    <div className="h-64 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800" />
+                    <div className="h-20 bg-[var(--bg-surface)] rounded-[var(--radius-lg)] border border-[var(--border-subtle)]" />
+                    <div className="h-64 bg-[var(--bg-surface)] rounded-[var(--radius-lg)] border border-[var(--border-subtle)]" />
                 </div>
             </LenderLayout>
         );
@@ -100,68 +102,67 @@ const AlertDetail = () => {
             <LenderLayout activeSection="alerts">
                 <div className="max-w-7xl mx-auto w-full pb-24 space-y-8">
                     <div className="flex items-center gap-4">
-                        <Link to="/lender/alerts" className="bg-[#2262ec]/10 p-2 rounded-lg hover:bg-[#2262ec]/20 transition-colors">
-                            <span className="material-icons text-[#2262ec]">arrow_back</span>
+                        <Link to="/lender/alerts" className="p-2 rounded-full border border-[var(--border-subtle)] hover:bg-[var(--bg-surface-hover)] transition-colors text-[var(--text-secondary)]">
+                            <span className="material-symbols-outlined text-base">arrow_back</span>
                         </Link>
                         <div>
-                            <h1 className="font-bold text-lg tracking-tight">FinPulse <span className="text-[#2262ec]">Surveillance Monitor</span></h1>
-                            <p className="text-xs text-slate-500 mt-0.5">Facility Stream #{String(id).slice(0, 8)}</p>
+                            <h1 className="font-clash text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+                                Surveillance Detail Inspection
+                            </h1>
+                            <p className="text-xs text-[var(--text-secondary)] mt-0.5">Facility Stream #{String(id).slice(0, 8)}</p>
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-6">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <Card className="p-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                             <div className="flex items-center gap-4">
-                                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
-                                    score >= 750 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200' :
-                                    score >= 650 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200' :
-                                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200'
-                                }`}>
-                                    {score >= 750 ? 'HEALTHY' : score >= 650 ? 'MONITORED' : 'ACTION REQUIRED'}
-                                </span>
-                                <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 hidden md:block"></div>
+                                <StatusBadge
+                                    status={score >= 750 ? 'approved' : score >= 650 ? 'under_review' : 'rejected'}
+                                    label={score >= 750 ? 'Healthy' : score >= 650 ? 'Monitored' : 'Action Required'}
+                                />
+                                <div className="h-10 w-px bg-[var(--border-subtle)] hidden md:block"></div>
                                 <div>
-                                    <h2 className="text-2xl font-bold">{entityName}</h2>
-                                    <p className="text-slate-500 text-sm flex items-center gap-2">
+                                    <h2 className="font-clash text-2xl font-bold text-[var(--text-primary)]">{entityName}</h2>
+                                    <p className="text-[var(--text-secondary)] text-xs flex items-center gap-2 mt-1">
                                         <span>{loanType}</span>
-                                        <span className="text-slate-300 dark:text-slate-600">•</span>
-                                        <span>{formatMoney(amountVal)}</span>
+                                        <span>•</span>
+                                        <span className="font-semibold tabular-nums text-[var(--text-primary)]">{formatMoney(amountVal)}</span>
                                     </p>
                                 </div>
                             </div>
                             <div className="flex gap-8">
                                 <div className="text-center">
-                                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">AI Health Score</p>
-                                    <div className="flex items-center gap-1 justify-center">
-                                        <span className="text-2xl font-bold text-[#2262ec]">{score}</span>
-                                        <span className="text-xs text-slate-400">/850</span>
+                                    <p className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1">Health Score</p>
+                                    <div className="flex items-baseline gap-1 justify-center">
+                                        <span className="font-clash text-2xl font-bold tabular-nums text-[var(--accent)]">{score}</span>
+                                        <span className="text-xs text-[var(--text-muted)]">/ 850</span>
                                     </div>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Status</p>
-                                    <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Active</p>
+                                    <p className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1">Status</p>
+                                    <p className="text-xs font-semibold text-[var(--status-success)]">Active</p>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </Card>
 
-                    <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                    <Card className="p-6">
                         <div className="flex items-center gap-2 mb-4">
-                            <span className="material-icons text-[#2262ec]">psychology</span>
-                            <h3 className="font-bold text-slate-800 dark:text-slate-100">AI Risk Assessment Summary</h3>
+                            <span className="material-symbols-outlined text-[var(--accent)]">psychology</span>
+                            <h3 className="font-clash font-semibold text-base text-[var(--text-primary)]">AI Risk Assessment Summary</h3>
                         </div>
-                        <div className="bg-[#2262ec]/5 border border-[#2262ec]/20 rounded-xl p-5">
-                            <strong className="text-[#2262ec] font-semibold text-sm block mb-1 uppercase tracking-tight">
+                        <div className="bg-[var(--accent-tint)]/40 border border-[var(--accent)]/30 rounded-[var(--radius-md)] p-5">
+                            <strong className="text-[var(--accent)] font-semibold text-xs block mb-1 uppercase tracking-wider">
                                 {score >= 700 ? 'Facility Performing Within Parameters' : 'Risk Volatility Detected'}
                             </strong>
-                            <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
+                            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                                 {score >= 700
                                     ? 'Underwriting models evaluate positive cash flow stability, verified credit credentials, and minimal probability of default.'
                                     : 'Automated credit surveillance detected variances in debt-to-income or outflow ratios. Recommend reviewing recent transaction verification before increasing credit exposure.'
                                 }
                             </p>
                         </div>
-                    </section>
+                    </Card>
                 </div>
             </LenderLayout>
         );
@@ -174,96 +175,100 @@ const AlertDetail = () => {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-black tracking-tight">Risk Alerts & Surveillance</h1>
-                        <p className="text-slate-500 dark:text-slate-400 mt-1">Real-time credit volatility anomalies and portfolio risk notifications.</p>
+                        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--accent)]">
+                            Credit Volatility Stream
+                        </span>
+                        <h1 className="font-clash text-3xl md:text-4xl font-semibold tracking-tight text-[var(--text-primary)] mt-1">
+                            Risk Alerts & Surveillance
+                        </h1>
+                        <p className="text-xs text-[var(--text-secondary)] mt-1">Real-time credit volatility anomalies and portfolio risk notifications</p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold border border-emerald-200 dark:border-emerald-800/30 flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span className="px-3 py-1.5 bg-[var(--status-success-bg)] text-[var(--status-success)] rounded-[var(--radius-pill)] text-xs font-semibold border border-[var(--status-success)]/30 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[var(--status-success)] animate-pulse"></span>
                             Live AI Surveillance Active
                         </span>
                     </div>
                 </div>
 
-                {/* KPI Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Active Risk Alerts</p>
-                        <div className="flex items-end justify-between">
-                            <h3 className={`text-3xl font-bold ${totalAlerts > 0 ? 'text-red-600' : 'text-slate-900 dark:text-white'}`}>
+                {/* Bento Stat Grid: 3 Quiet + 1 Contrast Island */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <ContrastCard className="p-6 flex flex-col justify-between min-h-[140px]">
+                        <span className="text-xs font-medium uppercase tracking-wider opacity-75">Active Risk Alerts</span>
+                        <div className="mt-3">
+                            <span className="font-clash text-3xl font-semibold tracking-tight tabular-nums">
                                 {totalAlerts}
-                            </h3>
-                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                                totalAlerts > 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                            }`}>
-                                {totalAlerts > 0 ? 'Requires Action' : 'All Clear'}
                             </span>
+                            <p className="text-xs opacity-75 mt-1 font-medium">
+                                {totalAlerts > 0 ? 'Requires underwriting attention' : 'All clear across network'}
+                            </p>
                         </div>
-                    </div>
+                    </ContrastCard>
 
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Portfolio Avg Health Score</p>
-                        <div className="flex items-end justify-between">
-                            <h3 className="text-3xl font-bold text-[#2262ec]">
-                                {portfolioAvgScore !== null ? portfolioAvgScore : 'N/A'}
-                            </h3>
-                            {portfolioAvgScore !== null && <span className="text-xs text-slate-400 font-semibold">Out of 850</span>}
+                    <Card className="p-6 flex flex-col justify-between min-h-[140px]">
+                        <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Portfolio Avg Score</span>
+                        <div className="mt-3">
+                            <div className="flex items-baseline gap-2">
+                                <span className="font-clash text-3xl font-semibold tracking-tight tabular-nums text-[var(--accent)]">
+                                    {portfolioAvgScore !== null ? portfolioAvgScore : 'N/A'}
+                                </span>
+                                {portfolioAvgScore !== null && <span className="text-xs text-[var(--text-muted)] font-medium">/ 850</span>}
+                            </div>
+                            <p className="text-xs text-[var(--text-secondary)] mt-1">Consolidated AI health rating</p>
                         </div>
-                    </div>
+                    </Card>
 
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Monitored Facilities</p>
-                        <div className="flex items-end justify-between">
-                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white">
+                    <Card className="p-6 flex flex-col justify-between min-h-[140px]">
+                        <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Monitored Facilities</span>
+                        <div className="mt-3">
+                            <span className="font-clash text-3xl font-semibold tracking-tight tabular-nums text-[var(--text-primary)]">
                                 {applications.length + borrowers.length}
-                            </h3>
-                            <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                                <span className="material-icons text-sm">verified</span> 100% Covered
                             </span>
+                            <p className="text-xs text-[var(--status-success)] mt-1 font-medium flex items-center gap-1">
+                                <span className="material-symbols-outlined text-xs">verified</span> 100% active coverage
+                            </p>
                         </div>
-                    </div>
+                    </Card>
                 </div>
 
-                {/* Alerts List / Clean Empty State */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                    <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                        <h2 className="font-bold text-lg text-slate-900 dark:text-white">Active Risk Notifications</h2>
-                        <span className="text-xs text-slate-400 font-medium">{totalAlerts} Alert{totalAlerts === 1 ? '' : 's'}</span>
+                {/* Alerts List */}
+                <Card className="overflow-hidden">
+                    <div className="p-6 border-b border-[var(--border-subtle)] flex items-center justify-between">
+                        <h2 className="font-clash font-semibold text-lg text-[var(--text-primary)]">Active Risk Notifications</h2>
+                        <span className="text-xs text-[var(--text-secondary)] font-medium">{totalAlerts} Alert{totalAlerts === 1 ? '' : 's'}</span>
                     </div>
 
                     {totalAlerts === 0 ? (
                         <div className="p-12 text-center flex flex-col items-center justify-center">
-                            <div className="w-16 h-16 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-4">
-                                <span className="material-icons text-3xl">verified_user</span>
+                            <div className="w-14 h-14 rounded-full bg-[var(--status-success-bg)] text-[var(--status-success)] flex items-center justify-center mb-3">
+                                <span className="material-symbols-outlined text-3xl">verified_user</span>
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Zero Risk Alerts Detected</h3>
-                            <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                            <h3 className="font-clash text-base font-semibold text-[var(--text-primary)] mb-1">Zero Risk Alerts Detected</h3>
+                            <p className="text-xs text-[var(--text-secondary)] max-w-md mx-auto leading-relaxed">
                                 All monitored borrowers and incoming loan applications assigned to your institution are currently performing within expected health thresholds.
                             </p>
                         </div>
                     ) : (
-                        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                        <div className="divide-y divide-[var(--border-subtle)]">
                             {flaggedApps.map((app) => (
-                                <div key={app.id || app.application_id} className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <div key={app.id || app.application_id} className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-[var(--bg-surface-hover)] transition-colors">
                                     <div className="flex items-start gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 shrink-0 mt-0.5 sm:mt-0">
-                                            <span className="material-icons text-xl">warning</span>
+                                        <div className="w-9 h-9 rounded-xl bg-[var(--status-error-bg)] text-[var(--status-error)] flex items-center justify-center shrink-0 mt-0.5">
+                                            <span className="material-symbols-outlined text-lg">warning</span>
                                         </div>
                                         <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="font-bold text-slate-900 dark:text-white">{app.borrowerName || app.name || 'Borrower'}</h4>
-                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 uppercase">
-                                                    High Risk Application
-                                                </span>
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <h4 className="font-semibold text-xs text-[var(--text-primary)]">{app.borrowerName || app.name || 'Borrower'}</h4>
+                                                <StatusBadge status="rejected" label="High Risk Application" />
                                             </div>
-                                            <p className="text-xs text-slate-500">
-                                                {app.loanType || app.loan_type} • Requested {formatMoney(app.amount || app.requested_amount)} • AI Score: <strong className="text-red-600">{app.aiScore ?? app.ai_score}</strong>/850
+                                            <p className="text-xs text-[var(--text-secondary)]">
+                                                {app.loanType || app.loan_type} • Requested {formatMoney(app.amount || app.requested_amount)} • AI Score: <strong className="text-[var(--status-error)] tabular-nums">{app.aiScore ?? app.ai_score}</strong>/850
                                             </p>
                                         </div>
                                     </div>
                                     <Link
                                         to={`/lender/applications/${app.id || app.application_id}`}
-                                        className="px-4 py-2 bg-[#2262ec] text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shrink-0"
+                                        className="px-3.5 py-1.5 bg-[var(--accent)] text-[var(--text-on-accent)] rounded-[var(--radius-pill)] text-xs font-semibold hover:opacity-90 transition-opacity shrink-0"
                                     >
                                         Review Application
                                     </Link>
@@ -271,39 +276,35 @@ const AlertDetail = () => {
                             ))}
 
                             {flaggedBorrowers.map((b) => (
-                                <div key={b.id} className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <div key={b.id} className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-[var(--bg-surface-hover)] transition-colors">
                                     <div className="flex items-start gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 shrink-0 mt-0.5 sm:mt-0">
-                                            <span className="material-icons text-xl">priority_high</span>
+                                        <div className="w-9 h-9 rounded-xl bg-[var(--status-warning-bg)] text-[var(--status-warning)] flex items-center justify-center shrink-0 mt-0.5">
+                                            <span className="material-symbols-outlined text-lg">priority_high</span>
                                         </div>
                                         <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="font-bold text-slate-900 dark:text-white">{b.name}</h4>
-                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 uppercase">
-                                                    {b.status}
-                                                </span>
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <h4 className="font-semibold text-xs text-[var(--text-primary)]">{b.name}</h4>
+                                                <StatusBadge status="rejected" label={b.status} />
                                             </div>
-                                            <p className="text-xs text-slate-500">
+                                            <p className="text-xs text-[var(--text-secondary)]">
                                                 Outstanding: {formatMoney(b.outstanding)} • Risk Score: {b.riskScore || b.healthScore}/850
                                             </p>
                                         </div>
                                     </div>
                                     <Link
                                         to={`/lender/borrowers/${b.id}`}
-                                        className="px-4 py-2 bg-slate-800 dark:bg-slate-700 text-white rounded-lg text-xs font-bold hover:bg-slate-700 transition-colors shrink-0"
+                                        className="px-3.5 py-1.5 border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-[var(--radius-pill)] text-xs font-semibold transition-colors shrink-0"
                                     >
-                                        View Borrower Profile
+                                        View Profile
                                     </Link>
                                 </div>
                             ))}
                         </div>
                     )}
-                </div>
+                </Card>
             </div>
         </LenderLayout>
     );
 };
 
 export default AlertDetail;
-
-

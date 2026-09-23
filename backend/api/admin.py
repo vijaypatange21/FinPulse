@@ -11,7 +11,10 @@ from .models import (
     LoanApplication,
     LoanRegisterFact,
     LoanSummaryDim,
+    BorrowerDocument,
+    LenderDocument,
     MasterMLTrainingTable,
+    Notification,
     User,
 )
 
@@ -19,6 +22,9 @@ admin.site.register(User)
 admin.site.register(BorrowerProfile)
 admin.site.register(LenderProfile)
 admin.site.register(LoanApplication)
+admin.site.register(BorrowerDocument)
+admin.site.register(LenderDocument)
+admin.site.register(Notification)
 admin.site.register(ITRProfile)
 admin.site.register(GSTMonthlyFact)
 admin.site.register(BankTransactionFact)
